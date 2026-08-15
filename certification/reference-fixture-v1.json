@@ -1,0 +1,70 @@
+{
+  "schema_version": "turnvector.benchmark.certification-record.v1",
+  "id": "reference-fixture-v1",
+  "subject_build_identity": "reference-fixture-build-v1",
+  "protocol_version": "turnvector.benchmark.subject.v1",
+  "issued_at": "2026-08-01T00:00:00Z",
+  "expires_at": "2099-01-01T00:00:00Z",
+  "environment_identity": {
+    "device_class": "fixture",
+    "memory_bytes": 1048576,
+    "os_build": "fixture"
+  },
+  "matrix_applicability": {
+    "result": ["completed", "failed", "cancelled", "indeterminate"],
+    "sequence_relation": ["current", "duplicate", "late", "unknown", "stale_generation"],
+    "scenario": ["weighted_service", "idle_reentry", "urgency_after_safety"],
+    "runnable_models": [1, 2, 8, 32, 128],
+    "urgency_mix": ["none", "mixed"],
+    "resource_mode": ["normal", "guarded", "stop_admission", "critical"],
+    "service_class": ["interactive", "standard", "background"],
+    "client_event": ["none", "cancel_before_receipt", "cancel_after_receipt", "disconnect", "backpressure_timeout"],
+    "model_architecture": ["dense", "moe"],
+    "batch_size": [1, 4],
+    "context_tokens": [512, 2048, 8192],
+    "prompt_tokens": [64, 256, 1024],
+    "boundary": ["cpp_direct_oracle", "implementation_candidate"],
+    "operation": ["load", "unload", "reload", "restore", "reclaim"],
+    "outcome": ["success", "cancelled", "failed", "delayed_reclaim", "normal", "crash_before_start", "crash_during_turn", "timeout", "malformed_frame", "duplicate_receipt"],
+    "model_pair": ["dense_dense", "dense_moe", "moe_moe"],
+    "contender_work": ["long_prefill", "decode"],
+    "model_weights": ["1_to_1", "1_to_3"],
+    "telemetry": ["off", "on"],
+    "fault": ["none", "revision_mismatch", "abi_mismatch", "corruption", "interrupted_payload", "interrupted_metadata", "concurrent_reader_writer", "restart", "pre_commit_crash", "post_commit_pre_sync_crash", "audit_tail_gap", "duplicate_operation", "indeterminate_effect"],
+    "protocol_relation": ["exact", "compatible", "incompatible", "unknown_capability"],
+    "changed_identity": ["none", "model_revision", "phase", "batch", "shape", "worker_build", "mlx_build", "protocol_capability", "device_class", "memory_size", "os_version"],
+    "record_state": ["applicable", "missing", "expired", "quarantined", "superseded"]
+  },
+  "thresholds": {
+    "scheduler-performance": {
+      "decision_latency_p99_us": 1000,
+      "decisions_per_second": 1000
+    },
+    "bounded-turn-and-ffi": {
+      "turn_service_p99_us": 1000,
+      "ffi_latency_regression_p95_percent": 10
+    },
+    "residency-and-memory-governor": {
+      "peak_memory_bytes": 1048576,
+      "reclaim_convergence_p99_us": 1000
+    },
+    "cross-model-serving": {
+      "progress_p99_us": 1000,
+      "timing_commitment_p99_us": 1000,
+      "weighted_service_error_percent": 5,
+      "ttft_p95_us": 1000,
+      "tpot_p95_us": 1000,
+      "throughput_tokens_per_second": 1000
+    },
+    "observability-qualification": {
+      "instruments_relative_error_median_percent": 10,
+      "instruments_relative_error_p95_percent": 20,
+      "telemetry_throughput_regression_percent": 2,
+      "telemetry_tpot_p95_regression_percent": 3
+    },
+    "protocol-and-worker-supervision": {
+      "transport_max_frame_bytes": 1024,
+      "transport_latency_p99_us": 1000
+    }
+  }
+}

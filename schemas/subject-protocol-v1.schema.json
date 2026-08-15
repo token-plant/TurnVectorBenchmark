@@ -1,0 +1,268 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://token-plant.github.io/TurnVectorBenchmark/schemas/subject-protocol-v1.schema.json",
+  "oneOf": [
+    {"$ref": "#/$defs/hello"},
+    {"$ref": "#/$defs/hello_ack"},
+    {"$ref": "#/$defs/case_open"},
+    {"$ref": "#/$defs/case_open_ack"},
+    {"$ref": "#/$defs/case_step"},
+    {"$ref": "#/$defs/case_step_ack"},
+    {"$ref": "#/$defs/case_close"},
+    {"$ref": "#/$defs/case_close_ack"},
+    {"$ref": "#/$defs/shutdown"},
+    {"$ref": "#/$defs/shutdown_ack"}
+  ],
+  "$defs": {
+    "id": {"type": "string", "pattern": "^[a-z0-9][a-z0-9._-]*$"},
+    "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "data_plane": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "protocol_family",
+        "protocol_major",
+        "protocol_minor",
+        "descriptor_sha256",
+        "transport",
+        "socket_path",
+        "limits",
+        "timeouts",
+        "model_revisions",
+        "process_ids"
+      ],
+      "properties": {
+        "protocol_family": {"const": "turnvector.data-plane"},
+        "protocol_major": {"const": 1},
+        "protocol_minor": {"const": 1},
+        "descriptor_sha256": {"const": "1e3c03654e107a39fa055ec8e577d8ed80377239193075dafff1bc5a9d6f7500"},
+        "transport": {"const": "unix_stream"},
+        "socket_path": {"type": "string", "pattern": "^/"},
+        "limits": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["max_frame_bytes", "max_outstanding_commands", "max_command_bytes"],
+          "properties": {
+            "max_frame_bytes": {"type": "integer", "minimum": 1, "maximum": 67108864},
+            "max_outstanding_commands": {"type": "integer", "minimum": 1, "maximum": 65536},
+            "max_command_bytes": {"type": "integer", "minimum": 1, "maximum": 67108864}
+          }
+        },
+        "timeouts": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["connect_seconds", "frame_seconds", "max_server_write_timeout_ms"],
+          "properties": {
+            "connect_seconds": {"type": "number", "exclusiveMinimum": 0, "maximum": 60},
+            "frame_seconds": {"type": "number", "exclusiveMinimum": 0, "maximum": 300},
+            "max_server_write_timeout_ms": {"type": "integer", "minimum": 1, "maximum": 5000}
+          }
+        },
+        "model_revisions": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["dense", "moe"],
+          "properties": {
+            "dense": {"$ref": "#/$defs/sha256"},
+            "moe": {"$ref": "#/$defs/sha256"}
+          }
+        },
+        "process_ids": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {"type": "integer", "minimum": 1, "maximum": 2147483647}
+        }
+      }
+    },
+    "hello": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "protocol_version", "run_id", "lane_id", "lane_protocol"],
+      "properties": {
+        "kind": {"const": "hello"},
+        "protocol_version": {"const": "turnvector.benchmark.subject.v1"},
+        "run_id": {"type": "string", "minLength": 1},
+        "lane_id": {"$ref": "#/$defs/id"},
+        "lane_protocol": {"$ref": "#/$defs/id"}
+      }
+    },
+    "hello_ack": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "protocol_version",
+        "subject",
+        "supported_lanes",
+        "binary_manifest",
+        "dependency_manifest",
+        "environment_identity"
+      ],
+      "properties": {
+        "kind": {"const": "hello_ack"},
+        "protocol_version": {"const": "turnvector.benchmark.subject.v1"},
+        "subject": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["name", "version", "kind", "build_identity"],
+          "properties": {
+            "name": {"type": "string", "minLength": 1},
+            "version": {"type": "string", "minLength": 1},
+            "kind": {"enum": ["implementation", "fixture"]},
+            "build_identity": {"type": "string", "minLength": 1}
+          }
+        },
+        "supported_lanes": {
+          "type": "object",
+          "propertyNames": {"$ref": "#/$defs/id"},
+          "additionalProperties": {"$ref": "#/$defs/id"}
+        },
+        "binary_manifest": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["path", "sha256"],
+            "properties": {
+              "path": {"type": "string", "minLength": 1},
+              "sha256": {"$ref": "#/$defs/sha256"}
+            }
+          }
+        },
+        "dependency_manifest": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["name", "version", "identity"],
+            "properties": {
+              "name": {"type": "string", "minLength": 1},
+              "version": {"type": "string", "minLength": 1},
+              "identity": {"type": "string", "minLength": 1}
+            }
+          }
+        },
+        "environment_identity": {"type": "object", "minProperties": 1},
+        "data_plane": {"$ref": "#/$defs/data_plane"}
+      }
+    },
+    "case": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "case_id",
+        "lane_id",
+        "matrix_id",
+        "ordinal",
+        "parameters",
+        "behavior_case_ids",
+        "operations",
+        "diagnostic_only"
+      ],
+      "properties": {
+        "case_id": {"type": "string", "minLength": 1},
+        "lane_id": {"$ref": "#/$defs/id"},
+        "matrix_id": {"$ref": "#/$defs/id"},
+        "ordinal": {"type": "integer", "minimum": 1},
+        "parameters": {"type": "object", "minProperties": 1},
+        "behavior_case_ids": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/id"}},
+        "operations": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/id"}},
+        "diagnostic_only": {"type": "boolean"}
+      }
+    },
+    "case_open": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "run_id", "case", "artifact_root", "case_directory"],
+      "properties": {
+        "kind": {"const": "case_open"},
+        "run_id": {"type": "string", "minLength": 1},
+        "case": {"$ref": "#/$defs/case"},
+        "artifact_root": {"type": "string", "minLength": 1},
+        "case_directory": {"type": "string", "pattern": "^cases/[0-9]{4,}$"}
+      }
+    },
+    "case_open_ack": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "case_id", "status"],
+      "properties": {
+        "kind": {"const": "case_open_ack"},
+        "case_id": {"type": "string", "minLength": 1},
+        "status": {"enum": ["ready", "unsupported", "environment_unavailable"]}
+      }
+    },
+    "case_step": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "case_id", "step_index", "operation", "payload"],
+      "properties": {
+        "kind": {"const": "case_step"},
+        "case_id": {"type": "string", "minLength": 1},
+        "step_index": {"type": "integer", "minimum": 1},
+        "operation": {"$ref": "#/$defs/id"},
+        "payload": {"type": "object"}
+      }
+    },
+    "case_step_ack": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "case_id", "step_index", "evidence"],
+      "properties": {
+        "kind": {"const": "case_step_ack"},
+        "case_id": {"type": "string", "minLength": 1},
+        "step_index": {"type": "integer", "minimum": 1},
+        "evidence": {"type": "object"}
+      }
+    },
+    "case_close": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "case_id"],
+      "properties": {
+        "kind": {"const": "case_close"},
+        "case_id": {"type": "string", "minLength": 1}
+      }
+    },
+    "artifact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "path", "size", "sha256"],
+      "properties": {
+        "id": {"$ref": "#/$defs/id"},
+        "path": {
+          "type": "string",
+          "minLength": 1,
+          "not": {"pattern": "(^/|(^|/)\\.\\.(/|$))"}
+        },
+        "size": {"type": "integer", "minimum": 0},
+        "sha256": {"$ref": "#/$defs/sha256"}
+      }
+    },
+    "case_close_ack": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "case_id", "observations", "artifacts"],
+      "properties": {
+        "kind": {"const": "case_close_ack"},
+        "case_id": {"type": "string", "minLength": 1},
+        "observations": {"type": "object"},
+        "artifacts": {"type": "array", "items": {"$ref": "#/$defs/artifact"}}
+      }
+    },
+    "shutdown": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind"],
+      "properties": {"kind": {"const": "shutdown"}}
+    },
+    "shutdown_ack": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind"],
+      "properties": {"kind": {"const": "shutdown_ack"}}
+    }
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "schema_version": "turnvector.benchmark.case-schema.v1",
+  "lane_id": "certification-envelopes",
+  "matrices": {
+    "applicability-drift": {
+      "required": ["changed_identity", "record_state"],
+      "properties": {
+        "changed_identity": {"enum": ["none", "model_revision", "phase", "batch", "shape", "worker_build", "mlx_build", "protocol_capability", "device_class", "memory_size", "os_version"]},
+        "record_state": {"enum": ["applicable", "missing", "expired", "quarantined", "superseded"]}
+      },
+      "additional_properties": false
+    }
+  }
+}

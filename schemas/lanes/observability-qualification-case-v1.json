@@ -1,0 +1,25 @@
+{
+  "schema_version": "turnvector.benchmark.case-schema.v1",
+  "lane_id": "observability-qualification",
+  "matrices": {
+    "decode-observability": {
+      "required": ["model_architecture", "batch_size", "context_tokens", "telemetry"],
+      "properties": {
+        "model_architecture": {"enum": ["dense", "moe"]},
+        "batch_size": {"enum": [1, 4]},
+        "context_tokens": {"enum": [512, 2048, 8192]},
+        "telemetry": {"enum": ["off", "on"]}
+      },
+      "additional_properties": false
+    },
+    "prefill-observability": {
+      "required": ["model_architecture", "prompt_tokens", "telemetry"],
+      "properties": {
+        "model_architecture": {"enum": ["dense", "moe"]},
+        "prompt_tokens": {"enum": [64, 256, 1024]},
+        "telemetry": {"enum": ["off", "on"]}
+      },
+      "additional_properties": false
+    }
+  }
+}

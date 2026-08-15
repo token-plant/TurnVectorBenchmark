@@ -1,0 +1,24 @@
+{
+  "schema_version": "turnvector.benchmark.lane-suite.v1",
+  "id": "scheduler-policy-subject-v1",
+  "lane_id": "scheduler-policy",
+  "protocol": "turnvector.benchmark.scheduler-policy.v1",
+  "runner": "scheduler-policy",
+  "adapter_category": "core",
+  "matrix_ids": ["scheduler-scenarios"],
+  "behavior_case_ids": ["weighted-service", "idle-reentry", "safety-before-urgency"],
+  "gate_ids": ["oracle-selection", "receipt-accounting", "deterministic-replay"],
+  "case_schema": "../../schemas/lanes/scheduler-policy-case-v1.json",
+  "operations": ["scheduler-replay"],
+  "metrics": [
+    {"metric": "oracle_selection_mismatch_count", "source": "oracle_selection_mismatches", "reducer": "sum"},
+    {"metric": "receipt_ledger_mismatch_count", "source": "receipt_ledger_mismatches", "reducer": "sum"},
+    {"metric": "plan_trace_hash_mismatch_count", "source": "plan_trace_hash_mismatches", "reducer": "sum"}
+  ],
+  "requirements": {
+    "execution_boundary": "core_adapter",
+    "real_subject_required": true,
+    "external_inputs": [],
+    "diagnostic_only_cases": []
+  }
+}

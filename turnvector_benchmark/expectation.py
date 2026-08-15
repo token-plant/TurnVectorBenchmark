@@ -11,7 +11,9 @@ from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple
 from .core import ContractError, IDENTIFIER_RE, Suite
 
 
-EXPECTATION_SCHEMA = "turnvector.benchmark.expectation.v1"
+EXPECTATION_SCHEMA_V1 = "turnvector.benchmark.expectation.v1"
+EXPECTATION_SCHEMA_V2 = "turnvector.benchmark.expectation.v2"
+EXPECTATION_SCHEMAS = {EXPECTATION_SCHEMA_V1, EXPECTATION_SCHEMA_V2}
 HARNESS_STATUSES = {"executable", "contract_only"}
 HARNESS_KINDS = {"jsonl_suite", "adapter"}
 GATE_OPERATORS = {"eq", "gte", "lte", "present"}
@@ -20,6 +22,7 @@ THRESHOLD_SOURCES = {"benchmark_contract", "certification_record", "run_manifest
 REQUIRED_LANE_POLICY = "all_required_lanes_must_execute_and_pass"
 CONTRACT_ONLY_POLICY = "required_but_not_yet_executable"
 SCOPE_POLICY = "claims_are_limited_to_exact_evidence_identity"
+UNSUPPORTED_POLICY = "required_lane_failure"
 
 
 def _object(value: Any, where: str) -> Dict[str, Any]:
@@ -96,6 +99,9 @@ class Harness:
     kind: str
     protocol: str
     entrypoint: Optional[str]
+    runner: Optional[str] = None
+    legacy_protocol: Optional[str] = None
+    legacy_entrypoint: Optional[str] = None
 
 
 @dataclass(frozen=True)
@@ -152,6 +158,7 @@ class ExpectationLane:
 
 @dataclass(frozen=True)
 class ImplementationExpectation:
+    schema_version: str
     expectation_id: str
     description: str
     source_contract: SourceContract
@@ -178,8 +185,39 @@ def _parse_source_contract(value: Any, where: str) -> SourceContract:
     )
 
 
-def _parse_harness(value: Any, where: str) -> Harness:
+def _parse_harness(value: Any, where: str, schema_version: str) -> Harness:
     obj = _object(value, where)
+    if schema_version == EXPECTATION_SCHEMA_V2:
+        _strict_keys(
+            obj,
+            ["protocol", "runner", "suite"],
+            ["legacy_protocol", "legacy_suite"],
+            where,
+        )
+        suite = _string(obj["suite"], f"{where}.suite")
+        legacy_protocol = obj.get("legacy_protocol")
+        legacy_suite = obj.get("legacy_suite")
+        if (legacy_protocol is None) != (legacy_suite is None):
+            raise ContractError(
+                f"{where}.legacy_protocol and legacy_suite must be provided together"
+            )
+        return Harness(
+            status="executable",
+            kind="lane_suite",
+            protocol=_identifier(obj["protocol"], f"{where}.protocol"),
+            entrypoint=suite,
+            runner=_identifier(obj["runner"], f"{where}.runner"),
+            legacy_protocol=(
+                None
+                if legacy_protocol is None
+                else _identifier(legacy_protocol, f"{where}.legacy_protocol")
+            ),
+            legacy_entrypoint=(
+                None
+                if legacy_suite is None
+                else _string(legacy_suite, f"{where}.legacy_suite")
+            ),
+        )
     _strict_keys(obj, ["status", "kind", "protocol", "entrypoint"], [], where)
     status = _string(obj["status"], f"{where}.status")
     if status not in HARNESS_STATUSES:
@@ -268,7 +306,9 @@ def _parse_gate(value: Any, where: str) -> Gate:
     )
 
 
-def _parse_lane(value: Any, where: str, expectation_path: Path) -> ExpectationLane:
+def _parse_lane(
+    value: Any, where: str, expectation_path: Path, schema_version: str
+) -> ExpectationLane:
     obj = _object(value, where)
     _strict_keys(
         obj,
@@ -288,11 +328,19 @@ def _parse_lane(value: Any, where: str, expectation_path: Path) -> ExpectationLa
         [],
         where,
     )
-    harness = _parse_harness(obj["harness"], f"{where}.harness")
+    harness = _parse_harness(obj["harness"], f"{where}.harness", schema_version)
     if harness.entrypoint is not None:
         entrypoint = (expectation_path.parent / harness.entrypoint).resolve()
         if not entrypoint.is_file():
             raise ContractError(f"{where}.harness.entrypoint does not exist: {entrypoint}")
+    if harness.legacy_entrypoint is not None:
+        legacy_entrypoint = (
+            expectation_path.parent / harness.legacy_entrypoint
+        ).resolve()
+        if not legacy_entrypoint.is_file():
+            raise ContractError(
+                f"{where}.harness.legacy_suite does not exist: {legacy_entrypoint}"
+            )
     matrices = tuple(
         _parse_matrix(item, f"{where}.matrices[{index}]")
         for index, item in enumerate(_array(obj["matrices"], f"{where}.matrices"))
@@ -354,26 +402,36 @@ def load_expectation(path: Path) -> ImplementationExpectation:
         [],
         str(path),
     )
-    if obj["schema_version"] != EXPECTATION_SCHEMA:
-        raise ContractError(f"{path}.schema_version must equal {EXPECTATION_SCHEMA!r}")
+    schema_version = obj["schema_version"]
+    if schema_version not in EXPECTATION_SCHEMAS:
+        raise ContractError(
+            f"{path}.schema_version must be one of {sorted(EXPECTATION_SCHEMAS)!r}"
+        )
     policy = _object(obj["certification_policy"], f"{path}.certification_policy")
+    if schema_version == EXPECTATION_SCHEMA_V1:
+        expected_policy = {
+            "required_lane_policy": REQUIRED_LANE_POLICY,
+            "contract_only_policy": CONTRACT_ONLY_POLICY,
+            "scope_policy": SCOPE_POLICY,
+        }
+    else:
+        expected_policy = {
+            "required_lane_policy": REQUIRED_LANE_POLICY,
+            "unsupported_policy": UNSUPPORTED_POLICY,
+            "scope_policy": SCOPE_POLICY,
+        }
     _strict_keys(
         policy,
-        ["required_lane_policy", "contract_only_policy", "scope_policy"],
+        list(expected_policy),
         [],
         f"{path}.certification_policy",
     )
-    expected_policy = {
-        "required_lane_policy": REQUIRED_LANE_POLICY,
-        "contract_only_policy": CONTRACT_ONLY_POLICY,
-        "scope_policy": SCOPE_POLICY,
-    }
     if policy != expected_policy:
         raise ContractError(
-            f"{path}.certification_policy must equal the v1 fail-closed policy"
+            f"{path}.certification_policy must equal the fail-closed policy for {schema_version}"
         )
     lanes = tuple(
-        _parse_lane(item, f"{path}.lanes[{index}]", path)
+        _parse_lane(item, f"{path}.lanes[{index}]", path, schema_version)
         for index, item in enumerate(_array(obj["lanes"], f"{path}.lanes"))
     )
     if not lanes:
@@ -384,6 +442,7 @@ def load_expectation(path: Path) -> ImplementationExpectation:
     if not any(lane.required for lane in lanes):
         raise ContractError(f"{path}.lanes must contain at least one required lane")
     return ImplementationExpectation(
+        schema_version=schema_version,
         expectation_id=_identifier(obj["id"], f"{path}.id"),
         description=_string(obj["description"], f"{path}.description"),
         source_contract=_parse_source_contract(
@@ -398,10 +457,17 @@ def bind_suite_lane(
     expectation: ImplementationExpectation, lane_id: str, suite: Suite
 ) -> ExpectationLane:
     lane = expectation.lane(lane_id)
-    if lane.harness.status != "executable" or lane.harness.kind != "jsonl_suite":
-        raise ContractError(f"lane {lane_id!r} is not an executable JSONL suite")
-    assert lane.harness.entrypoint is not None
-    entrypoint = (expectation.source_path.parent / lane.harness.entrypoint).resolve()
+    if expectation.schema_version == EXPECTATION_SCHEMA_V2:
+        if lane.harness.legacy_entrypoint is None:
+            raise ContractError(f"lane {lane_id!r} has no legacy JSONL suite")
+        entrypoint = (
+            expectation.source_path.parent / lane.harness.legacy_entrypoint
+        ).resolve()
+    else:
+        if lane.harness.status != "executable" or lane.harness.kind != "jsonl_suite":
+            raise ContractError(f"lane {lane_id!r} is not an executable JSONL suite")
+        assert lane.harness.entrypoint is not None
+        entrypoint = (expectation.source_path.parent / lane.harness.entrypoint).resolve()
     if entrypoint != suite.source_path:
         raise ContractError(
             f"lane {lane_id!r} entrypoint {entrypoint} does not match suite {suite.source_path}"
@@ -499,4 +565,5 @@ def expectation_summary(
         ),
         "full_run_available": not contract_only,
         "claim_status": "not_evaluated",
+        "schema_version": expectation.schema_version,
     }

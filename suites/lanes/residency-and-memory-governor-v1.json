@@ -1,0 +1,28 @@
+{
+  "schema_version": "turnvector.benchmark.lane-suite.v1",
+  "id": "residency-and-memory-governor-v1",
+  "lane_id": "residency-and-memory-governor",
+  "protocol": "turnvector.benchmark.memory-governor.v1",
+  "runner": "residency-and-memory-governor",
+  "adapter_category": "system",
+  "matrix_ids": ["residency-transition"],
+  "behavior_case_ids": ["shared-pending-load", "lease-safe-unload", "pending-reclaim", "pressure-order"],
+  "gate_ids": ["unsafe-admission", "lease-safe-unload", "resource-mode-order", "reservation-conservation", "pending-reclaim-retention", "peak-memory-bound", "reclaim-bound"],
+  "case_schema": "../../schemas/lanes/residency-and-memory-governor-case-v1.json",
+  "operations": ["inject-governor-events", "sample-process-memory", "verify-pending-reclaim"],
+  "metrics": [
+    {"metric": "unsafe_admission_count", "source": "unsafe_admissions", "reducer": "sum"},
+    {"metric": "lease_unsafe_unload_count", "source": "lease_unsafe_unloads", "reducer": "sum"},
+    {"metric": "resource_mode_order_violation_count", "source": "resource_mode_order_violations", "reducer": "sum"},
+    {"metric": "reservation_accounting_error_bytes", "source": "reservation_accounting_error_bytes", "reducer": "max"},
+    {"metric": "premature_reclaim_release_count", "source": "premature_reclaim_releases", "reducer": "sum"},
+    {"metric": "peak_memory_bytes", "source": "observed_peak_memory_bytes", "reducer": "max"},
+    {"metric": "reclaim_convergence_p99_us", "source": "reclaim_convergence_samples_us", "reducer": "p99"}
+  ],
+  "requirements": {
+    "execution_boundary": "benchmark_orchestrated",
+    "real_subject_required": true,
+    "external_inputs": ["daemon-worker-build", "memory-sampler"],
+    "diagnostic_only_cases": []
+  }
+}

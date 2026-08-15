@@ -1,0 +1,26 @@
+{
+  "schema_version": "turnvector.benchmark.lane-suite.v1",
+  "id": "protocol-and-worker-supervision-v1",
+  "lane_id": "protocol-and-worker-supervision",
+  "protocol": "turnvector.benchmark.worker-supervision.v1",
+  "runner": "protocol-and-worker-supervision",
+  "adapter_category": "system",
+  "matrix_ids": ["worker-outcome"],
+  "behavior_case_ids": ["owner-handshake", "bounded-transport", "mid-turn-crash", "fresh-worker"],
+  "gate_ids": ["multiple-owner", "unnegotiated-execution", "fabricated-receipt", "bound-compliance", "transport-latency"],
+  "case_schema": "../../schemas/lanes/protocol-and-worker-supervision-case-v1.json",
+  "operations": ["launch-fixture-worker", "inject-worker-outcome", "inspect-daemon-fail-closed"],
+  "metrics": [
+    {"metric": "simultaneous_device_owner_count", "source": "simultaneous_device_owners", "reducer": "max"},
+    {"metric": "turn_started_before_negotiation_count", "source": "turns_before_negotiation", "reducer": "sum"},
+    {"metric": "successful_receipt_after_worker_loss_count", "source": "successful_receipts_after_worker_loss", "reducer": "sum"},
+    {"metric": "transport_max_frame_bytes", "source": "transport_frame_bytes", "reducer": "max"},
+    {"metric": "transport_latency_p99_us", "source": "transport_latency_samples_us", "reducer": "p99"}
+  ],
+  "requirements": {
+    "execution_boundary": "benchmark_orchestrated",
+    "real_subject_required": true,
+    "external_inputs": ["daemon-worker-build"],
+    "diagnostic_only_cases": []
+  }
+}

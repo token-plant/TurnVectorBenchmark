@@ -1,0 +1,25 @@
+{
+  "schema_version": "turnvector.benchmark.lane-suite.v1",
+  "id": "scheduler-performance-v1",
+  "lane_id": "scheduler-performance",
+  "protocol": "turnvector.benchmark.scheduler-performance.v1",
+  "runner": "scheduler-performance",
+  "adapter_category": "core",
+  "matrix_ids": ["decision-shape"],
+  "behavior_case_ids": ["release-core-only", "shape-scaling", "distribution-retention"],
+  "gate_ids": ["oracle-equivalence", "decision-latency", "decision-throughput", "measurement-boundary"],
+  "case_schema": "../../schemas/lanes/scheduler-performance-case-v1.json",
+  "operations": ["measure-release-core"],
+  "metrics": [
+    {"metric": "performance_plan_mismatch_count", "source": "performance_plan_mismatches", "reducer": "sum"},
+    {"metric": "decision_latency_p99_us", "source": "decision_latency_samples_us", "reducer": "p99"},
+    {"metric": "decisions_per_second", "source": "decision_work", "reducer": "rate"},
+    {"metric": "driver_ipc_included", "source": "driver_ipc_observed", "reducer": "any"}
+  ],
+  "requirements": {
+    "execution_boundary": "core_adapter",
+    "real_subject_required": true,
+    "external_inputs": ["release-core-build"],
+    "diagnostic_only_cases": []
+  }
+}

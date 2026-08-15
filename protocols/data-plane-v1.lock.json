@@ -1,0 +1,15 @@
+{
+  "schema_version": "turnvector.benchmark.protocol-lock.v1",
+  "family": "turnvector.data-plane",
+  "major": 1,
+  "minor": 1,
+  "source": "data_plane_v1.proto",
+  "source_sha256": "0c135397c284906a2cbb47352939208e8b30f6cf28468c41460ac675d4ea78aa",
+  "descriptor_set": "data-plane-v1.pb",
+  "descriptor_sha256": "1e3c03654e107a39fa055ec8e577d8ed80377239193075dafff1bc5a9d6f7500",
+  "generator": {
+    "grpcio-tools": "1.76.0",
+    "protobuf_python_codegen": "6.31.1",
+    "protobuf_runtime": "6.33.6"
+  }
+}

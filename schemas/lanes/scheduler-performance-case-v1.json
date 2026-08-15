@@ -1,0 +1,15 @@
+{
+  "schema_version": "turnvector.benchmark.case-schema.v1",
+  "lane_id": "scheduler-performance",
+  "matrices": {
+    "decision-shape": {
+      "required": ["runnable_models", "urgency_mix", "resource_mode"],
+      "properties": {
+        "runnable_models": {"enum": [1, 2, 8, 32, 128]},
+        "urgency_mix": {"enum": ["none", "mixed"]},
+        "resource_mode": {"enum": ["normal", "guarded", "stop_admission", "critical"]}
+      },
+      "additional_properties": false
+    }
+  }
+}

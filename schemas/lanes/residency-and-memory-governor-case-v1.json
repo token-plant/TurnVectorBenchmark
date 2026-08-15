@@ -1,0 +1,15 @@
+{
+  "schema_version": "turnvector.benchmark.case-schema.v1",
+  "lane_id": "residency-and-memory-governor",
+  "matrices": {
+    "residency-transition": {
+      "required": ["operation", "resource_mode", "outcome"],
+      "properties": {
+        "operation": {"enum": ["load", "unload", "reload", "restore", "reclaim"]},
+        "resource_mode": {"enum": ["normal", "guarded", "stop_admission", "critical"]},
+        "outcome": {"enum": ["success", "cancelled", "failed", "delayed_reclaim"]}
+      },
+      "additional_properties": false
+    }
+  }
+}

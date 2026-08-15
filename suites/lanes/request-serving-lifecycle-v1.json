@@ -1,0 +1,26 @@
+{
+  "schema_version": "turnvector.benchmark.lane-suite.v1",
+  "id": "request-serving-lifecycle-v1",
+  "lane_id": "request-serving-lifecycle",
+  "protocol": "turnvector.benchmark.serving.v1",
+  "runner": "request-serving-lifecycle",
+  "adapter_category": "system",
+  "matrix_ids": ["request-ordering"],
+  "behavior_case_ids": ["acceptance-before-admission", "materialize-after-admission", "bounded-output", "terminal-status"],
+  "gate_ids": ["lifecycle-order", "output-at-most-once", "capacity-bound", "terminal-status", "client-event-semantics"],
+  "case_schema": "../../schemas/lanes/request-serving-lifecycle-case-v1.json",
+  "operations": ["prepare-data-plane-case", "collect-production-trace"],
+  "metrics": [
+    {"metric": "illegal_lifecycle_transition_count", "source": "illegal_lifecycle_transitions", "reducer": "sum"},
+    {"metric": "duplicate_output_publication_count", "source": "duplicate_output_publications", "reducer": "sum"},
+    {"metric": "unreserved_output_publication_count", "source": "unreserved_output_publications", "reducer": "sum"},
+    {"metric": "missing_terminal_status_count", "source": "missing_terminal_status", "reducer": "sum"},
+    {"metric": "client_event_violation_count", "source": "client_event_violations", "reducer": "sum"}
+  ],
+  "requirements": {
+    "execution_boundary": "direct_data_plane",
+    "real_subject_required": true,
+    "external_inputs": ["daemon-worker-build"],
+    "diagnostic_only_cases": []
+  }
+}

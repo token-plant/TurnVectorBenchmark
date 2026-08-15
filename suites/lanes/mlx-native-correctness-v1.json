@@ -1,0 +1,25 @@
+{
+  "schema_version": "turnvector.benchmark.lane-suite.v1",
+  "id": "mlx-native-correctness-v1",
+  "lane_id": "mlx-native-correctness",
+  "protocol": "turnvector.benchmark.mlx-native.v1",
+  "runner": "mlx-native-correctness",
+  "adapter_category": "native",
+  "matrix_ids": ["decode", "prefill"],
+  "behavior_case_ids": ["owner-thread-stream", "cross-thread-rejection", "complete-output-parity", "native-error-cleanup"],
+  "gate_ids": ["output-parity", "logits-parity", "kv-parity", "owner-violation"],
+  "case_schema": "../../schemas/lanes/mlx-native-correctness-case-v1.json",
+  "operations": ["generate-mlx-reference", "execute-native-turn", "compare-normalized-state"],
+  "metrics": [
+    {"metric": "output_mismatch_count", "source": "output_mismatches", "reducer": "sum"},
+    {"metric": "complete_logits_mismatch_count", "source": "complete_logits_mismatches", "reducer": "sum"},
+    {"metric": "kv_state_mismatch_count", "source": "kv_state_mismatches", "reducer": "sum"},
+    {"metric": "owner_thread_violation_count", "source": "owner_thread_violations", "reducer": "sum"}
+  ],
+  "requirements": {
+    "execution_boundary": "native_adapter",
+    "real_subject_required": true,
+    "external_inputs": ["mlx-source", "mlx-c-source", "mlx-python", "mlx-lm-python", "dense-model", "moe-model"],
+    "diagnostic_only_cases": []
+  }
+}

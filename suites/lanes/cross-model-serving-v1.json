@@ -1,0 +1,28 @@
+{
+  "schema_version": "turnvector.benchmark.lane-suite.v1",
+  "id": "cross-model-serving-v1",
+  "lane_id": "cross-model-serving",
+  "protocol": "turnvector.benchmark.cross-model-serving.v1",
+  "runner": "cross-model-serving",
+  "adapter_category": "system",
+  "matrix_ids": ["interference"],
+  "behavior_case_ids": ["long-prefill-interference", "weighted-engine-service", "finite-progress", "quality-tradeoff"],
+  "gate_ids": ["progress-bound", "timing-commitment", "service-share", "ttft-bound", "tpot-bound", "throughput-bound", "output-correctness"],
+  "case_schema": "../../schemas/lanes/cross-model-serving-case-v1.json",
+  "operations": ["prepare-data-plane-case", "collect-production-trace"],
+  "metrics": [
+    {"metric": "progress_p99_us", "source": "progress_samples_us", "reducer": "p99"},
+    {"metric": "timing_commitment_p99_us", "source": "timing_samples_us", "reducer": "p99"},
+    {"metric": "weighted_service_error_percent", "source": "weighted_service_error_percent", "reducer": "max"},
+    {"metric": "ttft_p95_us", "source": "ttft_samples_us", "reducer": "p95"},
+    {"metric": "tpot_p95_us", "source": "tpot_samples_us", "reducer": "p95"},
+    {"metric": "throughput_tokens_per_second", "source": "throughput_work", "reducer": "rate"},
+    {"metric": "serving_output_mismatch_count", "source": "serving_output_mismatches", "reducer": "sum"}
+  ],
+  "requirements": {
+    "execution_boundary": "direct_data_plane",
+    "real_subject_required": true,
+    "external_inputs": ["daemon-worker-build", "dense-model", "moe-model"],
+    "diagnostic_only_cases": []
+  }
+}

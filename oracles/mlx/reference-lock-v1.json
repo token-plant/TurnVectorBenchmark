@@ -1,0 +1,39 @@
+{
+  "schema_version": "turnvector.benchmark.mlx-reference-lock.v1",
+  "id": "mlx-reference-20260812",
+  "seed": 20260812,
+  "sources": {
+    "mlx": {
+      "repository": "https://github.com/ml-explore/mlx.git",
+      "revision": "68cf2fddd8de5edd8ab3d926391772b2e2cedad8"
+    },
+    "mlx-c": {
+      "repository": "https://github.com/ml-explore/mlx-c.git",
+      "revision": "fba4470b89073180056c9ea46c443051375f7399"
+    }
+  },
+  "python_packages": {
+    "mlx": "0.31.2",
+    "mlx-lm": "0.31.3"
+  },
+  "models": {
+    "dense": {
+      "repository": "mlx-community/Qwen3-0.6B-4bit",
+      "revision": "73e3e38d981303bc594367cd910ea6eb48349da8",
+      "external_artifact_id": "dense-model"
+    },
+    "moe": {
+      "repository": "mlx-community/Qwen1.5-MoE-A2.7B-4bit",
+      "revision": "11aaad5b454a361ae33f19fb47b72bc74b3c3b55",
+      "external_artifact_id": "moe-model"
+    }
+  },
+  "qualification_matrix": {
+    "decode_context_tokens": [512, 2048, 8192],
+    "decode_batch_size": [1, 4],
+    "prefill_tokens": [64, 256, 1024],
+    "prefill_batch_size": 1
+  },
+  "decode_kv_policy": "prefill_generated_nonzero_kv",
+  "synthetic_zero_kv_policy": "diagnostic_only"
+}

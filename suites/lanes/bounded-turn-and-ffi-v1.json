@@ -1,0 +1,25 @@
+{
+  "schema_version": "turnvector.benchmark.lane-suite.v1",
+  "id": "bounded-turn-and-ffi-v1",
+  "lane_id": "bounded-turn-and-ffi",
+  "protocol": "turnvector.benchmark.mlx-turn.v1",
+  "runner": "bounded-turn-and-ffi",
+  "adapter_category": "native",
+  "matrix_ids": ["decode-boundary", "prefill-boundary"],
+  "behavior_case_ids": ["bounded-decode", "bounded-prefill", "cancellation-cleanup", "exclusive-safety-point"],
+  "gate_ids": ["turn-bound", "ffi-output-parity", "ffi-latency", "cleanup"],
+  "case_schema": "../../schemas/lanes/bounded-turn-and-ffi-case-v1.json",
+  "operations": ["execute-selected-boundary", "verify-native-cleanup"],
+  "metrics": [
+    {"metric": "turn_service_p99_us", "source": "turn_service_samples_us", "reducer": "p99"},
+    {"metric": "ffi_output_mismatch_count", "source": "ffi_output_mismatches", "reducer": "sum"},
+    {"metric": "ffi_latency_regression_p95_percent", "source": "ffi_latency_regression_samples_percent", "reducer": "p95"},
+    {"metric": "unclean_native_outcome_count", "source": "unclean_native_outcomes", "reducer": "sum"}
+  ],
+  "requirements": {
+    "execution_boundary": "native_adapter",
+    "real_subject_required": true,
+    "external_inputs": ["mlx-c-source", "cpp-direct-build", "dense-model", "moe-model"],
+    "diagnostic_only_cases": []
+  }
+}

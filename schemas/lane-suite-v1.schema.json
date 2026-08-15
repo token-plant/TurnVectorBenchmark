@@ -1,0 +1,50 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://token-plant.github.io/TurnVectorBenchmark/schemas/lane-suite-v1.schema.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "id", "lane_id", "protocol", "runner", "adapter_category", "matrix_ids", "behavior_case_ids", "gate_ids", "case_schema", "operations", "metrics", "requirements"],
+  "properties": {
+    "schema_version": {"const": "turnvector.benchmark.lane-suite.v1"},
+    "id": {"$ref": "#/$defs/id"},
+    "lane_id": {"$ref": "#/$defs/id"},
+    "protocol": {"$ref": "#/$defs/id"},
+    "runner": {"$ref": "#/$defs/id"},
+    "adapter_category": {"enum": ["core", "native", "system"]},
+    "matrix_ids": {"$ref": "#/$defs/ids"},
+    "behavior_case_ids": {"$ref": "#/$defs/ids"},
+    "gate_ids": {"$ref": "#/$defs/ids"},
+    "case_schema": {"type": "string", "minLength": 1},
+    "operations": {"$ref": "#/$defs/ids"},
+    "metrics": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["metric", "source", "reducer"],
+        "properties": {
+          "metric": {"$ref": "#/$defs/id"},
+          "source": {"$ref": "#/$defs/id"},
+          "reducer": {"enum": ["sum", "max", "min", "p50", "p95", "p99", "rate", "any"]}
+        }
+      }
+    },
+    "requirements": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["execution_boundary", "real_subject_required", "external_inputs", "diagnostic_only_cases"],
+      "properties": {
+        "execution_boundary": {"enum": ["core_adapter", "native_adapter", "direct_data_plane", "benchmark_orchestrated"]},
+        "real_subject_required": {"type": "boolean"},
+        "external_inputs": {"$ref": "#/$defs/optional_ids"},
+        "diagnostic_only_cases": {"$ref": "#/$defs/optional_ids"}
+      }
+    }
+  },
+  "$defs": {
+    "id": {"type": "string", "pattern": "^[a-z0-9][a-z0-9._-]*$"},
+    "ids": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"$ref": "#/$defs/id"}},
+    "optional_ids": {"type": "array", "uniqueItems": true, "items": {"$ref": "#/$defs/id"}}
+  }
+}
