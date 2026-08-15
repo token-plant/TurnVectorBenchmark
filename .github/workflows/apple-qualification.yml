@@ -1,0 +1,114 @@
+name: Apple Silicon Qualification
+
+on:
+  workflow_dispatch:
+    inputs:
+      profile:
+        description: Qualification workload
+        required: true
+        default: qualification
+        type: choice
+        options: [qualification, nightly]
+  schedule:
+    - cron: "17 9 * * 0"
+
+permissions:
+  contents: read
+
+jobs:
+  mlx-oracle-contract:
+    if: vars.TURNVECTOR_MLX_PYTHON != ''
+    runs-on: [self-hosted, macOS, ARM64]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install benchmark runtime
+        run: |
+          python3 -m venv "$RUNNER_TEMP/benchmark-venv"
+          "$RUNNER_TEMP/benchmark-venv/bin/python" -m pip install -r requirements.txt
+      - name: Verify pinned MLX oracle environment
+        env:
+          MLX_PYTHON: ${{ vars.TURNVECTOR_MLX_PYTHON }}
+        run: |
+          "$MLX_PYTHON" -B -c 'import importlib.metadata as m; assert m.version("mlx") == "0.31.2"; assert m.version("mlx-lm") == "0.31.3"'
+          "$MLX_PYTHON" -B -m py_compile oracles/mlx/reference_oracle.py oracles/mlx/export_cpp_direct_graph.py
+      - name: Validate complete qualification contract
+        run: >-
+          "$RUNNER_TEMP/benchmark-venv/bin/python" -B -m turnvector_benchmark inspect
+          --expectation expectations/turnvector-implementation-v1.json
+      - name: Run pinned Dense and MoE oracle smoke
+        if: vars.TURNVECTOR_DENSE_MODEL != '' && vars.TURNVECTOR_MOE_MODEL != ''
+        env:
+          MLX_PYTHON: ${{ vars.TURNVECTOR_MLX_PYTHON }}
+          DENSE_MODEL: ${{ vars.TURNVECTOR_DENSE_MODEL }}
+          MOE_MODEL: ${{ vars.TURNVECTOR_MOE_MODEL }}
+        run: |
+          "$MLX_PYTHON" -B oracles/mlx/reference_oracle.py --model "$DENSE_MODEL" --model-architecture dense --phase prefill --batch 1 --shape 64 --output "$RUNNER_TEMP/dense-oracle-smoke"
+          "$MLX_PYTHON" -B oracles/mlx/reference_oracle.py --model "$MOE_MODEL" --model-architecture moe --phase prefill --batch 1 --shape 64 --output "$RUNNER_TEMP/moe-oracle-smoke"
+
+  full-qualification:
+    if: github.event_name == 'workflow_dispatch' && inputs.profile == 'qualification' && vars.TURNVECTOR_SUBJECT_MANIFEST != '' && vars.TURNVECTOR_CERTIFICATION_RECORD != '' && vars.TURNVECTOR_EXTERNAL_FIXTURES != '' && vars.TURNVECTOR_REPOSITORY != ''
+    runs-on: [self-hosted, macOS, ARM64]
+    timeout-minutes: 360
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install benchmark runtime
+        run: |
+          python3 -m venv "$RUNNER_TEMP/benchmark-venv"
+          "$RUNNER_TEMP/benchmark-venv/bin/python" -m pip install -r requirements.txt
+      - name: Run all required lanes
+        env:
+          SUBJECT_MANIFEST: ${{ vars.TURNVECTOR_SUBJECT_MANIFEST }}
+          CERTIFICATION_RECORD: ${{ vars.TURNVECTOR_CERTIFICATION_RECORD }}
+          EXTERNAL_FIXTURES: ${{ vars.TURNVECTOR_EXTERNAL_FIXTURES }}
+          TURNVECTOR_REPOSITORY: ${{ vars.TURNVECTOR_REPOSITORY }}
+        run: >-
+          "$RUNNER_TEMP/benchmark-venv/bin/python" -B -m turnvector_benchmark run-all
+          --profile qualification
+          --expectation expectations/turnvector-implementation-v1.json
+          --subject-manifest "$SUBJECT_MANIFEST"
+          --certification-record "$CERTIFICATION_RECORD"
+          --external-fixtures "$EXTERNAL_FIXTURES"
+          --target-repo "$TURNVECTOR_REPOSITORY"
+          --output "$RUNNER_TEMP/turnvector-qualification"
+      - name: Upload qualification evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: turnvector-qualification-evidence
+          path: ${{ runner.temp }}/turnvector-qualification
+          if-no-files-found: error
+
+  instruments-nightly:
+    if: (github.event_name == 'schedule' || inputs.profile == 'nightly') && vars.TURNVECTOR_SUBJECT_MANIFEST != '' && vars.TURNVECTOR_CERTIFICATION_RECORD != '' && vars.TURNVECTOR_EXTERNAL_FIXTURES != '' && vars.TURNVECTOR_REPOSITORY != ''
+    runs-on: [self-hosted, macOS, ARM64]
+    timeout-minutes: 720
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install benchmark runtime
+        run: |
+          python3 -m venv "$RUNNER_TEMP/benchmark-venv"
+          "$RUNNER_TEMP/benchmark-venv/bin/python" -m pip install -r requirements.txt
+      - name: Verify Instruments availability
+        run: xcrun xctrace version
+      - name: Run long memory, full-model, and Instruments qualification
+        env:
+          SUBJECT_MANIFEST: ${{ vars.TURNVECTOR_SUBJECT_MANIFEST }}
+          CERTIFICATION_RECORD: ${{ vars.TURNVECTOR_CERTIFICATION_RECORD }}
+          EXTERNAL_FIXTURES: ${{ vars.TURNVECTOR_EXTERNAL_FIXTURES }}
+          TURNVECTOR_REPOSITORY: ${{ vars.TURNVECTOR_REPOSITORY }}
+        run: >-
+          "$RUNNER_TEMP/benchmark-venv/bin/python" -B -m turnvector_benchmark run-all
+          --profile qualification
+          --expectation expectations/turnvector-implementation-v1.json
+          --subject-manifest "$SUBJECT_MANIFEST"
+          --certification-record "$CERTIFICATION_RECORD"
+          --external-fixtures "$EXTERNAL_FIXTURES"
+          --target-repo "$TURNVECTOR_REPOSITORY"
+          --output "$RUNNER_TEMP/turnvector-nightly"
+      - name: Upload nightly evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: turnvector-nightly-evidence
+          path: ${{ runner.temp }}/turnvector-nightly
+          if-no-files-found: error

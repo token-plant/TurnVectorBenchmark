@@ -1,124 +1,229 @@
 # Benchmark Design
 
-## Purpose
+## Repository Boundary
 
-TurnVectorBenchmark is an independent verifier, not an implementation package
-inside TurnVector. Its fixtures, oracle, protocol, and gates must stay fixed
-while a TurnVector change is evaluated. A benchmark change and a runtime change
-therefore have separate review and Git history.
+TurnVectorBenchmark and TurnVector are independent repositories. This
+repository owns contracts, matrices, lane-specific schemas, fixtures, oracles,
+metric calculations, gates, and evidence formats. TurnVector may own thin
+subject adapters, but they call actual production modules and cannot contain an
+oracle or copied expected results.
 
-The normative scope is
-`expectations/turnvector-implementation-v1.json`. It is pinned to the exact
-TurnVector revision from which the implementation contract was derived. The
-benchmark scope is therefore independent of current implementation and harness
-readiness: an unavailable native adapter remains a required lane with fixed
-cases, matrices, gates, and evidence.
+A benchmark revision is fixed while a TurnVector candidate is qualified. Both
+repositories' HEAD and `git status --short` are captured before and after the
+run. Any change invalidates the complete evidence set.
 
-Harness readiness has only two meanings:
+## Deep Controller Interface
 
-- `executable`: the checked-in entrypoint can produce evidence now;
-- `contract_only`: the test contract is fixed, but its real subject adapter is
-  not checked in yet.
+`LaneController` owns the full orchestration policy:
 
-`contract_only` never means optional, waived, passed, or outside the benchmark.
-A complete implementation result requires every required lane to be executable
-and to pass. Contract inspection only validates this expectation structure; it
-never certifies TurnVector.
+```text
+Expectation + Suite + Candidate Certification Record
+  -> CasePlan
+  -> LaneRunner + Subject
+  -> Raw Evidence
+  -> Metrics
+  -> Gates
+  -> Reports
+```
 
-## Executable Lane: Scheduler Policy V1
+The controller uses a fixed registry of 12 `LaneRunner` objects. The CLI does
+not dynamically discover plugins or implement lane behavior through a growing
+conditional chain. Shared concerns such as subject lifecycle, timeouts,
+artifact containment, certification applicability, gate evaluation, Git
+identity, and checksums stay behind this interface.
 
-`suites/scheduler-policy-v1.json` drives a stateful candidate through the JSONL
-protocol in `DRIVER-PROTOCOL.md`. The benchmark owns:
+The scheduler-only `BenchmarkRunner` and Driver Protocol v1 remain intact as a
+compatibility surface. The new scheduler lane drives the same scenarios over
+SubjectAdapter v1 and reuses the independent exact-rational `SchedulerOracle`.
 
-1. fixed model weights, candidate facts, resource decisions, time, and receipts;
-2. an exact rational Engine Service ledger oracle;
-3. expected scheduling decisions and state transitions;
-4. repeated-run comparison and evidence artifacts.
+## Expectation and Case Completeness
 
-The candidate owns its scheduler state and returns a plan plus visible ledger
-state. The benchmark calculates the same state independently and fails on the
-first disagreement. The reference driver is a protocol example and harness
-self-test. It is not a performance baseline or a substitute for any
-contract-only lane.
+Expectation ID `turnvector-implementation-v1`, schema v2, defines the required
+surface independently of current TurnVector support. Every lane is bound to:
 
-Protocol v1 deliberately permits at most one Work Candidate per Model in one
-Scheduling Snapshot. This isolates cross-Model selection semantics before a
-later suite adds within-Model candidate formation and batching.
+- one versioned lane suite and protocol;
+- one lane-specific strict case schema;
+- the exact ordered matrix, behavior-case, and gate IDs from the expectation;
+- raw observation sources and deterministic reducers;
+- an adapter category and real execution boundary;
+- required raw and derived artifacts.
 
-## Oracle Order
+The suite loader verifies exact equality with the expectation. A suite cannot
+drop a matrix, dimension value, behavior case, or gate. The qualification plan
+contains 385 matrix combinations. Diagnostic-only cases, including synthetic
+zero KV, are not counted as qualification combinations and cannot satisfy a
+qualification gate.
 
-For each Scheduling Snapshot, the oracle applies the following order:
+`inspect` derives readiness from all suites, case schemas, the fixed runner
+registry, and the ordered self-test gate coverage file. There is no writable or
+manually asserted readiness status.
 
-1. Remove candidates that lack capability authorization, resource safety,
-   timing feasibility, or Turn Output Reservation.
-2. Treat only Models with a remaining valid candidate as Runnable Models.
-3. Align a newly Runnable Model to the current runnable virtual-service
-   baseline. Idle time therefore creates no credit.
-4. Calculate Latest Safe Start as timing obligation minus Engine Service bound
-   minus Runtime Overhead bound.
-5. If any valid candidate is urgent, select by earliest Latest Safe Start,
-   then smallest Model Ledger, then stable Candidate ID.
-6. Otherwise select by smallest Model Ledger, stable Model ID, then stable
-   Candidate ID.
-7. After the matching Turn Receipt, add actual Engine Service divided by Model
-   Weight to the selected Model Ledger. Urgent service is not free.
+## Subject Boundary
 
-All durations are integer microseconds. Virtual-service ledger values use
-canonical rational strings such as `120/1` or `25/3`; binary floating-point
-rounding cannot affect a decision or a replay hash.
+SubjectAdapter v1 is strict JSONL:
 
-## Fixed Scenarios
+```text
+hello -> case_open -> case_step* -> case_close -> shutdown
+```
 
-| Scenario | Contract under test |
-|---|---|
-| `weighted-service-1-to-3` | Two continuously Runnable Models receive exactly 1:3 Engine Service and finish with equal normalized ledgers. |
-| `idle-reentry-no-credit` | An idle Model is aligned on re-entry and cannot consume a stored service windfall. |
-| `urgency-after-safety` | An unsafe earlier candidate is removed, a safe urgent candidate may preempt fair order, its service remains charged, and an all-unsafe Snapshot returns no plan. |
+The hello binds subject kind, immutable build identity, exact lane protocols,
+binary hashes, dependencies, environment, and optional real Data Plane
+descriptor. Missing support is `unsupported`, not skip or pass.
 
-Every scenario runs three times. Exact plan and receipt state must pass on every
-turn, and the canonical plan-trace hash must match across repetitions.
+Case artifacts are written under a Benchmark-created root and returned as
+relative path, byte size, and SHA256. The controller independently rejects path
+escape, symlinks, special files, or identity mismatch. This keeps large logits,
+KV, process samples, and traces off the control protocol.
 
-## Evidence Contract
+Fixture subjects are structurally incapable of producing an implementation
+claim. A report based on `kind: fixture` is always
+`not_claimable_fixture`, regardless of gate results.
 
-`report.json` is the authoritative result. `summary.md` is derived and must not
-override it. `trace.jsonl` retains full expected and observed inputs, decisions,
-ledger transitions, and failure location. Contract and conformance failures are
-not discarded as outliers.
+## Lane Judges
 
-The manifest records the implementation expectation and source revision, lane,
-suite, scenario, executable benchmark-source, and schema SHA-256 values,
-benchmark version, driver protocol, claim scope, and all unevaluated required
-lanes. Environment evidence records the
-benchmark and target Git revisions and dirty state, the exact driver command,
-hashes of driver files named by that command, Python/host identity, and timeout.
-`SHA256SUMS` binds the emitted evidence files.
+### Runtime Core
 
-Generated evidence belongs outside Git or under ignored `.artifacts/`. Checked-in
-files are the benchmark source, schemas, fixtures, tests, and documentation,
-not the result of one machine run.
+Core replay receives a Benchmark-generated, hash-bound pristine state and
+ordered EffectResult/cancellation stream twice. The Benchmark derives receipt
+applicability, whole-execution identity, atomic failure, invariant preservation,
+Effect uniqueness, invalid duplicate/late/unknown/stale suppression, and
+cancellation order from strict raw execution records. Scheduler policy independently computes each
+selection and receipt ledger using exact fractions. Scheduler performance takes
+Benchmark-generated Snapshots with exact rational ledger values and compares
+the returned Plan to its own selection. Latency and throughput are complete
+in-process Release Core samples after exactly 100 warmups and for at least 1000
+monotonic-timed decisions; each measured decision has one sample and counted
+operation. The JSONL process boundary is outside the measured region and
+`driver_ipc_included` must be false.
 
-## Required Implementation Lanes
+### Native MLX
 
-The expectation manifest defines the following required implementation surface.
-The table is descriptive; the JSON manifest is authoritative.
+The native reference lock fixes:
 
-| Lane | Current harness | Required implementation evidence |
-|---|---|---|
-| Core event replay | Contract only | Sequenced events, atomic failure, invariant/state hashes, cancellation races, and stale/duplicate/indeterminate results. |
-| Scheduler policy | Executable | Independent selection oracle, exact Engine Service receipts, and deterministic replay. |
-| Scheduler performance | Contract only | Release-mode Core-only decision latency and throughput over fixed Snapshot sizes, measured without adapter IPC. |
-| Request serving lifecycle | Contract only | Acceptance/admission/materialization order, bounded output, backpressure, cancellation, disconnect, and terminal status. |
-| MLX native correctness | Contract only | Owner thread/stream, cross-thread rejection, and Dense/MoE output/logits/KV parity over Decode B1/B4 and Prefill 64/256/1024. |
-| Bounded Turn and FFI | Contract only | Bounded Decode/Prefill, synchronized cancellation/failure cleanup, exclusive safety points, and native-boundary correctness/latency. |
-| Residency and Memory Governor | Contract only | Load/unload/reload/restore/reclaim, shared loads, leases, reservations, resource modes, pressure, and delayed reclaim. |
-| Cross-model serving | Contract only | Long-Prefill/Decode interference, weighted Engine Service, TTFT/TPOT tails, throughput, output correctness, and finite progress. |
-| Observability qualification | Contract only | Command-buffer attribution/status, telemetry off/on overhead, external calibration, and a qualified service label. |
-| Persistence and recovery | Contract only | Strong snapshot identity, roundtrip parity, corruption/interruption/concurrency faults, authoritative control recovery, and no effect replay. |
-| Protocol and Worker supervision | Contract only | Authenticated negotiation, one device owner, bounded IPC, Worker crash/timeout/malformed outcomes, and fresh restart. |
-| Certification envelopes | Contract only | Exact Capability Key applicability, fail-closed uncertified work, bound quarantine, and explicit recertification. |
+- MLX `68cf2fddd8de5edd8ab3d926391772b2e2cedad8`;
+- mlx-c `fba4470b89073180056c9ea46c443051375f7399`;
+- `mlx==0.31.2` and `mlx-lm==0.31.3`;
+- Dense model revision `73e3e38d981303bc594367cd910ea6eb48349da8`;
+- MoE model revision `11aaad5b454a361ae33f19fb47b72bc74b3c3b55`;
+- deterministic seed `20260812`.
 
-The native matrices are expectations even when MLX support is absent. The
-benchmark does not simulate them and call that a pass; it reports that their
-required real adapters and evidence are unavailable. No lane may widen a claim
-to another hardware, OS, model, dependency, or Certification Envelope without
-a separately fixed identity and evidence record.
+`reference_oracle.py` loads the full pinned model and writes canonical output
+token IDs, complete float32 logits, and every layer's key/value state. Decode
+first evaluates a real Prefill for the requested 512, 2048, or 8192-token
+context and proves the cache is nonzero. Candidate output is compared byte for
+byte; the adapter never receives oracle bytes.
+
+`export_cpp_direct_graph.py` exports all exact signatures needed by
+`cpp_direct_oracle.cpp`. C++ primes Decode through a real Prefill outside the
+measured region and invokes the imported graph with no Python in the measured
+region. Compiled binaries, exported graphs, build caches, model weights, and raw
+results are external hash-bound fixtures. A strict C++ Direct bundle manifest
+binds the executable, exact MLX/mlx-c revisions, seed, graph paths, model shape
+metadata, warmup, and sample count. The lane pairs each C++ Direct case with the
+same candidate architecture/phase/batch/shape and compares full logits, full KV,
+wall time, Engine Service samples, bounded Receipts, and cancellation cleanup.
+
+### Real Serving and Lifecycle
+
+Request lifecycle and cross-model serving require the subject hello to expose a
+real Data Plane descriptor. The adapter may coordinate process lifecycle, but
+production requests, cancellation, disconnect, backpressure, status, output,
+TTFT/TPOT, throughput, and progress evidence are produced through
+Benchmark-owned clients and collectors. Output sequence and capacity evidence
+gates at-most-once publication and reservation safety.
+
+The wire contract is `protocols/data_plane_v1.proto` plus the locked descriptor
+set and SHA256 in `protocols/data-plane-v1.lock.json`. The Benchmark uses a
+four-byte big-endian declared length and Protobuf frames, validates the declared
+length before allocating the payload, negotiates the exact family/major/minor
+and descriptor hash, and enforces directional limits and write timeouts.
+
+### Memory and Observability
+
+Memory qualification combines deterministic Governor event inputs with
+Benchmark-owned process/system sampling. Reservation conservation, load leases,
+Resource Mode order, process footprint, safety pressure, and Pending Reclaim
+convergence are separate evidence streams. The subject cannot convert an
+allocator report into host footprint or declare reclaim complete by itself.
+Lease-protected unload, safety-filter-before-schedule, and reservation retention
+until both process and backend reclaim are explicit gates. Benchmark samples
+are retained as the Benchmark-owned `memory_samples` artifact.
+
+Observability qualification runs telemetry off/on and coordinates xctrace
+Instruments capture outside the subject. It pairs Turn identity with
+CommandBuffer evidence, checks timestamp coverage and attribution, calculates
+external calibration error percentiles, and calculates throughput/TPOT
+overhead. A CommandBuffer service-time label is usable only if every
+qualification gate passes.
+
+### Recovery, Supervision, and Certification
+
+Persistence cases receive a Benchmark-owned temporary runtime root. Faults are
+introduced only through real files and process boundaries: corruption,
+interrupted publication phases, concurrent access, process termination, and
+restart. The judge compares snapshot/output/KV identities, authority state,
+audit transitions, and external-effect replay.
+Every target file is relative, regular, non-symlinked, and size/SHA256 checked
+before mutation. Every signalled PID is rebound per case to an actual executable
+whose hash appears in `hello_ack.binary_manifest`; this supports real daemon
+restart without authorizing an arbitrary process. `fault_trace` is generated by
+the Benchmark and conflicts with a subject artifact of the same ID.
+
+Worker supervision uses Benchmark-owned normal and hostile fixture workers for
+handshake incompatibility, malformed or oversized frames, timeout, crash, and
+duplicate Receipt. It gates one device owner, negotiation-before-execution,
+bounded transport, no fabricated success after loss, and a fresh replacement
+worker. Frame-size and transport-latency limits come only from the pre-run
+Certification Record.
+
+Certification cases change model, phase, batch, shape, Worker/MLX build,
+protocol, device, memory, and OS identity. The judge requires exact record
+applicability, immediate quarantine on a bound violation, and explicit
+recertification. Expected applicability is derived from each CasePlan identity
+mutation and record state; the subject cannot label its own record applicable.
+Runtime probing cannot replace a missing certification record.
+
+## Candidate Certification Record
+
+All performance limits are fixed before execution. The record binds subject
+build, SubjectAdapter protocol, exact environment identity, allowed matrix
+values, issue/expiry time, and per-lane thresholds. The run manifest stores the
+resolved threshold table before the first case.
+
+Missing, expired, build-mismatched, environment-mismatched, matrix-inapplicable,
+or threshold-incomplete records are `contract_failed`. No code path derives a
+limit from the samples being judged.
+
+## External Fixture Manifest
+
+The external fixture manifest binds the checked-in reference-lock SHA256 and an
+ordered set of external files/directories. Before any implementation case, the
+controller recursively inventories each directory, rejects symlinks and
+special files, computes total bytes, hashes every file, and hashes the canonical
+inventory. Missing inputs are `environment_unavailable`; identity differences
+are contract failures.
+
+## Status and Aggregation
+
+Lane status is exactly one of:
+
+- `passed`;
+- `gate_failed`;
+- `unsupported`;
+- `environment_unavailable`;
+- `contract_failed`;
+- `infrastructure_failed`.
+
+`run-all --profile qualification` executes independent lanes after failures.
+Only one run with all 12 required lanes `passed`, a real implementation subject,
+matching TurnVector source contract, and unchanged Git identities can emit
+`full_implementation_status: passed`.
+
+The current 385-case expectation has 58 ordered gates. The count is derived from
+the expectation and must exactly match the checked-in per-gate failure fixture
+coverage; it is not a manually asserted readiness flag.
+
+Every failure retains the case plan, transcript/raw evidence available before
+failure, metrics, gate details, failure records, environment, source and subject
+identity, reports, and checksums. Human summaries may be derived later, but
+`report.json` remains authoritative.

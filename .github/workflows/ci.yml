@@ -4,6 +4,7 @@ on:
   pull_request:
   push:
     branches: [main]
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -16,12 +17,22 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.9"
+      - name: Install locked benchmark dependencies
+        run: python -m pip install -r requirements-dev.txt
+      - name: Verify locked Data Plane descriptor generation
+        run: |
+          python -m grpc_tools.protoc \
+            -I protocols \
+            --include_imports \
+            --descriptor_set_out="$RUNNER_TEMP/data-plane-v1.pb" \
+            protocols/data_plane_v1.proto
+          cmp protocols/data-plane-v1.pb "$RUNNER_TEMP/data-plane-v1.pb"
       - name: Test benchmark contracts
         run: python -B -m unittest discover -s tests -v
       - name: Validate implementation expectation
         run: >-
-          python -B -m turnvector_benchmark expectation
-          --manifest expectations/turnvector-implementation-v1.json
+          python -B -m turnvector_benchmark inspect
+          --expectation expectations/turnvector-implementation-v1.json
       - name: Validate scheduler suite
         run: python -B -m turnvector_benchmark validate --suite suites/scheduler-policy-v1.json
       - name: Run reference benchmark
@@ -31,11 +42,25 @@ jobs:
           --lane scheduler-policy
           --suite suites/scheduler-policy-v1.json
           --driver-command "python -B drivers/reference_driver.py"
-          --output "$RUNNER_TEMP/turnvector-benchmark-artifact"
+          --output "$RUNNER_TEMP/legacy-scheduler-artifact"
+      - name: Run all 385 judge self-test cases
+        run: >-
+          python -B -m turnvector_benchmark run-all
+          --profile qualification
+          --expectation expectations/turnvector-implementation-v1.json
+          --subject-manifest subjects/reference-fixture-v1.json
+          --certification-record certification/reference-fixture-v1.json
+          --output "$RUNNER_TEMP/full-judge-self-test"
+      - name: Prove fixture result is non-claimable
+        run: >-
+          test "$(jq -r .full_implementation_status
+          "$RUNNER_TEMP/full-judge-self-test/report.json")" = "not_claimable_fixture"
       - name: Upload benchmark evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: scheduler-benchmark-evidence
-          path: ${{ runner.temp }}/turnvector-benchmark-artifact
+          name: benchmark-judge-evidence
+          path: |
+            ${{ runner.temp }}/legacy-scheduler-artifact
+            ${{ runner.temp }}/full-judge-self-test
           if-no-files-found: error

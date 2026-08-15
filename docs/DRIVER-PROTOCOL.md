@@ -1,5 +1,10 @@
 # Driver Protocol V1
 
+This protocol is retained as the scheduler-only compatibility interface for
+existing scenarios and commands. New 12-lane qualification uses
+SubjectAdapter v1; the scheduler lane still evaluates these same scenarios and
+the same exact rational oracle through its common case lifecycle.
+
 ## Transport
 
 The benchmark starts one driver process per scenario repetition. Requests are
