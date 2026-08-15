@@ -1,0 +1,165 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/token-plant/TurnVectorBenchmark/schemas/scenario-v1.schema.json",
+  "title": "TurnVector scheduler benchmark scenario v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "id",
+    "description",
+    "repetitions",
+    "clock_start_us",
+    "models",
+    "segments"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "turnvector.benchmark.scenario.v1"
+    },
+    "id": {
+      "$ref": "#/$defs/identifier"
+    },
+    "description": {
+      "type": "string",
+      "minLength": 1
+    },
+    "repetitions": {
+      "type": "integer",
+      "minimum": 2,
+      "maximum": 10
+    },
+    "clock_start_us": {
+      "$ref": "#/$defs/nonnegativeInteger"
+    },
+    "models": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/model"
+      }
+    },
+    "segments": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 100,
+      "items": {
+        "$ref": "#/$defs/segment"
+      }
+    }
+  },
+  "$defs": {
+    "identifier": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9._-]*$"
+    },
+    "nonnegativeInteger": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 9223372036854775807
+    },
+    "positiveInteger": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 9223372036854775807
+    },
+    "model": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["model_id", "weight"],
+      "properties": {
+        "model_id": {
+          "$ref": "#/$defs/identifier"
+        },
+        "weight": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1000000
+        }
+      }
+    },
+    "segment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["turns", "clock_step_us", "resource_mode", "candidates"],
+      "properties": {
+        "turns": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 10000
+        },
+        "clock_step_us": {
+          "$ref": "#/$defs/nonnegativeInteger"
+        },
+        "resource_mode": {
+          "enum": ["normal", "guarded", "stop_admission", "critical"]
+        },
+        "candidates": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/candidate"
+          }
+        }
+      }
+    },
+    "candidate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "candidate_id",
+        "model_id",
+        "execution_phase",
+        "service_class",
+        "engine_service_bound_us",
+        "runtime_overhead_bound_us",
+        "actual_engine_service_us",
+        "timing_obligation_offset_us",
+        "capability_authorized",
+        "resource_safe",
+        "timing_feasible",
+        "output_reserved"
+      ],
+      "properties": {
+        "candidate_id": {
+          "$ref": "#/$defs/identifier"
+        },
+        "model_id": {
+          "$ref": "#/$defs/identifier"
+        },
+        "execution_phase": {
+          "enum": ["prefill", "decode", "embedding", "residency"]
+        },
+        "service_class": {
+          "enum": ["interactive", "standard", "background"]
+        },
+        "engine_service_bound_us": {
+          "$ref": "#/$defs/positiveInteger"
+        },
+        "runtime_overhead_bound_us": {
+          "$ref": "#/$defs/nonnegativeInteger"
+        },
+        "actual_engine_service_us": {
+          "$ref": "#/$defs/positiveInteger"
+        },
+        "timing_obligation_offset_us": {
+          "oneOf": [
+            {"type": "null"},
+            {"$ref": "#/$defs/nonnegativeInteger"}
+          ]
+        },
+        "capability_authorized": {
+          "type": "boolean"
+        },
+        "resource_safe": {
+          "type": "boolean"
+        },
+        "timing_feasible": {
+          "type": "boolean"
+        },
+        "output_reserved": {
+          "type": "boolean"
+        }
+      }
+    }
+  }
+}

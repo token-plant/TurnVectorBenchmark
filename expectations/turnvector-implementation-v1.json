@@ -1,0 +1,1182 @@
+{
+  "schema_version": "turnvector.benchmark.expectation.v1",
+  "id": "turnvector-implementation-v1",
+  "description": "Normative benchmark expectations derived from the TurnVector implementation contract; harness availability never removes required coverage.",
+  "source_contract": {
+    "repository": "TurnVector",
+    "revision": "7cbfe2caef3f2f9f95a03e17eb8741ed1acf98a2",
+    "clean_required": true
+  },
+  "certification_policy": {
+    "required_lane_policy": "all_required_lanes_must_execute_and_pass",
+    "contract_only_policy": "required_but_not_yet_executable",
+    "scope_policy": "claims_are_limited_to_exact_evidence_identity"
+  },
+  "lanes": [
+    {
+      "id": "core-event-replay",
+      "layer": "runtime-core",
+      "description": "Deterministic Runtime Core state transitions, effect ordering, fault handling, and replay.",
+      "required": true,
+      "implementation_sources": [
+        "CONTEXT.md",
+        "docs/adr/0005-run-pure-scheduling-and-backend-execution-in-one-device-loop.md",
+        "docs/adr/0016-distinguish-plan-rejection-from-started-turn-outcomes.md",
+        "docs/adr/0032-separate-the-pure-core-from-protocol-and-io.md",
+        "docs/adr/0033-commit-core-transitions-atomically-and-fail-closed.md"
+      ],
+      "harness": {
+        "status": "contract_only",
+        "kind": "adapter",
+        "protocol": "turnvector.benchmark.core-replay.v1",
+        "entrypoint": null
+      },
+      "matrices": [
+        {
+          "id": "effect-result-replay",
+          "dimensions": [
+            {
+              "id": "result",
+              "values": ["completed", "failed", "cancelled", "indeterminate"]
+            },
+            {
+              "id": "sequence_relation",
+              "values": ["current", "duplicate", "late", "unknown", "stale_generation"]
+            }
+          ]
+        }
+      ],
+      "cases": [
+        {
+          "id": "deterministic-state",
+          "requirement": "Identical ordered Core Events produce identical outcomes, effects, invariant results, and state hashes."
+        },
+        {
+          "id": "atomic-failure",
+          "requirement": "Sequence or invariant failure preserves the prior state and exposes no effect."
+        },
+        {
+          "id": "effect-idempotence",
+          "requirement": "Duplicate, late, unknown, and generation-mismatched Effect Results never reapply state."
+        },
+        {
+          "id": "cancellation-order",
+          "requirement": "Event Sequence alone resolves cancellation before or after Receipt commit and output publication."
+        }
+      ],
+      "gates": [
+        {
+          "id": "replay-hash",
+          "metric": "replay_hash_mismatch_count",
+          "operator": "eq",
+          "expected": 0,
+          "unit": "count",
+          "threshold_source": "benchmark_contract",
+          "evidence": ["event_trace", "state_hashes"]
+        },
+        {
+          "id": "invariant-safety",
+          "metric": "committed_invariant_violation_count",
+          "operator": "eq",
+          "expected": 0,
+          "unit": "count",
+          "threshold_source": "benchmark_contract",
+          "evidence": ["event_trace", "invariant_results"]
+        },
+        {
+          "id": "failed-transition-effects",
+          "metric": "effects_exposed_after_failed_transition_count",
+          "operator": "eq",
+          "expected": 0,
+          "unit": "count",
+          "threshold_source": "benchmark_contract",
+          "evidence": ["effect_trace"]
+        }
+      ],
+      "required_artifacts": ["manifest", "event_trace", "state_hashes", "invariant_results", "report"],
+      "claim_scope": ["runtime_core_conformance"]
+    },
+    {
+      "id": "scheduler-policy",
+      "layer": "runtime-core",
+      "description": "Safety-first urgency and runnable-only weighted Engine Service selection.",
+      "required": true,
+      "implementation_sources": [
+        "CONTEXT.md",
+        "docs/adr/0003-use-runnable-only-weighted-engine-service-fairness.md",
+        "docs/adr/0004-apply-resource-safety-before-urgency-and-fairness.md",
+        "docs/adr/0007-support-open-work-kinds-through-fixed-scheduling-semantics.md",
+        "docs/adr/0010-use-three-phase-aware-service-classes.md",
+        "docs/adr/0015-use-deterministic-deadline-aware-weighted-service-selection.md"
+      ],
+      "harness": {
+        "status": "executable",
+        "kind": "jsonl_suite",
+        "protocol": "turnvector.benchmark.driver.v1",
+        "entrypoint": "../suites/scheduler-policy-v1.json"
+      },
+      "matrices": [
+        {
+          "id": "scheduler-scenarios",
+          "dimensions": [
+            {
+              "id": "scenario",
+              "values": ["weighted_service", "idle_reentry", "urgency_after_safety"]
+            }
+          ]
+        }
+      ],
+      "cases": [
+        {
+          "id": "weighted-service",
+          "requirement": "Continuously runnable Models receive Engine Service in exact proportion to Model Weight."
+        },
+        {
+          "id": "idle-reentry",
+          "requirement": "A returning Model aligns to the runnable baseline and receives no stored credit."
+        },
+        {
+          "id": "safety-before-urgency",
+          "requirement": "Unsafe candidates are removed before Latest Safe Start and ledger selection."
+        }
+      ],
+      "gates": [
+        {
+          "id": "oracle-selection",
+          "metric": "oracle_selection_mismatch_count",
+          "operator": "eq",
+          "expected": 0,
+          "unit": "count",
+          "threshold_source": "benchmark_contract",
+          "evidence": ["trace", "report"]
+        },
+        {
+          "id": "receipt-accounting",
+          "metric": "receipt_ledger_mismatch_count",
+          "operator": "eq",
+          "expected": 0,
+          "unit": "count",
+          "threshold_source": "benchmark_contract",
+          "evidence": ["trace", "report"]
+        },
+        {
+          "id": "deterministic-replay",
+          "metric": "plan_trace_hash_mismatch_count",
+          "operator": "eq",
+          "expected": 0,
+          "unit": "count",
+          "threshold_source": "benchmark_contract",
+          "evidence": ["trace", "report"]
+        }
+      ],
+      "required_artifacts": ["manifest", "environment", "trace", "report", "checksums"],
+      "claim_scope": ["scheduler_policy_conformance"]
+    },
+    {
+      "id": "scheduler-performance",
+      "layer": "runtime-core",
+      "description": "Release-mode pure-Core scheduling latency and throughput measured independently from adapter IPC.",
+      "required": true,
+      "implementation_sources": [
+        "CONTEXT.md",
+        "docs/adr/0005-run-pure-scheduling-and-backend-execution-in-one-device-loop.md",
+        "docs/adr/0007-support-open-work-kinds-through-fixed-scheduling-semantics.md",
+        "docs/adr/0015-use-deterministic-deadline-aware-weighted-service-selection.md",
+        "docs/adr/0032-separate-the-pure-core-from-protocol-and-io.md"
+      ],
+      "harness": {
+        "status": "contract_only",
+        "kind": "adapter",
+        "protocol": "turnvector.benchmark.scheduler-performance.v1",
+        "entrypoint": null
+      },
+      "matrices": [
+        {
+          "id": "decision-shape",
+          "dimensions": [
+            {
+              "id": "runnable_models",
+              "values": [1, 2, 8, 32, 128]
+            },
+            {
+              "id": "urgency_mix",
+              "values": ["none", "mixed"]
+            },
+            {
+              "id": "resource_mode",
+              "values": ["normal", "guarded", "stop_admission", "critical"]
+            }
+          ]
+        }
+      ],
+      "cases": [
+        {
+          "id": "release-core-only",
+          "requirement": "Decision timing uses a release-mode in-process Core adapter and excludes process startup, serialization, and driver IPC."
+        },
+        {
+          "id": "shape-scaling",
+          "requirement": "Fixed Snapshot sizes exercise feasible, urgent, and safety-filtered candidate sets without changing the expected Plan."
+        },
+        {
+          "id": "distribution-retention",
+          "requirement": "Warmup policy, every measured sample, failures, and p50/p95/p99 distributions are preserved."
+        }
+      ],
+      "gates": [
+        {
+          "id": "oracle-equivalence",
+          "metric": "performance_plan_mismatch_count",
+          "operator": "eq",
+          "expected": 0,
+          "unit": "count",
+          "threshold_source": "benchmark_contract",
+          "evidence": ["plan_trace", "oracle_trace"]
+        },
+        {
+          "id": "decision-latency",
+          "metric": "decision_latency_p99_us",
+          "operator": "lte",
+          "expected": "certification_record.decision_latency_p99_us",
+          "unit": "microseconds",
+          "threshold_source": "certification_record",
+          "evidence": ["latency_samples", "environment"]
+        },
+        {
+          "id": "decision-throughput",
+          "metric": "decisions_per_second",
+          "operator": "gte",
+          "expected": "certification_record.decisions_per_second",
+          "unit": "count",
+          "threshold_source": "certification_record",
+          "evidence": ["latency_samples", "environment"]
+        },
+        {
+          "id": "measurement-boundary",
+          "metric": "driver_ipc_included",
+          "operator": "eq",
+          "expected": false,
+          "unit": "boolean",
+          "threshold_source": "run_manifest",
+          "evidence": ["manifest", "measurement_trace"]
+        }
+      ],
+      "required_artifacts": ["manifest", "environment", "plan_trace", "oracle_trace", "latency_samples", "measurement_trace", "report", "checksums"],
+      "claim_scope": ["scheduler_performance_envelope"]
+    },
+    {
+      "id": "request-serving-lifecycle",
+      "layer": "daemon",
+      "description": "Bounded request acceptance, admission, materialization, cancellation, backpressure, output, and terminal status behavior.",
+      "required": true,
+      "implementation_sources": [
+        "CONTEXT.md",
+        "docs/adr/0006-use-cooperative-time-targets-and-nonblocking-output.md",
+        "docs/adr/0008-admit-only-bounded-feasible-work.md",
+        "docs/adr/0016-distinguish-plan-rejection-from-started-turn-outcomes.md",
+        "docs/adr/0022-use-a-token-native-two-phase-request-contract.md",
+        "docs/adr/0024-use-bounded-candidates-and-conservative-admission.md",
+        "docs/adr/0030-bound-ingress-and-keep-the-core-loop-nonblocking.md",
+        "docs/adr/0034-acknowledge-and-bound-the-live-request-lifecycle.md"
+      ],
+      "harness": {
+        "status": "contract_only",
+        "kind": "adapter",
+        "protocol": "turnvector.benchmark.serving.v1",
+        "entrypoint": null
+      },
+      "matrices": [
+        {
+          "id": "request-ordering",
+          "dimensions": [
+            {
+              "id": "service_class",
+              "values": ["interactive", "standard", "background"]
+            },
+            {
+              "id": "client_event",
+              "values": ["none", "cancel_before_receipt", "cancel_after_receipt", "disconnect", "backpressure_timeout"]
+            }
+          ]
+        }
+      ],
+      "cases": [
+        {
+          "id": "acceptance-before-admission",
+          "requirement": "Request Acceptance freezes identity but creates no Admission reservation or Backend handle."
+        },
+        {
+          "id": "materialize-after-admission",
+          "requirement": "Private Backend state is created only after successful Admission."
+        },
+        {
+          "id": "bounded-output",
+          "requirement": "Every Turn reserves maximum visible output before execution and publishes at most one ordered frame per member."
+        },
+        {
+          "id": "terminal-status",
+          "requirement": "Every terminal transition emits an independent terminal status without output replay."
+        }
+      ],
+      "gates": [
+        {
+          "id": "lifecycle-order",
+          "metric": "illegal_lifecycle_transition_count",
+          "operator": "eq",
+          "expected": 0,
+          "unit": "count",
+          "threshold_source": "benchmark_contract",
+          "evidence": ["request_trace", "status_trace"]
+        },
+        {
+          "id": "output-at-most-once",
+          "metric": "duplicate_output_publication_count",
+          "operator": "eq",
+          "expected": 0,
+          "unit": "count",
+          "threshold_source": "benchmark_contract",
+          "evidence": ["output_trace"]
+        },
+        {
+          "id": "capacity-bound",
+          "metric": "unreserved_output_publication_count",
+          "operator": "eq",
+          "expected": 0,
+          "unit": "count",
+          "threshold_source": "benchmark_contract",
+          "evidence": ["capacity_trace", "output_trace"]
+        }
+      ],
+      "required_artifacts": ["manifest", "request_trace", "status_trace", "output_trace", "capacity_trace", "report"],
+      "claim_scope": ["request_lifecycle_conformance", "serving_protocol_conformance"]
+    },
+    {
+      "id": "mlx-native-correctness",
+      "layer": "cpp-worker",
+      "description": "Real MLX owner-thread execution and Dense/MoE output, logits, and KV-state correctness.",
+      "required": true,
+      "implementation_sources": [
+        "CONTEXT.md",
+        "docs/adr/0001-use-exclusive-device-turns-for-the-mvp.md",
+        "docs/adr/0018-default-the-experimental-mlx-backend-to-a-cpp-interface.md",
+        "docs/adr/0019-run-a-rust-daemon-with-a-cpp-device-worker.md",
+        "docs/adr/0020-version-and-serialize-the-private-backend-protocol.md"
+      ],
+      "harness": {
+        "status": "contract_only",
+        "kind": "adapter",
+        "protocol": "turnvector.benchmark.mlx-native.v1",
+        "entrypoint": null
+      },
+      "matrices": [
+        {
+          "id": "decode",
+          "dimensions": [
+            {
+              "id": "model_architecture",
+              "values": ["dense", "moe"]
+            },
+            {
+              "id": "batch_size",
+              "values": [1, 4]
+            }
+          ]
+        },
+        {
+          "id": "prefill",
+          "dimensions": [
+            {
+              "id": "model_architecture",
+              "values": ["dense", "moe"]
+            },
+            {
+              "id": "prompt_tokens",
+              "values": [64, 256, 1024]
+            }
+          ]
+        }
+      ],
+      "cases": [
+        {
+          "id": "owner-thread-stream",
+          "requirement": "MLX model, graph, stream, KV state, execution, and teardown remain on the dedicated Worker owner thread."
+        },
+        {
+          "id": "cross-thread-rejection",
+          "requirement": "Cross-thread use is rejected without mutating native state."
+        },
+        {
+          "id": "complete-output-parity",
+          "requirement": "Generated output, complete logits, and updated KV state match the pinned native oracle for every matrix case."
+        },
+        {
+          "id": "native-error-cleanup",
+          "requirement": "Native failure maps to a typed outcome and leaves the owner capable of bounded cleanup or explicit termination."
+        }
+      ],
+      "gates": [
+        {
+          "id": "output-parity",
+          "metric": "output_mismatch_count",
+          "operator": "eq",
+          "expected": 0,
+          "unit": "count",
+          "threshold_source": "benchmark_contract",
+          "evidence": ["output_hashes", "native_oracle"]
+        },
+        {
+          "id": "logits-parity",
+          "metric": "complete_logits_mismatch_count",
+          "operator": "eq",
+          "expected": 0,
+          "unit": "count",
+          "threshold_source": "benchmark_contract",
+          "evidence": ["logits_hashes", "native_oracle"]
+        },
+        {
+          "id": "kv-parity",
+          "metric": "kv_state_mismatch_count",
+          "operator": "eq",
+          "expected": 0,
+          "unit": "count",
+          "threshold_source": "benchmark_contract",
+          "evidence": ["kv_hashes", "native_oracle"]
+        },
+        {
+          "id": "owner-violation",
+          "metric": "owner_thread_violation_count",
+          "operator": "eq",
+          "expected": 0,
+          "unit": "count",
+          "threshold_source": "benchmark_contract",
+          "evidence": ["owner_thread_trace"]
+        }
+      ],
+      "required_artifacts": ["manifest", "environment", "native_oracle", "output_hashes", "logits_hashes", "kv_hashes", "owner_thread_trace", "report", "checksums"],
+      "claim_scope": ["mlx_native_correctness"]
+    },
+    {
+      "id": "bounded-turn-and-ffi",
+      "layer": "cpp-worker",
+      "description": "Cooperatively bounded MLX Turns and a correctness- and latency-qualified native boundary.",
+      "required": true,
+      "implementation_sources": [
+        "CONTEXT.md",
+        "docs/adr/0006-use-cooperative-time-targets-and-nonblocking-output.md",
+        "docs/adr/0009-require-explicit-exclusive-mode-for-non-yielding-work.md",
+        "docs/adr/0017-quarantine-capabilities-after-certified-bound-violations.md",
+        "docs/adr/0018-default-the-experimental-mlx-backend-to-a-cpp-interface.md",
+        "docs/adr/0019-run-a-rust-daemon-with-a-cpp-device-worker.md"
+      ],
+      "harness": {
+        "status": "contract_only",
+        "kind": "adapter",
+        "protocol": "turnvector.benchmark.mlx-turn.v1",
+        "entrypoint": null
+      },
+      "matrices": [
+        {
+          "id": "decode-boundary",
+          "dimensions": [
+            {
+              "id": "model_architecture",
+              "values": ["dense", "moe"]
+            },
+            {
+              "id": "batch_size",
+              "values": [1, 4]
+            },
+            {
+              "id": "boundary",
+              "values": ["cpp_direct_oracle", "implementation_candidate"]
+            }
+          ]
+        },
+        {
+          "id": "prefill-boundary",
+          "dimensions": [
+            {
+              "id": "model_architecture",
+              "values": ["dense", "moe"]
+            },
+            {
+              "id": "prompt_tokens",
+              "values": [64, 256, 1024]
+            },
+            {
+              "id": "boundary",
+              "values": ["cpp_direct_oracle", "implementation_candidate"]
+            }
+          ]
+        }
+      ],
+      "cases": [
+        {
+          "id": "bounded-decode",
+          "requirement": "Decode stops at the granted work and Engine Service bounds and returns one synchronized Receipt."
+        },
+        {
+          "id": "bounded-prefill",
+          "requirement": "Prefill yields at the granted quantum without hiding an unbounded full-prefill operation."
+        },
+        {
+          "id": "cancellation-cleanup",
+          "requirement": "Cancellation reaches a synchronized safe boundary, discards staged output when ordered first, and releases bounded state."
+        },
+        {
+          "id": "exclusive-safety-point",
+          "requirement": "Non-yielding work is rejected from shared mode and exposes a certified Exclusive Safety Point before exclusive execution."
+        }
+      ],
+      "gates": [
+        {
+          "id": "turn-bound",
+          "metric": "turn_service_p99_us",
+          "operator": "lte",
+          "expected": "certification_record.turn_service_bound_us",
+          "unit": "microseconds",
+          "threshold_source": "certification_record",
+          "evidence": ["turn_receipts", "latency_samples"]
+        },
+        {
+          "id": "ffi-output-parity",
+          "metric": "ffi_output_mismatch_count",
+          "operator": "eq",
+          "expected": 0,
+          "unit": "count",
+          "threshold_source": "benchmark_contract",
+          "evidence": ["native_oracle", "output_hashes"]
+        },
+        {
+          "id": "ffi-latency",
+          "metric": "ffi_latency_regression_p95_percent",
+          "operator": "lte",
+          "expected": "certification_record.ffi_latency_regression_p95_percent",
+          "unit": "percent",
+          "threshold_source": "certification_record",
+          "evidence": ["latency_samples", "native_oracle"]
+        },
+        {
+          "id": "cleanup",
+          "metric": "unclean_native_outcome_count",
+          "operator": "eq",
+          "expected": 0,
+          "unit": "count",
+          "threshold_source": "benchmark_contract",
+          "evidence": ["turn_receipts", "cleanup_trace"]
+        }
+      ],
+      "required_artifacts": ["manifest", "environment", "native_oracle", "turn_receipts", "latency_samples", "cleanup_trace", "report", "checksums"],
+      "claim_scope": ["bounded_turn_execution", "native_boundary_qualification"]
+    },
+    {
+      "id": "residency-and-memory-governor",
+      "layer": "resource-governor",
+      "description": "Safe model residency, leases, reservations, pressure response, and observed delayed reclamation.",
+      "required": true,
+      "implementation_sources": [
+        "CONTEXT.md",
+        "docs/adr/0011-serialize-bounded-residency-transitions.md",
+        "docs/adr/0012-use-deterministic-safety-owned-residency-policy.md",
+        "docs/adr/0013-use-an-ordered-auditable-resource-mode-machine.md",
+        "docs/adr/0014-separate-backend-resource-signals-from-mode-semantics.md",
+        "docs/adr/0025-hold-reservations-through-observed-reclamation.md"
+      ],
+      "harness": {
+        "status": "contract_only",
+        "kind": "adapter",
+        "protocol": "turnvector.benchmark.memory-governor.v1",
+        "entrypoint": null
+      },
+      "matrices": [
+        {
+          "id": "residency-transition",
+          "dimensions": [
+            {
+              "id": "operation",
+              "values": ["load", "unload", "reload", "restore", "reclaim"]
+            },
+            {
+              "id": "resource_mode",
+              "values": ["normal", "guarded", "stop_admission", "critical"]
+            },
+            {
+              "id": "outcome",
+              "values": ["success", "cancelled", "failed", "delayed_reclaim"]
+            }
+          ]
+        }
+      ],
+      "cases": [
+        {
+          "id": "shared-pending-load",
+          "requirement": "Concurrent demand for one Revision shares one cancelable load and one committed residency reservation."
+        },
+        {
+          "id": "lease-safe-unload",
+          "requirement": "Busy, loading, and leased Models are excluded from normal unload selection."
+        },
+        {
+          "id": "pending-reclaim",
+          "requirement": "Released allocation remains charged until process and backend evidence observe reclaim convergence."
+        },
+        {
+          "id": "pressure-order",
+          "requirement": "Mode restriction is immediate, recovery is hysteretic, and safety filtering precedes scheduling."
+        }
+      ],
+      "gates": [
+        {
+          "id": "unsafe-admission",
+          "metric": "unsafe_admission_count",
+          "operator": "eq",
+          "expected": 0,
+          "unit": "count",
+          "threshold_source": "benchmark_contract",
+          "evidence": ["governor_decisions", "resource_trace"]
+        },
+        {
+          "id": "reservation-conservation",
+          "metric": "reservation_accounting_error_bytes",
+          "operator": "eq",
+          "expected": 0,
+          "unit": "bytes",
+          "threshold_source": "benchmark_contract",
+          "evidence": ["reservation_trace", "resource_trace"]
+        },
+        {
+          "id": "peak-memory-bound",
+          "metric": "peak_memory_bytes",
+          "operator": "lte",
+          "expected": "certification_record.peak_memory_bytes",
+          "unit": "bytes",
+          "threshold_source": "certification_record",
+          "evidence": ["resource_trace", "environment"]
+        },
+        {
+          "id": "reclaim-bound",
+          "metric": "reclaim_convergence_p99_us",
+          "operator": "lte",
+          "expected": "certification_record.reclaim_convergence_bound_us",
+          "unit": "microseconds",
+          "threshold_source": "certification_record",
+          "evidence": ["resource_trace", "residency_receipts"]
+        }
+      ],
+      "required_artifacts": ["manifest", "environment", "governor_decisions", "resource_trace", "reservation_trace", "residency_receipts", "report", "checksums"],
+      "claim_scope": ["residency_conformance", "memory_safety_envelope"]
+    },
+    {
+      "id": "cross-model-serving",
+      "layer": "integrated-runtime",
+      "description": "Cross-model weighted service, bounded long-prefill interference, serving tails, throughput, and progress.",
+      "required": true,
+      "implementation_sources": [
+        "CONTEXT.md",
+        "docs/adr/0001-use-exclusive-device-turns-for-the-mvp.md",
+        "docs/adr/0003-use-runnable-only-weighted-engine-service-fairness.md",
+        "docs/adr/0006-use-cooperative-time-targets-and-nonblocking-output.md",
+        "docs/adr/0010-use-three-phase-aware-service-classes.md",
+        "docs/adr/0015-use-deterministic-deadline-aware-weighted-service-selection.md"
+      ],
+      "harness": {
+        "status": "contract_only",
+        "kind": "adapter",
+        "protocol": "turnvector.benchmark.cross-model-serving.v1",
+        "entrypoint": null
+      },
+      "matrices": [
+        {
+          "id": "interference",
+          "dimensions": [
+            {
+              "id": "model_pair",
+              "values": ["dense_dense", "dense_moe", "moe_moe"]
+            },
+            {
+              "id": "contender_work",
+              "values": ["long_prefill", "decode"]
+            },
+            {
+              "id": "model_weights",
+              "values": ["1_to_1", "1_to_3"]
+            },
+            {
+              "id": "service_class",
+              "values": ["interactive", "standard", "background"]
+            }
+          ]
+        }
+      ],
+      "cases": [
+        {
+          "id": "long-prefill-interference",
+          "requirement": "Long Prefill yields at qualified Turn boundaries while a sibling Decode remains runnable."
+        },
+        {
+          "id": "weighted-engine-service",
+          "requirement": "Observed cross-model Engine Service converges to configured Model Weight without idle credit."
+        },
+        {
+          "id": "finite-progress",
+          "requirement": "Standard and Background work satisfy finite runnable Progress Bounds and Interactive work satisfies its timing commitment."
+        },
+        {
+          "id": "quality-tradeoff",
+          "requirement": "TTFT, TPOT tails, throughput, CPU, memory, output correctness, and failures are retained together."
+        }
+      ],
+      "gates": [
+        {
+          "id": "progress-bound",
+          "metric": "progress_bound_violation_count",
+          "operator": "eq",
+          "expected": 0,
+          "unit": "count",
+          "threshold_source": "benchmark_contract",
+          "evidence": ["serving_trace", "latency_samples"]
+        },
+        {
+          "id": "timing-commitment",
+          "metric": "interactive_timing_violation_count",
+          "operator": "eq",
+          "expected": 0,
+          "unit": "count",
+          "threshold_source": "certification_record",
+          "evidence": ["serving_trace", "latency_samples"]
+        },
+        {
+          "id": "service-share",
+          "metric": "weighted_service_error_percent",
+          "operator": "lte",
+          "expected": "certification_record.weighted_service_error_percent",
+          "unit": "percent",
+          "threshold_source": "certification_record",
+          "evidence": ["turn_receipts", "serving_trace"]
+        },
+        {
+          "id": "output-correctness",
+          "metric": "serving_output_mismatch_count",
+          "operator": "eq",
+          "expected": 0,
+          "unit": "count",
+          "threshold_source": "benchmark_contract",
+          "evidence": ["output_hashes", "serving_trace"]
+        }
+      ],
+      "required_artifacts": ["manifest", "environment", "workload", "serving_trace", "turn_receipts", "latency_samples", "output_hashes", "report", "checksums"],
+      "claim_scope": ["cross_model_fairness", "serving_interference", "serving_performance_envelope"]
+    },
+    {
+      "id": "observability-qualification",
+      "layer": "mlx-metal-observer",
+      "description": "Turn service attribution, telemetry overhead, error mapping, and externally calibrated service-quality labels.",
+      "required": true,
+      "implementation_sources": [
+        "CONTEXT.md",
+        "docs/adr/0015-use-deterministic-deadline-aware-weighted-service-selection.md",
+        "docs/adr/0017-quarantine-capabilities-after-certified-bound-violations.md",
+        "docs/adr/0019-run-a-rust-daemon-with-a-cpp-device-worker.md"
+      ],
+      "harness": {
+        "status": "contract_only",
+        "kind": "adapter",
+        "protocol": "turnvector.benchmark.observability.v1",
+        "entrypoint": null
+      },
+      "matrices": [
+        {
+          "id": "decode-observability",
+          "dimensions": [
+            {
+              "id": "model_architecture",
+              "values": ["dense", "moe"]
+            },
+            {
+              "id": "batch_size",
+              "values": [1, 4]
+            },
+            {
+              "id": "telemetry",
+              "values": ["off", "on"]
+            }
+          ]
+        },
+        {
+          "id": "prefill-observability",
+          "dimensions": [
+            {
+              "id": "model_architecture",
+              "values": ["dense", "moe"]
+            },
+            {
+              "id": "prompt_tokens",
+              "values": [64, 256, 1024]
+            },
+            {
+              "id": "telemetry",
+              "values": ["off", "on"]
+            }
+          ]
+        }
+      ],
+      "cases": [
+        {
+          "id": "turn-attribution",
+          "requirement": "Every accepted engine-service sample is attributable to one Turn without cross-Turn Command Buffer leakage."
+        },
+        {
+          "id": "status-mapping",
+          "requirement": "Command Buffer completion status and errors map to the synchronized Turn Receipt."
+        },
+        {
+          "id": "external-calibration",
+          "requirement": "Telemetry is compared with an external Instruments capture using a fixed pairing method and no removed outliers."
+        },
+        {
+          "id": "qualified-label",
+          "requirement": "The fairness label falls back to calibrated or synchronized Engine Service unless every command-buffer qualification gate passes."
+        }
+      ],
+      "gates": [
+        {
+          "id": "timestamp-coverage",
+          "metric": "timestamp_coverage_percent",
+          "operator": "eq",
+          "expected": 100,
+          "unit": "percent",
+          "threshold_source": "benchmark_contract",
+          "evidence": ["command_buffer_trace", "turn_receipts"]
+        },
+        {
+          "id": "attribution-errors",
+          "metric": "attribution_error_count",
+          "operator": "eq",
+          "expected": 0,
+          "unit": "count",
+          "threshold_source": "benchmark_contract",
+          "evidence": ["command_buffer_trace", "turn_receipts"]
+        },
+        {
+          "id": "calibration-median",
+          "metric": "instruments_relative_error_median_percent",
+          "operator": "lte",
+          "expected": 10,
+          "unit": "percent",
+          "threshold_source": "benchmark_contract",
+          "evidence": ["instruments_trace", "calibration_pairs"]
+        },
+        {
+          "id": "calibration-p95",
+          "metric": "instruments_relative_error_p95_percent",
+          "operator": "lte",
+          "expected": 20,
+          "unit": "percent",
+          "threshold_source": "benchmark_contract",
+          "evidence": ["instruments_trace", "calibration_pairs"]
+        },
+        {
+          "id": "telemetry-throughput",
+          "metric": "telemetry_throughput_regression_percent",
+          "operator": "lte",
+          "expected": 2,
+          "unit": "percent",
+          "threshold_source": "benchmark_contract",
+          "evidence": ["latency_samples", "throughput_samples"]
+        },
+        {
+          "id": "telemetry-tpot",
+          "metric": "telemetry_tpot_p95_regression_percent",
+          "operator": "lte",
+          "expected": 3,
+          "unit": "percent",
+          "threshold_source": "benchmark_contract",
+          "evidence": ["latency_samples"]
+        }
+      ],
+      "required_artifacts": ["manifest", "environment", "command_buffer_trace", "turn_receipts", "instruments_trace", "calibration_pairs", "latency_samples", "throughput_samples", "report", "checksums"],
+      "claim_scope": ["engine_service_quality", "telemetry_overhead", "metal_attribution_qualification"]
+    },
+    {
+      "id": "persistence-and-recovery",
+      "layer": "control-and-artifact-store",
+      "description": "Versioned authoritative control state and nonauthoritative native snapshot publication, validation, and recovery.",
+      "required": true,
+      "implementation_sources": [
+        "CONTEXT.md",
+        "docs/adr/0021-use-a-bounded-non-recovery-audit-journal.md",
+        "docs/adr/0023-register-immutable-hash-bound-model-revisions.md",
+        "docs/adr/0027-persist-versioned-control-state-not-runtime-state.md",
+        "docs/adr/0033-commit-core-transitions-atomically-and-fail-closed.md",
+        "docs/adr/0036-use-sqlite-for-authoritative-control-state.md",
+        "docs/adr/0037-use-a-separate-runtime-metadata-store.md"
+      ],
+      "harness": {
+        "status": "contract_only",
+        "kind": "adapter",
+        "protocol": "turnvector.benchmark.persistence.v1",
+        "entrypoint": null
+      },
+      "matrices": [
+        {
+          "id": "snapshot-faults",
+          "dimensions": [
+            {
+              "id": "fault",
+              "values": ["none", "revision_mismatch", "abi_mismatch", "corruption", "interrupted_payload", "interrupted_metadata", "concurrent_reader_writer", "restart"]
+            },
+            {
+              "id": "model_architecture",
+              "values": ["dense", "moe"]
+            }
+          ]
+        },
+        {
+          "id": "control-store-faults",
+          "dimensions": [
+            {
+              "id": "fault",
+              "values": ["none", "pre_commit_crash", "post_commit_pre_sync_crash", "audit_tail_gap", "duplicate_operation", "indeterminate_effect"]
+            }
+          ]
+        }
+      ],
+      "cases": [
+        {
+          "id": "strong-snapshot-identity",
+          "requirement": "Snapshot identity binds model revision, weight digests, tokenizer, graph ABI, cache ABI, shape, and prefix tokens."
+        },
+        {
+          "id": "atomic-publication",
+          "requirement": "Payload and checksum synchronize before atomic publication and metadata becomes visible last."
+        },
+        {
+          "id": "safe-invalidation",
+          "requirement": "Corrupt, incomplete, or incompatible native artifacts are rejected without changing authoritative control state."
+        },
+        {
+          "id": "restart-reconciliation",
+          "requirement": "Restart never restores process-local MLX handles and reconciles started effects without replaying them."
+        }
+      ],
+      "gates": [
+        {
+          "id": "snapshot-parity",
+          "metric": "snapshot_roundtrip_mismatch_count",
+          "operator": "eq",
+          "expected": 0,
+          "unit": "count",
+          "threshold_source": "benchmark_contract",
+          "evidence": ["snapshot_manifest", "output_hashes", "kv_hashes"]
+        },
+        {
+          "id": "invalid-snapshot-use",
+          "metric": "invalid_snapshot_restore_count",
+          "operator": "eq",
+          "expected": 0,
+          "unit": "count",
+          "threshold_source": "benchmark_contract",
+          "evidence": ["fault_trace", "snapshot_manifest"]
+        },
+        {
+          "id": "authority-divergence",
+          "metric": "authoritative_state_divergence_count",
+          "operator": "eq",
+          "expected": 0,
+          "unit": "count",
+          "threshold_source": "benchmark_contract",
+          "evidence": ["control_trace", "audit_trace"]
+        },
+        {
+          "id": "effect-replay",
+          "metric": "replayed_external_effect_count",
+          "operator": "eq",
+          "expected": 0,
+          "unit": "count",
+          "threshold_source": "benchmark_contract",
+          "evidence": ["recovery_trace", "audit_trace"]
+        }
+      ],
+      "required_artifacts": ["manifest", "snapshot_manifest", "fault_trace", "control_trace", "audit_trace", "recovery_trace", "output_hashes", "kv_hashes", "report", "checksums"],
+      "claim_scope": ["snapshot_compatibility", "control_state_recovery", "persistence_conformance"]
+    },
+    {
+      "id": "protocol-and-worker-supervision",
+      "layer": "daemon-worker-boundary",
+      "description": "Authenticated bounded protocol negotiation, one device owner, Worker failure handling, and shutdown.",
+      "required": true,
+      "implementation_sources": [
+        "CONTEXT.md",
+        "docs/adr/0019-run-a-rust-daemon-with-a-cpp-device-worker.md",
+        "docs/adr/0020-version-and-serialize-the-private-backend-protocol.md",
+        "docs/adr/0026-bound-waits-leases-and-shutdown.md",
+        "docs/adr/0028-use-an-os-authenticated-bounded-local-interface.md",
+        "docs/adr/0029-supervise-one-device-owner-across-process-failure.md",
+        "docs/adr/0030-bound-ingress-and-keep-the-core-loop-nonblocking.md",
+        "docs/adr/0035-use-protobuf-with-independent-protocol-versions.md"
+      ],
+      "harness": {
+        "status": "contract_only",
+        "kind": "adapter",
+        "protocol": "turnvector.benchmark.worker-supervision.v1",
+        "entrypoint": null
+      },
+      "matrices": [
+        {
+          "id": "worker-outcome",
+          "dimensions": [
+            {
+              "id": "outcome",
+              "values": ["normal", "crash_before_start", "crash_during_turn", "timeout", "malformed_frame", "duplicate_receipt"]
+            },
+            {
+              "id": "protocol_relation",
+              "values": ["exact", "compatible", "incompatible", "unknown_capability"]
+            }
+          ]
+        }
+      ],
+      "cases": [
+        {
+          "id": "owner-handshake",
+          "requirement": "The Worker acquires one device ownership lease and completes authenticated protocol negotiation before MLX initialization."
+        },
+        {
+          "id": "bounded-transport",
+          "requirement": "Frame, queue, wait, heartbeat, and shutdown limits fail closed without blocking the Runtime Core."
+        },
+        {
+          "id": "mid-turn-crash",
+          "requirement": "A Worker exit during a started Turn produces an indeterminate outcome and never fabricates a successful Receipt."
+        },
+        {
+          "id": "fresh-worker",
+          "requirement": "Restart creates a fresh Worker identity and reconstructs native state only from validated authoritative inputs."
+        }
+      ],
+      "gates": [
+        {
+          "id": "multiple-owner",
+          "metric": "simultaneous_device_owner_count",
+          "operator": "lte",
+          "expected": 1,
+          "unit": "count",
+          "threshold_source": "benchmark_contract",
+          "evidence": ["process_trace", "handshake_trace"]
+        },
+        {
+          "id": "unnegotiated-execution",
+          "metric": "turn_started_before_negotiation_count",
+          "operator": "eq",
+          "expected": 0,
+          "unit": "count",
+          "threshold_source": "benchmark_contract",
+          "evidence": ["handshake_trace", "turn_receipts"]
+        },
+        {
+          "id": "fabricated-receipt",
+          "metric": "successful_receipt_after_worker_loss_count",
+          "operator": "eq",
+          "expected": 0,
+          "unit": "count",
+          "threshold_source": "benchmark_contract",
+          "evidence": ["process_trace", "turn_receipts"]
+        },
+        {
+          "id": "bound-compliance",
+          "metric": "transport_bound_violation_count",
+          "operator": "eq",
+          "expected": 0,
+          "unit": "count",
+          "threshold_source": "certification_record",
+          "evidence": ["transport_trace", "process_trace"]
+        }
+      ],
+      "required_artifacts": ["manifest", "environment", "handshake_trace", "transport_trace", "process_trace", "turn_receipts", "report", "checksums"],
+      "claim_scope": ["backend_protocol_conformance", "worker_supervision_conformance"]
+    },
+    {
+      "id": "certification-envelopes",
+      "layer": "admission-and-governance",
+      "description": "Exact capability-scoped shared execution, fail-closed non-applicability, bound quarantine, and recertification.",
+      "required": true,
+      "implementation_sources": [
+        "CONTEXT.md",
+        "docs/adr/0007-support-open-work-kinds-through-fixed-scheduling-semantics.md",
+        "docs/adr/0008-admit-only-bounded-feasible-work.md",
+        "docs/adr/0017-quarantine-capabilities-after-certified-bound-violations.md",
+        "docs/adr/0031-authorize-shared-work-only-from-scoped-certification.md"
+      ],
+      "harness": {
+        "status": "contract_only",
+        "kind": "adapter",
+        "protocol": "turnvector.benchmark.certification.v1",
+        "entrypoint": null
+      },
+      "matrices": [
+        {
+          "id": "applicability-drift",
+          "dimensions": [
+            {
+              "id": "changed_identity",
+              "values": ["none", "model_revision", "phase", "batch", "shape", "worker_build", "mlx_build", "protocol_capability", "device_class", "memory_size", "os_version"]
+            },
+            {
+              "id": "record_state",
+              "values": ["applicable", "missing", "expired", "quarantined", "superseded"]
+            }
+          ]
+        }
+      ],
+      "cases": [
+        {
+          "id": "exact-applicability",
+          "requirement": "Shared execution requires one unchanged applicable Certification Record for the exact Capability Key and Envelope."
+        },
+        {
+          "id": "no-probing",
+          "requirement": "Uncertified work is rejected in shared mode and is never silently probed or routed to Exclusive Mode."
+        },
+        {
+          "id": "bound-quarantine",
+          "requirement": "A certified bound violation quarantines the most specific affected Capability Key while preserving its Receipt."
+        },
+        {
+          "id": "explicit-recertification",
+          "requirement": "Quarantined capability returns to shared scheduling only through explicit evidence-bound recertification."
+        }
+      ],
+      "gates": [
+        {
+          "id": "uncertified-start",
+          "metric": "uncertified_shared_turn_count",
+          "operator": "eq",
+          "expected": 0,
+          "unit": "count",
+          "threshold_source": "benchmark_contract",
+          "evidence": ["admission_trace", "certification_records"]
+        },
+        {
+          "id": "scope-leak",
+          "metric": "certification_scope_leak_count",
+          "operator": "eq",
+          "expected": 0,
+          "unit": "count",
+          "threshold_source": "benchmark_contract",
+          "evidence": ["admission_trace", "environment", "certification_records"]
+        },
+        {
+          "id": "quarantine-delay",
+          "metric": "turns_started_after_bound_violation_count",
+          "operator": "eq",
+          "expected": 0,
+          "unit": "count",
+          "threshold_source": "benchmark_contract",
+          "evidence": ["turn_receipts", "quarantine_trace"]
+        }
+      ],
+      "required_artifacts": ["manifest", "environment", "certification_records", "admission_trace", "turn_receipts", "quarantine_trace", "report", "checksums"],
+      "claim_scope": ["certification_applicability", "capability_quarantine"]
+    }
+  ]
+}

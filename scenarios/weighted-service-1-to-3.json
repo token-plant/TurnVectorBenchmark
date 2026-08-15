@@ -1,0 +1,48 @@
+{
+  "schema_version": "turnvector.benchmark.scenario.v1",
+  "id": "weighted-service-1-to-3",
+  "description": "Two continuously runnable models receive Engine Service in a 1:3 weighted ratio.",
+  "repetitions": 3,
+  "clock_start_us": 0,
+  "models": [
+    {"model_id": "alpha", "weight": 1},
+    {"model_id": "beta", "weight": 3}
+  ],
+  "segments": [
+    {
+      "turns": 48,
+      "clock_step_us": 140,
+      "resource_mode": "normal",
+      "candidates": [
+        {
+          "candidate_id": "beta.decode",
+          "model_id": "beta",
+          "execution_phase": "decode",
+          "service_class": "standard",
+          "engine_service_bound_us": 120,
+          "runtime_overhead_bound_us": 20,
+          "actual_engine_service_us": 120,
+          "timing_obligation_offset_us": null,
+          "capability_authorized": true,
+          "resource_safe": true,
+          "timing_feasible": true,
+          "output_reserved": true
+        },
+        {
+          "candidate_id": "alpha.decode",
+          "model_id": "alpha",
+          "execution_phase": "decode",
+          "service_class": "standard",
+          "engine_service_bound_us": 120,
+          "runtime_overhead_bound_us": 20,
+          "actual_engine_service_us": 120,
+          "timing_obligation_offset_us": null,
+          "capability_authorized": true,
+          "resource_safe": true,
+          "timing_feasible": true,
+          "output_reserved": true
+        }
+      ]
+    }
+  ]
+}

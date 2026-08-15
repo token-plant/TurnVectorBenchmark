@@ -1,0 +1,10 @@
+{
+  "schema_version": "turnvector.benchmark.suite.v1",
+  "id": "scheduler-policy-v1",
+  "description": "Deterministic conformance gates for TurnVector scheduler policy and Engine Service accounting.",
+  "scenarios": [
+    "../scenarios/weighted-service-1-to-3.json",
+    "../scenarios/idle-reentry-no-credit.json",
+    "../scenarios/urgency-after-safety.json"
+  ]
+}

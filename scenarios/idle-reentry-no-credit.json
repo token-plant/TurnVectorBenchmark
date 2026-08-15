@@ -1,0 +1,104 @@
+{
+  "schema_version": "turnvector.benchmark.scenario.v1",
+  "id": "idle-reentry-no-credit",
+  "description": "A model that becomes runnable after an idle interval aligns to the runnable baseline instead of banking service credit.",
+  "repetitions": 3,
+  "clock_start_us": 0,
+  "models": [
+    {"model_id": "alpha", "weight": 1},
+    {"model_id": "beta", "weight": 1}
+  ],
+  "segments": [
+    {
+      "turns": 4,
+      "clock_step_us": 120,
+      "resource_mode": "normal",
+      "candidates": [
+        {
+          "candidate_id": "alpha.decode",
+          "model_id": "alpha",
+          "execution_phase": "decode",
+          "service_class": "standard",
+          "engine_service_bound_us": 100,
+          "runtime_overhead_bound_us": 20,
+          "actual_engine_service_us": 100,
+          "timing_obligation_offset_us": null,
+          "capability_authorized": true,
+          "resource_safe": true,
+          "timing_feasible": true,
+          "output_reserved": true
+        },
+        {
+          "candidate_id": "beta.decode",
+          "model_id": "beta",
+          "execution_phase": "decode",
+          "service_class": "standard",
+          "engine_service_bound_us": 100,
+          "runtime_overhead_bound_us": 20,
+          "actual_engine_service_us": 100,
+          "timing_obligation_offset_us": null,
+          "capability_authorized": true,
+          "resource_safe": true,
+          "timing_feasible": true,
+          "output_reserved": true
+        }
+      ]
+    },
+    {
+      "turns": 8,
+      "clock_step_us": 120,
+      "resource_mode": "normal",
+      "candidates": [
+        {
+          "candidate_id": "alpha.decode",
+          "model_id": "alpha",
+          "execution_phase": "decode",
+          "service_class": "standard",
+          "engine_service_bound_us": 100,
+          "runtime_overhead_bound_us": 20,
+          "actual_engine_service_us": 100,
+          "timing_obligation_offset_us": null,
+          "capability_authorized": true,
+          "resource_safe": true,
+          "timing_feasible": true,
+          "output_reserved": true
+        }
+      ]
+    },
+    {
+      "turns": 8,
+      "clock_step_us": 120,
+      "resource_mode": "normal",
+      "candidates": [
+        {
+          "candidate_id": "beta.decode",
+          "model_id": "beta",
+          "execution_phase": "decode",
+          "service_class": "standard",
+          "engine_service_bound_us": 100,
+          "runtime_overhead_bound_us": 20,
+          "actual_engine_service_us": 100,
+          "timing_obligation_offset_us": null,
+          "capability_authorized": true,
+          "resource_safe": true,
+          "timing_feasible": true,
+          "output_reserved": true
+        },
+        {
+          "candidate_id": "alpha.decode",
+          "model_id": "alpha",
+          "execution_phase": "decode",
+          "service_class": "standard",
+          "engine_service_bound_us": 100,
+          "runtime_overhead_bound_us": 20,
+          "actual_engine_service_us": 100,
+          "timing_obligation_offset_us": null,
+          "capability_authorized": true,
+          "resource_safe": true,
+          "timing_feasible": true,
+          "output_reserved": true
+        }
+      ]
+    }
+  ]
+}

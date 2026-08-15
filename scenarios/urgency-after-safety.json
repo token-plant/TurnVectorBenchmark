@@ -1,0 +1,154 @@
+{
+  "schema_version": "turnvector.benchmark.scenario.v1",
+  "id": "urgency-after-safety",
+  "description": "Safety removes an earlier unsafe candidate before urgency preempts fair order, and urgent service remains charged.",
+  "repetitions": 3,
+  "clock_start_us": 0,
+  "models": [
+    {"model_id": "alpha", "weight": 1},
+    {"model_id": "beta", "weight": 1},
+    {"model_id": "gamma", "weight": 1}
+  ],
+  "segments": [
+    {
+      "turns": 1,
+      "clock_step_us": 120,
+      "resource_mode": "normal",
+      "candidates": [
+        {
+          "candidate_id": "beta.decode",
+          "model_id": "beta",
+          "execution_phase": "decode",
+          "service_class": "standard",
+          "engine_service_bound_us": 100,
+          "runtime_overhead_bound_us": 20,
+          "actual_engine_service_us": 100,
+          "timing_obligation_offset_us": null,
+          "capability_authorized": true,
+          "resource_safe": true,
+          "timing_feasible": true,
+          "output_reserved": true
+        },
+        {
+          "candidate_id": "alpha.decode",
+          "model_id": "alpha",
+          "execution_phase": "decode",
+          "service_class": "standard",
+          "engine_service_bound_us": 100,
+          "runtime_overhead_bound_us": 20,
+          "actual_engine_service_us": 100,
+          "timing_obligation_offset_us": null,
+          "capability_authorized": true,
+          "resource_safe": true,
+          "timing_feasible": true,
+          "output_reserved": true
+        }
+      ]
+    },
+    {
+      "turns": 1,
+      "clock_step_us": 120,
+      "resource_mode": "guarded",
+      "candidates": [
+        {
+          "candidate_id": "gamma.prefill",
+          "model_id": "gamma",
+          "execution_phase": "prefill",
+          "service_class": "interactive",
+          "engine_service_bound_us": 80,
+          "runtime_overhead_bound_us": 20,
+          "actual_engine_service_us": 80,
+          "timing_obligation_offset_us": 0,
+          "capability_authorized": true,
+          "resource_safe": false,
+          "timing_feasible": true,
+          "output_reserved": true
+        },
+        {
+          "candidate_id": "beta.decode",
+          "model_id": "beta",
+          "execution_phase": "decode",
+          "service_class": "standard",
+          "engine_service_bound_us": 100,
+          "runtime_overhead_bound_us": 20,
+          "actual_engine_service_us": 100,
+          "timing_obligation_offset_us": null,
+          "capability_authorized": true,
+          "resource_safe": true,
+          "timing_feasible": true,
+          "output_reserved": true
+        },
+        {
+          "candidate_id": "alpha.decode",
+          "model_id": "alpha",
+          "execution_phase": "decode",
+          "service_class": "interactive",
+          "engine_service_bound_us": 100,
+          "runtime_overhead_bound_us": 20,
+          "actual_engine_service_us": 100,
+          "timing_obligation_offset_us": 120,
+          "capability_authorized": true,
+          "resource_safe": true,
+          "timing_feasible": true,
+          "output_reserved": true
+        }
+      ]
+    },
+    {
+      "turns": 1,
+      "clock_step_us": 120,
+      "resource_mode": "normal",
+      "candidates": [
+        {
+          "candidate_id": "alpha.decode",
+          "model_id": "alpha",
+          "execution_phase": "decode",
+          "service_class": "standard",
+          "engine_service_bound_us": 100,
+          "runtime_overhead_bound_us": 20,
+          "actual_engine_service_us": 100,
+          "timing_obligation_offset_us": null,
+          "capability_authorized": true,
+          "resource_safe": true,
+          "timing_feasible": true,
+          "output_reserved": true
+        },
+        {
+          "candidate_id": "beta.decode",
+          "model_id": "beta",
+          "execution_phase": "decode",
+          "service_class": "standard",
+          "engine_service_bound_us": 100,
+          "runtime_overhead_bound_us": 20,
+          "actual_engine_service_us": 100,
+          "timing_obligation_offset_us": null,
+          "capability_authorized": true,
+          "resource_safe": true,
+          "timing_feasible": true,
+          "output_reserved": true
+        }
+      ]
+    },
+    {
+      "turns": 1,
+      "clock_step_us": 120,
+      "resource_mode": "critical",
+      "candidates": [
+        {
+          "candidate_id": "gamma.prefill",
+          "model_id": "gamma",
+          "execution_phase": "prefill",
+          "service_class": "interactive",
+          "engine_service_bound_us": 80,
+          "runtime_overhead_bound_us": 20,
+          "actual_engine_service_us": 80,
+          "timing_obligation_offset_us": 0,
+          "capability_authorized": true,
+          "resource_safe": false,
+          "timing_feasible": true,
+          "output_reserved": true
+        }
+      ]
+    }
+  ]
+}
