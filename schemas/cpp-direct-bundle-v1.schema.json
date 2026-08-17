@@ -1,0 +1,59 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://token-plant.github.io/TurnVectorBenchmark/schemas/cpp-direct-bundle-v1.schema.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "binary",
+    "seed",
+    "warmup",
+    "iterations",
+    "source_revisions",
+    "models"
+  ],
+  "properties": {
+    "schema_version": {"const": "turnvector.benchmark.cpp-direct-bundle.v1"},
+    "binary": {"$ref": "#/$defs/relative_path"},
+    "seed": {"const": 20260812},
+    "warmup": {"type": "integer", "minimum": 0},
+    "iterations": {"type": "integer", "minimum": 1},
+    "source_revisions": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["mlx", "mlx-c"],
+      "properties": {
+        "mlx": {"const": "68cf2fddd8de5edd8ab3d926391772b2e2cedad8"},
+        "mlx-c": {"const": "fba4470b89073180056c9ea46c443051375f7399"}
+      }
+    },
+    "models": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["dense", "moe"],
+      "properties": {
+        "dense": {"$ref": "#/$defs/model"},
+        "moe": {"$ref": "#/$defs/model"}
+      }
+    }
+  },
+  "$defs": {
+    "relative_path": {
+      "type": "string",
+      "minLength": 1,
+      "not": {"pattern": "(^/|(^|/)\\.\\.(/|$))"}
+    },
+    "model": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["graph", "layers", "kv_heads", "head_dim", "vocab_size"],
+      "properties": {
+        "graph": {"$ref": "#/$defs/relative_path"},
+        "layers": {"type": "integer", "minimum": 1},
+        "kv_heads": {"type": "integer", "minimum": 1},
+        "head_dim": {"type": "integer", "minimum": 1},
+        "vocab_size": {"type": "integer", "minimum": 1025}
+      }
+    }
+  }
+}

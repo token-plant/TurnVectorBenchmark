@@ -1,0 +1,23 @@
+{
+  "schema_version": "turnvector.benchmark.case-schema.v1",
+  "lane_id": "mlx-native-correctness",
+  "matrices": {
+    "decode": {
+      "required": ["model_architecture", "batch_size", "context_tokens"],
+      "properties": {
+        "model_architecture": {"enum": ["dense", "moe"]},
+        "batch_size": {"enum": [1, 4]},
+        "context_tokens": {"enum": [512, 2048, 8192]}
+      },
+      "additional_properties": false
+    },
+    "prefill": {
+      "required": ["model_architecture", "prompt_tokens"],
+      "properties": {
+        "model_architecture": {"enum": ["dense", "moe"]},
+        "prompt_tokens": {"enum": [64, 256, 1024]}
+      },
+      "additional_properties": false
+    }
+  }
+}

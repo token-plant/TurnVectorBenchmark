@@ -1,0 +1,28 @@
+{
+  "schema_version": "turnvector.benchmark.lane-suite.v1",
+  "id": "observability-qualification-v1",
+  "lane_id": "observability-qualification",
+  "protocol": "turnvector.benchmark.observability.v1",
+  "runner": "observability-qualification",
+  "adapter_category": "system",
+  "matrix_ids": ["decode-observability", "prefill-observability"],
+  "behavior_case_ids": ["turn-attribution", "status-mapping", "external-calibration", "qualified-label"],
+  "gate_ids": ["instruments-capture", "timestamp-coverage", "attribution-errors", "calibration-median", "calibration-p95", "telemetry-throughput", "telemetry-tpot"],
+  "case_schema": "../../schemas/lanes/observability-qualification-case-v1.json",
+  "operations": ["run-telemetry-off", "run-telemetry-on", "capture-xctrace", "correlate-command-buffers"],
+  "metrics": [
+    {"metric": "instruments_capture_missing_count", "source": "instruments_capture_missing", "reducer": "sum"},
+    {"metric": "timestamp_coverage_percent", "source": "timestamp_coverage_percent", "reducer": "min"},
+    {"metric": "attribution_error_count", "source": "attribution_errors", "reducer": "sum"},
+    {"metric": "instruments_relative_error_median_percent", "source": "instruments_relative_error_samples_percent", "reducer": "p50"},
+    {"metric": "instruments_relative_error_p95_percent", "source": "instruments_relative_error_p95_samples_percent", "reducer": "p95"},
+    {"metric": "telemetry_throughput_regression_percent", "source": "telemetry_throughput_regression_percent", "reducer": "max"},
+    {"metric": "telemetry_tpot_p95_regression_percent", "source": "telemetry_tpot_p95_regression_percent", "reducer": "max"}
+  ],
+  "requirements": {
+    "execution_boundary": "benchmark_orchestrated",
+    "real_subject_required": true,
+    "external_inputs": ["xctrace", "daemon-worker-build", "dense-model", "moe-model"],
+    "diagnostic_only_cases": []
+  }
+}

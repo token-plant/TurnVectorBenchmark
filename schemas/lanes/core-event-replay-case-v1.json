@@ -1,0 +1,14 @@
+{
+  "schema_version": "turnvector.benchmark.case-schema.v1",
+  "lane_id": "core-event-replay",
+  "matrices": {
+    "effect-result-replay": {
+      "required": ["result", "sequence_relation"],
+      "properties": {
+        "result": {"enum": ["completed", "failed", "cancelled", "indeterminate"]},
+        "sequence_relation": {"enum": ["current", "duplicate", "late", "unknown", "stale_generation"]}
+      },
+      "additional_properties": false
+    }
+  }
+}

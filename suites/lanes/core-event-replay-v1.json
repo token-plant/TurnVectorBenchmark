@@ -1,0 +1,24 @@
+{
+  "schema_version": "turnvector.benchmark.lane-suite.v1",
+  "id": "core-event-replay-v1",
+  "lane_id": "core-event-replay",
+  "protocol": "turnvector.benchmark.core-replay.v1",
+  "runner": "core-event-replay",
+  "adapter_category": "core",
+  "matrix_ids": ["effect-result-replay"],
+  "behavior_case_ids": ["deterministic-state", "atomic-failure", "effect-idempotence", "cancellation-order"],
+  "gate_ids": ["replay-hash", "invariant-safety", "failed-transition-effects"],
+  "case_schema": "../../schemas/lanes/core-event-replay-case-v1.json",
+  "operations": ["replay-event-stream", "replay-identical-stream"],
+  "metrics": [
+    {"metric": "replay_hash_mismatch_count", "source": "replay_hash_mismatches", "reducer": "sum"},
+    {"metric": "committed_invariant_violation_count", "source": "committed_invariant_violations", "reducer": "sum"},
+    {"metric": "effects_exposed_after_failed_transition_count", "source": "failed_transition_effects", "reducer": "sum"}
+  ],
+  "requirements": {
+    "execution_boundary": "core_adapter",
+    "real_subject_required": true,
+    "external_inputs": [],
+    "diagnostic_only_cases": []
+  }
+}

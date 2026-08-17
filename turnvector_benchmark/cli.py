@@ -6,12 +6,15 @@ import sys
 from pathlib import Path
 from typing import Optional, Sequence
 
+from .controller import LaneController
 from .core import ContractError, load_suite
 from .expectation import (
     bind_suite_lane,
     expectation_summary,
     load_expectation,
 )
+from .evidence import write_checksums, write_json
+from .performance import load_performance_contract
 from .runner import BenchmarkRunner
 
 
@@ -30,6 +33,51 @@ def _parser() -> argparse.ArgumentParser:
     )
     expectation.add_argument("--manifest", type=Path, required=True)
     expectation.add_argument("--target-repo", type=Path)
+
+    inspect = subparsers.add_parser(
+        "inspect", help="derive full benchmark readiness from contracts and self-tests"
+    )
+    inspect.add_argument("--expectation", type=Path, required=True)
+    inspect.add_argument("--target-repo", type=Path)
+
+    inspect_performance = subparsers.add_parser(
+        "inspect-performance",
+        help="inspect the performance publication contract and expanded case plan",
+    )
+    inspect_performance.add_argument("--contract", type=Path, required=True)
+
+    validate_performance = subparsers.add_parser(
+        "validate-performance",
+        help="independently validate one performance evidence artifact",
+    )
+    validate_performance.add_argument("--contract", type=Path, required=True)
+    validate_performance.add_argument("--evidence", type=Path, required=True)
+    validate_performance.add_argument("--output", type=Path)
+    validate_performance.add_argument(
+        "--require-promotion",
+        action="store_true",
+        help="return exit 5 when publishable evidence fails its promotion gates",
+    )
+
+    def add_controller_arguments(command: argparse.ArgumentParser) -> None:
+        command.add_argument("--expectation", type=Path, required=True)
+        command.add_argument("--subject-manifest", type=Path)
+        command.add_argument("--certification-record", type=Path)
+        command.add_argument("--external-fixtures", type=Path)
+        command.add_argument("--target-repo", type=Path)
+        command.add_argument("--profile", default="qualification")
+        command.add_argument("--output", type=Path, required=True)
+
+    run_lane = subparsers.add_parser(
+        "run-lane", help="execute one required lane through SubjectAdapter v1"
+    )
+    add_controller_arguments(run_lane)
+    run_lane.add_argument("--lane", required=True)
+
+    run_all = subparsers.add_parser(
+        "run-all", help="execute all required lanes without cross-lane short circuiting"
+    )
+    add_controller_arguments(run_all)
 
     run = subparsers.add_parser("run", help="run a suite against a JSONL driver")
     run.add_argument("--suite", type=Path, required=True)
@@ -54,6 +102,83 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
                 )
             )
             return 0
+        if args.command == "inspect":
+            print(
+                json.dumps(
+                    LaneController.inspect(
+                        expectation_path=args.expectation,
+                        target_repo=args.target_repo,
+                    ),
+                    sort_keys=True,
+                )
+            )
+            return 0
+        if args.command == "inspect-performance":
+            contract = load_performance_contract(args.contract)
+            print(json.dumps(contract.inspect(), sort_keys=True))
+            return 0
+        if args.command == "validate-performance":
+            contract = load_performance_contract(args.contract)
+            report = contract.validate_artifact(args.evidence)
+            if args.output is not None:
+                output = args.output.resolve()
+                if output.exists():
+                    raise FileExistsError(
+                        f"performance validation output already exists: {output}"
+                    )
+                output.mkdir(parents=True)
+                write_json(output / "report.json", report)
+                write_checksums(output)
+                rendered = {
+                    "status": report["status"],
+                    "promotion_status": report["promotion_status"],
+                    "publication_candidate": report["publication_candidate"],
+                    "report": str(output / "report.json"),
+                }
+            else:
+                rendered = report
+            print(json.dumps(rendered, sort_keys=True))
+            exit_code = {
+                "publishable": 0,
+                "not_publishable": 3,
+                "unsupported": 4,
+            }[report["status"]]
+            if (
+                args.require_promotion
+                and exit_code == 0
+                and report["promotion_status"] not in {"passed", "not_applicable"}
+            ):
+                return 5
+            return exit_code
+        if args.command in {"run-lane", "run-all"}:
+            controller = LaneController(
+                expectation_path=args.expectation,
+                subject_manifest_path=args.subject_manifest,
+                certification_record_path=args.certification_record,
+                external_fixture_manifest_path=args.external_fixtures,
+                output_dir=args.output,
+                target_repo=args.target_repo,
+                profile=args.profile,
+            )
+            result = (
+                controller.run_lane(args.lane)
+                if args.command == "run-lane"
+                else controller.run_all()
+            )
+            print(
+                json.dumps(
+                    {
+                        "status": result.status,
+                        "full_implementation_status": result.report[
+                            "full_implementation_status"
+                        ],
+                        "artifact_dir": str(result.artifact_dir),
+                        "report": str(result.artifact_dir / "report.json"),
+                    },
+                    sort_keys=True,
+                )
+            )
+            return result.exit_code
         suite = load_suite(args.suite.resolve())
         if args.command == "validate":
             print(

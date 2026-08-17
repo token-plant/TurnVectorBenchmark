@@ -1,0 +1,31 @@
+{
+  "schema_version": "turnvector.benchmark.subject-manifest.v1",
+  "id": "reference-fixture-v1",
+  "subject_kind": "fixture",
+  "adapters": [
+    {
+      "id": "reference-core-fixture",
+      "category": "core",
+      "command": ["python3", "-B", "drivers/reference_subject.py"],
+      "cwd": "..",
+      "lanes": ["core-event-replay", "scheduler-policy", "scheduler-performance"],
+      "timeout_seconds": 5
+    },
+    {
+      "id": "reference-native-fixture",
+      "category": "native",
+      "command": ["python3", "-B", "drivers/reference_subject.py"],
+      "cwd": "..",
+      "lanes": ["mlx-native-correctness", "bounded-turn-and-ffi"],
+      "timeout_seconds": 5
+    },
+    {
+      "id": "reference-system-fixture",
+      "category": "system",
+      "command": ["python3", "-B", "drivers/reference_subject.py"],
+      "cwd": "..",
+      "lanes": ["request-serving-lifecycle", "residency-and-memory-governor", "cross-model-serving", "observability-qualification", "persistence-and-recovery", "protocol-and-worker-supervision", "certification-envelopes"],
+      "timeout_seconds": 5
+    }
+  ]
+}

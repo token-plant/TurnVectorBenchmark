@@ -19,21 +19,17 @@ SUITE = ROOT / "suites" / "scheduler-policy-v1.json"
 
 
 class ImplementationExpectationTests(unittest.TestCase):
-    def test_checked_in_expectation_is_complete_and_not_claimable(self) -> None:
+    def test_checked_in_expectation_has_all_executable_judges(self) -> None:
         expectation = load_expectation(MANIFEST)
         summary = expectation_summary(expectation, None)
 
         self.assertEqual(summary["required_lane_count"], 12)
-        self.assertEqual(summary["executable_required_lane_count"], 1)
-        self.assertEqual(summary["contract_only_required_lane_count"], 11)
-        self.assertFalse(summary["full_run_available"])
+        self.assertEqual(summary["executable_required_lane_count"], 12)
+        self.assertEqual(summary["contract_only_required_lane_count"], 0)
+        self.assertTrue(summary["full_run_available"])
         self.assertEqual(summary["claim_status"], "not_evaluated")
-        self.assertIn(
-            "mlx-native-correctness", summary["unexecutable_required_lane_ids"]
-        )
-        self.assertIn(
-            "scheduler-performance", summary["unexecutable_required_lane_ids"]
-        )
+        self.assertEqual(summary["unexecutable_required_lane_ids"], [])
+        self.assertEqual(summary["expanded_matrix_case_count"], 385)
 
     def test_mlx_expectation_fixes_native_matrix_and_parity_gates(self) -> None:
         expectation = load_expectation(MANIFEST)
@@ -49,11 +45,12 @@ class ImplementationExpectationTests(unittest.TestCase):
 
         self.assertEqual(matrices["decode"]["model_architecture"], ("dense", "moe"))
         self.assertEqual(matrices["decode"]["batch_size"], (1, 4))
+        self.assertEqual(matrices["decode"]["context_tokens"], (512, 2048, 8192))
         self.assertEqual(matrices["prefill"]["prompt_tokens"], (64, 256, 1024))
         self.assertEqual(gates["output-parity"].expected, 0)
         self.assertEqual(gates["logits-parity"].expected, 0)
         self.assertEqual(gates["kv-parity"].expected, 0)
-        self.assertEqual(lane.harness.status, "contract_only")
+        self.assertEqual(lane.harness.status, "executable")
         self.assertTrue(lane.required)
 
     def test_scheduler_suite_is_bound_to_exact_executable_lane(self) -> None:
@@ -62,7 +59,7 @@ class ImplementationExpectationTests(unittest.TestCase):
         lane = bind_suite_lane(expectation, "scheduler-policy", suite)
         self.assertEqual(lane.harness.status, "executable")
 
-        with self.assertRaisesRegex(ContractError, "not an executable JSONL suite"):
+        with self.assertRaisesRegex(ContractError, "no legacy JSONL suite"):
             bind_suite_lane(expectation, "mlx-native-correctness", suite)
 
     def test_unknown_expectation_field_fails_closed(self) -> None:

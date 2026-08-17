@@ -1,0 +1,16 @@
+{
+  "schema_version": "turnvector.benchmark.case-schema.v1",
+  "lane_id": "cross-model-serving",
+  "matrices": {
+    "interference": {
+      "required": ["model_pair", "contender_work", "model_weights", "service_class"],
+      "properties": {
+        "model_pair": {"enum": ["dense_dense", "dense_moe", "moe_moe"]},
+        "contender_work": {"enum": ["long_prefill", "decode"]},
+        "model_weights": {"enum": ["1_to_1", "1_to_3"]},
+        "service_class": {"enum": ["interactive", "standard", "background"]}
+      },
+      "additional_properties": false
+    }
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "schema_version": "turnvector.benchmark.case-schema.v1",
+  "lane_id": "scheduler-policy",
+  "matrices": {
+    "scheduler-scenarios": {
+      "required": ["scenario"],
+      "properties": {
+        "scenario": {"enum": ["weighted_service", "idle_reentry", "urgency_after_safety"]}
+      },
+      "additional_properties": false
+    }
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "schema_version": "turnvector.benchmark.case-schema.v1",
+  "lane_id": "request-serving-lifecycle",
+  "matrices": {
+    "request-ordering": {
+      "required": ["service_class", "client_event"],
+      "properties": {
+        "service_class": {"enum": ["interactive", "standard", "background"]},
+        "client_event": {"enum": ["none", "cancel_before_receipt", "cancel_after_receipt", "disconnect", "backpressure_timeout"]}
+      },
+      "additional_properties": false
+    }
+  }
+}

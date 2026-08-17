@@ -1,0 +1,25 @@
+{
+  "schema_version": "turnvector.benchmark.lane-suite.v1",
+  "id": "persistence-and-recovery-v1",
+  "lane_id": "persistence-and-recovery",
+  "protocol": "turnvector.benchmark.persistence.v1",
+  "runner": "persistence-and-recovery",
+  "adapter_category": "system",
+  "matrix_ids": ["snapshot-faults", "control-store-faults"],
+  "behavior_case_ids": ["strong-snapshot-identity", "atomic-publication", "safe-invalidation", "restart-reconciliation"],
+  "gate_ids": ["snapshot-parity", "invalid-snapshot-use", "authority-divergence", "effect-replay"],
+  "case_schema": "../../schemas/lanes/persistence-and-recovery-case-v1.json",
+  "operations": ["stage-runtime-root", "observe-benchmark-fault", "restart-and-inspect"],
+  "metrics": [
+    {"metric": "snapshot_roundtrip_mismatch_count", "source": "snapshot_roundtrip_mismatches", "reducer": "sum"},
+    {"metric": "invalid_snapshot_restore_count", "source": "invalid_snapshot_restores", "reducer": "sum"},
+    {"metric": "authoritative_state_divergence_count", "source": "authoritative_state_divergences", "reducer": "sum"},
+    {"metric": "replayed_external_effect_count", "source": "replayed_external_effects", "reducer": "sum"}
+  ],
+  "requirements": {
+    "execution_boundary": "benchmark_orchestrated",
+    "real_subject_required": true,
+    "external_inputs": ["daemon-worker-build"],
+    "diagnostic_only_cases": []
+  }
+}

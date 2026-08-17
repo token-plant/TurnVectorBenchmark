@@ -1,0 +1,57 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://token-plant.github.io/TurnVectorBenchmark/schemas/performance-certification-v1.schema.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "id",
+    "contract",
+    "lane_id",
+    "issued_at",
+    "expires_at",
+    "identity",
+    "thresholds"
+  ],
+  "properties": {
+    "schema_version": {"const": "turnvector.benchmark.performance-certification.v1"},
+    "id": {"$ref": "#/$defs/id"},
+    "contract": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "sha256"],
+      "properties": {
+        "id": {"$ref": "#/$defs/id"},
+        "sha256": {"$ref": "#/$defs/digest"}
+      }
+    },
+    "lane_id": {"$ref": "#/$defs/id"},
+    "issued_at": {"type": "string", "format": "date-time"},
+    "expires_at": {"type": "string", "format": "date-time"},
+    "identity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "resolved_runtime_sha256",
+        "subject_binary_sha256",
+        "model_manifest_sha256",
+        "prompt_manifest_sha256"
+      ],
+      "properties": {
+        "resolved_runtime_sha256": {"$ref": "#/$defs/digest"},
+        "subject_binary_sha256": {"$ref": "#/$defs/digest"},
+        "model_manifest_sha256": {"$ref": "#/$defs/digest"},
+        "prompt_manifest_sha256": {"$ref": "#/$defs/digest"}
+      }
+    },
+    "thresholds": {
+      "type": "object",
+      "propertyNames": {"$ref": "#/$defs/id"},
+      "additionalProperties": {"type": "number", "minimum": 0}
+    }
+  },
+  "$defs": {
+    "id": {"type": "string", "pattern": "^[a-z0-9][a-z0-9._-]*$"},
+    "digest": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
+  }
+}

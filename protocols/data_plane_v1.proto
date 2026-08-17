@@ -1,0 +1,171 @@
+syntax = "proto3";
+
+package turnvector.benchmark.data_plane.v1;
+
+enum ServiceClass {
+  SERVICE_CLASS_UNSPECIFIED = 0;
+  SERVICE_CLASS_INTERACTIVE = 1;
+  SERVICE_CLASS_STANDARD = 2;
+  SERVICE_CLASS_BACKGROUND = 3;
+}
+
+enum RequestState {
+  REQUEST_STATE_UNSPECIFIED = 0;
+  REQUEST_STATE_ACCEPTED = 1;
+  REQUEST_STATE_PREPARING = 2;
+  REQUEST_STATE_WARMING = 3;
+  REQUEST_STATE_ADMITTED = 4;
+  REQUEST_STATE_MATERIALIZED = 5;
+  REQUEST_STATE_QUEUED = 6;
+  REQUEST_STATE_RUNNING = 7;
+  REQUEST_STATE_TERMINAL = 8;
+}
+
+enum TurnPhase {
+  TURN_PHASE_UNSPECIFIED = 0;
+  TURN_PHASE_NONE = 1;
+  TURN_PHASE_PREFILL = 2;
+  TURN_PHASE_DECODE = 3;
+}
+
+enum CancellationState {
+  CANCELLATION_STATE_UNSPECIFIED = 0;
+  CANCELLATION_STATE_NONE = 1;
+  CANCELLATION_STATE_REQUESTED = 2;
+  CANCELLATION_STATE_ACCEPTED = 3;
+}
+
+message ProtocolMinor {
+  uint32 minor = 1;
+  bytes descriptor_sha256 = 2;
+  repeated uint32 provided_capability_ids = 3 [packed = true];
+  repeated uint32 required_peer_capability_ids = 4 [packed = true];
+}
+
+message DirectionalLimits {
+  uint64 offered_max_frame_bytes = 1;
+  uint64 offered_max_outstanding_commands = 2;
+  uint64 offered_max_command_bytes = 3;
+}
+
+message DataPlaneHello {
+  string family = 1;
+  uint32 major = 2;
+  repeated ProtocolMinor minors = 3;
+  DirectionalLimits limits = 4;
+  string build_identity = 5;
+  bytes protocol_support_manifest_sha256 = 6;
+}
+
+message DataPlaneHelloAck {
+  string family = 1;
+  uint32 major = 2;
+  uint32 selected_minor = 3;
+  bytes selected_descriptor_sha256 = 4;
+  repeated uint32 effective_capability_ids = 5 [packed = true];
+  DirectionalLimits effective_limits = 6;
+  bytes daemon_instance_id = 7;
+  bytes installation_policy_identity = 8;
+  uint64 no_progress_write_timeout_ms = 9;
+  uint64 maximum_completion_write_timeout_ms = 10;
+}
+
+message StopSequence {
+  repeated uint32 token_ids = 1 [packed = true];
+}
+
+message SubmitRequest {
+  bytes model_revision = 1;
+  repeated uint32 input_token_ids = 2 [packed = true];
+  uint32 max_output_tokens = 3;
+  uint64 sampling_seed = 4;
+  ServiceClass service_class = 5;
+  repeated StopSequence stop_sequences = 6;
+}
+
+message CancelRequest {
+  bytes request_id = 1;
+}
+
+message DataPlaneCommand {
+  uint64 command_id = 1;
+  oneof command {
+    SubmitRequest submit_request = 10;
+    CancelRequest cancel_request = 11;
+  }
+}
+
+message ClientFrame {
+  oneof frame {
+    DataPlaneHello hello = 1;
+    DataPlaneCommand command = 2;
+  }
+}
+
+message RequestAccepted {
+  bytes request_id = 1;
+  bytes frozen_model_revision = 2;
+  uint64 status_version = 3;
+  RequestState state = 4;
+  bool reservation_created = 5;
+  bool backend_handle_created = 6;
+}
+
+message CancellationAccepted {
+  bytes request_id = 1;
+  uint64 event_sequence = 2;
+}
+
+message StructuredError {
+  uint32 error_code = 1;
+  uint32 reason_code = 2;
+  bool retryable = 3;
+  optional bytes request_id = 4;
+}
+
+message DirectResponse {
+  uint64 command_id = 1;
+  bool command_ingress_closed = 2;
+  oneof response {
+    RequestAccepted request_accepted = 10;
+    CancellationAccepted cancellation_accepted = 11;
+    StructuredError error = 12;
+  }
+}
+
+message RequestStatusUpdate {
+  bytes request_id = 1;
+  uint64 status_version = 2;
+  RequestState state = 3;
+  TurnPhase phase = 4;
+  uint64 input_token_progress = 5;
+  uint64 generated_token_progress = 6;
+  optional uint64 last_output_sequence = 7;
+  CancellationState cancellation_state = 8;
+  bool terminal = 9;
+  optional uint32 terminal_reason_code = 10;
+  bool reservation_created = 11;
+  bool backend_handle_created = 12;
+  bool history_gap = 13;
+}
+
+message OutputFrame {
+  bytes request_id = 1;
+  uint64 output_sequence = 2;
+  repeated uint32 token_ids = 3 [packed = true];
+  uint64 status_version = 4;
+  bool terminal = 5;
+  optional uint32 terminal_reason_code = 6;
+  bool output_capacity_reserved = 7;
+  bytes publication_id = 8;
+}
+
+message ServerFrame {
+  oneof frame {
+    DataPlaneHelloAck hello_ack = 1;
+    DirectResponse direct_response = 2;
+    RequestStatusUpdate status_update = 3;
+    OutputFrame output_frame = 4;
+    StructuredError protocol_error = 5;
+  }
+}

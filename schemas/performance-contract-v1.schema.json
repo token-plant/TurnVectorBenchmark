@@ -1,0 +1,254 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://token-plant.github.io/TurnVectorBenchmark/schemas/performance-contract-v1.schema.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "id",
+    "description",
+    "source_contract",
+    "publication_policy",
+    "environment_requirements",
+    "common_required_artifacts",
+    "lanes"
+  ],
+  "properties": {
+    "schema_version": {"const": "turnvector.benchmark.performance-contract.v1"},
+    "id": {"$ref": "#/$defs/id"},
+    "description": {"type": "string", "minLength": 1},
+    "source_contract": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["repository", "revision", "clean_required"],
+      "properties": {
+        "repository": {"const": "TurnVector"},
+        "revision": {"$ref": "#/$defs/sha"},
+        "clean_required": {"const": true}
+      }
+    },
+    "publication_policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "cross_mode_comparison",
+        "unsupported_result",
+        "thresholds_frozen_before_run",
+        "raw_trials_required",
+        "summary_recomputed",
+        "percentile_method"
+      ],
+      "properties": {
+        "cross_mode_comparison": {"const": "forbidden_without_shared_denominator"},
+        "unsupported_result": {"const": "explicit_not_publishable"},
+        "thresholds_frozen_before_run": {"const": true},
+        "raw_trials_required": {"const": true},
+        "summary_recomputed": {"const": true},
+        "percentile_method": {"const": "nearest_rank"}
+      }
+    },
+    "environment_requirements": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "identity_fields",
+        "host_condition_fields",
+        "admission_limits",
+        "benchmark_custody"
+      ],
+      "properties": {
+        "identity_fields": {
+          "const": [
+            "device_class",
+            "memory_bytes",
+            "os_build",
+            "resolved_runtime_sha256",
+            "subject_binary_sha256",
+            "model_manifest_sha256",
+            "prompt_manifest_sha256",
+            "certification_record_sha256"
+          ]
+        },
+        "host_condition_fields": {
+          "const": [
+            "power_source",
+            "thermal_state_start",
+            "thermal_state_end",
+            "load_average_1m_start",
+            "load_average_1m_end",
+            "top_process_cpu_percent_start",
+            "top_process_cpu_percent_end",
+            "host_admission_passed"
+          ]
+        },
+        "admission_limits": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["max_load_average_1m", "max_top_process_cpu_percent"],
+          "properties": {
+            "max_load_average_1m": {"type": "number", "minimum": 0},
+            "max_top_process_cpu_percent": {"type": "number", "minimum": 0}
+          }
+        },
+        "benchmark_custody": {
+          "const": ["host_conditions", "request_timestamps", "raw_trials"]
+        }
+      }
+    },
+    "common_required_artifacts": {
+      "const": [
+        "run_manifest",
+        "environment",
+        "raw_trials",
+        "host_samples",
+        "model_manifest",
+        "prompt_manifest",
+        "certification_record"
+      ]
+    },
+    "lanes": {
+      "type": "array",
+      "minItems": 1,
+      "items": {"$ref": "#/$defs/lane"}
+    }
+  },
+  "$defs": {
+    "id": {"type": "string", "pattern": "^[a-z0-9][a-z0-9._-]*$"},
+    "sha": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+    "ids": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {"$ref": "#/$defs/id"}
+    },
+    "scalar": {"type": ["string", "integer", "number", "boolean"]},
+    "dimension": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "values"],
+      "properties": {
+        "id": {"$ref": "#/$defs/id"},
+        "values": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {"$ref": "#/$defs/scalar"}
+        }
+      }
+    },
+    "matrix": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "dimensions"],
+      "properties": {
+        "id": {"$ref": "#/$defs/id"},
+        "dimensions": {
+          "type": "array",
+          "minItems": 1,
+          "items": {"$ref": "#/$defs/dimension"}
+        }
+      }
+    },
+    "protocol": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "warmup_repetitions",
+        "measured_repetitions",
+        "cooldown_seconds",
+        "process_isolation",
+        "order_policy",
+        "cache_policy",
+        "sampling_policy",
+        "fixed_parameters"
+      ],
+      "properties": {
+        "warmup_repetitions": {"type": "integer", "minimum": 0},
+        "measured_repetitions": {"type": "integer", "minimum": 1},
+        "cooldown_seconds": {"type": "number", "minimum": 0},
+        "process_isolation": {"enum": ["fresh_per_repetition", "fresh_per_cell", "session_reuse"]},
+        "order_policy": {"enum": ["balanced", "alternating", "fixed"]},
+        "cache_policy": {"enum": ["disabled", "isolated", "scenario_defined"]},
+        "sampling_policy": {"enum": ["greedy", "sampled", "none"]},
+        "fixed_parameters": {
+          "type": "object",
+          "additionalProperties": {"$ref": "#/$defs/scalar"}
+        }
+      }
+    },
+    "metric": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "unit", "reducer"],
+      "properties": {
+        "id": {"$ref": "#/$defs/id"},
+        "unit": {"$ref": "#/$defs/id"},
+        "reducer": {"enum": ["median", "p95", "p99", "min", "max", "sum"]}
+      }
+    },
+    "gate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "metric", "operator", "threshold_source", "expected", "decision"],
+      "properties": {
+        "id": {"$ref": "#/$defs/id"},
+        "metric": {"$ref": "#/$defs/id"},
+        "operator": {"enum": ["eq", "gte", "lte"]},
+        "threshold_source": {"enum": ["benchmark_contract", "certification_record"]},
+        "expected": {
+          "anyOf": [
+            {"type": "number", "minimum": 0},
+            {"type": "null"}
+          ]
+        },
+        "decision": {"enum": ["evidence", "promotion"]}
+      }
+    },
+    "lane": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "description",
+        "activation",
+        "session_mode",
+        "claim_types",
+        "matrices",
+        "protocol",
+        "metrics",
+        "gates",
+        "required_artifacts",
+        "claim_boundaries"
+      ],
+      "properties": {
+        "id": {"$ref": "#/$defs/id"},
+        "description": {"type": "string", "minLength": 1},
+        "activation": {"enum": ["core", "capability_conditioned"]},
+        "session_mode": {"$ref": "#/$defs/id"},
+        "claim_types": {"$ref": "#/$defs/ids"},
+        "matrices": {
+          "type": "array",
+          "minItems": 1,
+          "items": {"$ref": "#/$defs/matrix"}
+        },
+        "protocol": {"$ref": "#/$defs/protocol"},
+        "metrics": {
+          "type": "array",
+          "minItems": 1,
+          "items": {"$ref": "#/$defs/metric"}
+        },
+        "gates": {
+          "type": "array",
+          "minItems": 1,
+          "items": {"$ref": "#/$defs/gate"}
+        },
+        "required_artifacts": {"$ref": "#/$defs/ids"},
+        "claim_boundaries": {
+          "type": "array",
+          "minItems": 1,
+          "items": {"type": "string", "minLength": 1}
+        }
+      }
+    }
+  }
+}

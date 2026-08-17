@@ -1,0 +1,26 @@
+{
+  "schema_version": "turnvector.benchmark.lane-suite.v1",
+  "id": "certification-envelopes-v1",
+  "lane_id": "certification-envelopes",
+  "protocol": "turnvector.benchmark.certification.v1",
+  "runner": "certification-envelopes",
+  "adapter_category": "system",
+  "matrix_ids": ["applicability-drift"],
+  "behavior_case_ids": ["exact-applicability", "no-probing", "bound-quarantine", "explicit-recertification"],
+  "gate_ids": ["applicability-exact", "uncertified-start", "scope-leak", "quarantine-delay", "explicit-recertification"],
+  "case_schema": "../../schemas/lanes/certification-envelopes-case-v1.json",
+  "operations": ["install-certification-record", "mutate-capability-identity", "observe-quarantine", "explicitly-recertify"],
+  "metrics": [
+    {"metric": "certification_applicability_mismatch_count", "source": "certification_applicability_mismatches", "reducer": "sum"},
+    {"metric": "uncertified_shared_turn_count", "source": "uncertified_shared_turns", "reducer": "sum"},
+    {"metric": "certification_scope_leak_count", "source": "certification_scope_leaks", "reducer": "sum"},
+    {"metric": "turns_started_after_bound_violation_count", "source": "turns_after_bound_violation", "reducer": "sum"},
+    {"metric": "explicit_recertification_failure_count", "source": "explicit_recertification_failures", "reducer": "sum"}
+  ],
+  "requirements": {
+    "execution_boundary": "benchmark_orchestrated",
+    "real_subject_required": true,
+    "external_inputs": ["daemon-worker-build"],
+    "diagnostic_only_cases": []
+  }
+}

@@ -1,0 +1,21 @@
+{
+  "schema_version": "turnvector.benchmark.case-schema.v1",
+  "lane_id": "persistence-and-recovery",
+  "matrices": {
+    "snapshot-faults": {
+      "required": ["fault", "model_architecture"],
+      "properties": {
+        "fault": {"enum": ["none", "revision_mismatch", "abi_mismatch", "corruption", "interrupted_payload", "interrupted_metadata", "concurrent_reader_writer", "restart"]},
+        "model_architecture": {"enum": ["dense", "moe"]}
+      },
+      "additional_properties": false
+    },
+    "control-store-faults": {
+      "required": ["fault"],
+      "properties": {
+        "fault": {"enum": ["none", "pre_commit_crash", "post_commit_pre_sync_crash", "audit_tail_gap", "duplicate_operation", "indeterminate_effect"]}
+      },
+      "additional_properties": false
+    }
+  }
+}

@@ -1,5 +1,5 @@
 {
-  "schema_version": "turnvector.benchmark.expectation.v1",
+  "schema_version": "turnvector.benchmark.expectation.v2",
   "id": "turnvector-implementation-v1",
   "description": "Normative benchmark expectations derived from the TurnVector implementation contract; harness availability never removes required coverage.",
   "source_contract": {
@@ -9,7 +9,7 @@
   },
   "certification_policy": {
     "required_lane_policy": "all_required_lanes_must_execute_and_pass",
-    "contract_only_policy": "required_but_not_yet_executable",
+    "unsupported_policy": "required_lane_failure",
     "scope_policy": "claims_are_limited_to_exact_evidence_identity"
   },
   "lanes": [
@@ -26,10 +26,9 @@
         "docs/adr/0033-commit-core-transitions-atomically-and-fail-closed.md"
       ],
       "harness": {
-        "status": "contract_only",
-        "kind": "adapter",
         "protocol": "turnvector.benchmark.core-replay.v1",
-        "entrypoint": null
+        "runner": "core-event-replay",
+        "suite": "../suites/lanes/core-event-replay-v1.json"
       },
       "matrices": [
         {
@@ -110,10 +109,11 @@
         "docs/adr/0015-use-deterministic-deadline-aware-weighted-service-selection.md"
       ],
       "harness": {
-        "status": "executable",
-        "kind": "jsonl_suite",
-        "protocol": "turnvector.benchmark.driver.v1",
-        "entrypoint": "../suites/scheduler-policy-v1.json"
+        "protocol": "turnvector.benchmark.scheduler-policy.v1",
+        "runner": "scheduler-policy",
+        "suite": "../suites/lanes/scheduler-policy-v1.json",
+        "legacy_protocol": "turnvector.benchmark.driver.v1",
+        "legacy_suite": "../suites/scheduler-policy-v1.json"
       },
       "matrices": [
         {
@@ -185,10 +185,9 @@
         "docs/adr/0032-separate-the-pure-core-from-protocol-and-io.md"
       ],
       "harness": {
-        "status": "contract_only",
-        "kind": "adapter",
         "protocol": "turnvector.benchmark.scheduler-performance.v1",
-        "entrypoint": null
+        "runner": "scheduler-performance",
+        "suite": "../suites/lanes/scheduler-performance-v1.json"
       },
       "matrices": [
         {
@@ -280,10 +279,9 @@
         "docs/adr/0034-acknowledge-and-bound-the-live-request-lifecycle.md"
       ],
       "harness": {
-        "status": "contract_only",
-        "kind": "adapter",
         "protocol": "turnvector.benchmark.serving.v1",
-        "entrypoint": null
+        "runner": "request-serving-lifecycle",
+        "suite": "../suites/lanes/request-serving-lifecycle-v1.json"
       },
       "matrices": [
         {
@@ -345,6 +343,24 @@
           "unit": "count",
           "threshold_source": "benchmark_contract",
           "evidence": ["capacity_trace", "output_trace"]
+        },
+        {
+          "id": "terminal-status",
+          "metric": "missing_terminal_status_count",
+          "operator": "eq",
+          "expected": 0,
+          "unit": "count",
+          "threshold_source": "benchmark_contract",
+          "evidence": ["request_trace", "status_trace"]
+        },
+        {
+          "id": "client-event-semantics",
+          "metric": "client_event_violation_count",
+          "operator": "eq",
+          "expected": 0,
+          "unit": "count",
+          "threshold_source": "benchmark_contract",
+          "evidence": ["request_trace", "status_trace", "output_trace"]
         }
       ],
       "required_artifacts": ["manifest", "request_trace", "status_trace", "output_trace", "capacity_trace", "report"],
@@ -363,10 +379,9 @@
         "docs/adr/0020-version-and-serialize-the-private-backend-protocol.md"
       ],
       "harness": {
-        "status": "contract_only",
-        "kind": "adapter",
         "protocol": "turnvector.benchmark.mlx-native.v1",
-        "entrypoint": null
+        "runner": "mlx-native-correctness",
+        "suite": "../suites/lanes/mlx-native-correctness-v1.json"
       },
       "matrices": [
         {
@@ -379,6 +394,10 @@
             {
               "id": "batch_size",
               "values": [1, 4]
+            },
+            {
+              "id": "context_tokens",
+              "values": [512, 2048, 8192]
             }
           ]
         },
@@ -469,10 +488,9 @@
         "docs/adr/0019-run-a-rust-daemon-with-a-cpp-device-worker.md"
       ],
       "harness": {
-        "status": "contract_only",
-        "kind": "adapter",
         "protocol": "turnvector.benchmark.mlx-turn.v1",
-        "entrypoint": null
+        "runner": "bounded-turn-and-ffi",
+        "suite": "../suites/lanes/bounded-turn-and-ffi-v1.json"
       },
       "matrices": [
         {
@@ -485,6 +503,10 @@
             {
               "id": "batch_size",
               "values": [1, 4]
+            },
+            {
+              "id": "context_tokens",
+              "values": [512, 2048, 8192]
             },
             {
               "id": "boundary",
@@ -583,10 +605,9 @@
         "docs/adr/0025-hold-reservations-through-observed-reclamation.md"
       ],
       "harness": {
-        "status": "contract_only",
-        "kind": "adapter",
         "protocol": "turnvector.benchmark.memory-governor.v1",
-        "entrypoint": null
+        "runner": "residency-and-memory-governor",
+        "suite": "../suites/lanes/residency-and-memory-governor-v1.json"
       },
       "matrices": [
         {
@@ -636,6 +657,24 @@
           "evidence": ["governor_decisions", "resource_trace"]
         },
         {
+          "id": "lease-safe-unload",
+          "metric": "lease_unsafe_unload_count",
+          "operator": "eq",
+          "expected": 0,
+          "unit": "count",
+          "threshold_source": "benchmark_contract",
+          "evidence": ["governor_decisions", "residency_receipts"]
+        },
+        {
+          "id": "resource-mode-order",
+          "metric": "resource_mode_order_violation_count",
+          "operator": "eq",
+          "expected": 0,
+          "unit": "count",
+          "threshold_source": "benchmark_contract",
+          "evidence": ["governor_decisions", "resource_trace"]
+        },
+        {
           "id": "reservation-conservation",
           "metric": "reservation_accounting_error_bytes",
           "operator": "eq",
@@ -643,6 +682,15 @@
           "unit": "bytes",
           "threshold_source": "benchmark_contract",
           "evidence": ["reservation_trace", "resource_trace"]
+        },
+        {
+          "id": "pending-reclaim-retention",
+          "metric": "premature_reclaim_release_count",
+          "operator": "eq",
+          "expected": 0,
+          "unit": "count",
+          "threshold_source": "benchmark_contract",
+          "evidence": ["reservation_trace", "memory_samples"]
         },
         {
           "id": "peak-memory-bound",
@@ -663,7 +711,7 @@
           "evidence": ["resource_trace", "residency_receipts"]
         }
       ],
-      "required_artifacts": ["manifest", "environment", "governor_decisions", "resource_trace", "reservation_trace", "residency_receipts", "report", "checksums"],
+      "required_artifacts": ["manifest", "environment", "governor_decisions", "resource_trace", "reservation_trace", "residency_receipts", "memory_samples", "report", "checksums"],
       "claim_scope": ["residency_conformance", "memory_safety_envelope"]
     },
     {
@@ -680,10 +728,9 @@
         "docs/adr/0015-use-deterministic-deadline-aware-weighted-service-selection.md"
       ],
       "harness": {
-        "status": "contract_only",
-        "kind": "adapter",
         "protocol": "turnvector.benchmark.cross-model-serving.v1",
-        "entrypoint": null
+        "runner": "cross-model-serving",
+        "suite": "../suites/lanes/cross-model-serving-v1.json"
       },
       "matrices": [
         {
@@ -729,19 +776,19 @@
       "gates": [
         {
           "id": "progress-bound",
-          "metric": "progress_bound_violation_count",
-          "operator": "eq",
-          "expected": 0,
-          "unit": "count",
-          "threshold_source": "benchmark_contract",
+          "metric": "progress_p99_us",
+          "operator": "lte",
+          "expected": "certification_record.progress_p99_us",
+          "unit": "microseconds",
+          "threshold_source": "certification_record",
           "evidence": ["serving_trace", "latency_samples"]
         },
         {
           "id": "timing-commitment",
-          "metric": "interactive_timing_violation_count",
-          "operator": "eq",
-          "expected": 0,
-          "unit": "count",
+          "metric": "timing_commitment_p99_us",
+          "operator": "lte",
+          "expected": "certification_record.timing_commitment_p99_us",
+          "unit": "microseconds",
           "threshold_source": "certification_record",
           "evidence": ["serving_trace", "latency_samples"]
         },
@@ -753,6 +800,33 @@
           "unit": "percent",
           "threshold_source": "certification_record",
           "evidence": ["turn_receipts", "serving_trace"]
+        },
+        {
+          "id": "ttft-bound",
+          "metric": "ttft_p95_us",
+          "operator": "lte",
+          "expected": "certification_record.ttft_p95_us",
+          "unit": "microseconds",
+          "threshold_source": "certification_record",
+          "evidence": ["latency_samples", "serving_trace"]
+        },
+        {
+          "id": "tpot-bound",
+          "metric": "tpot_p95_us",
+          "operator": "lte",
+          "expected": "certification_record.tpot_p95_us",
+          "unit": "microseconds",
+          "threshold_source": "certification_record",
+          "evidence": ["latency_samples", "serving_trace"]
+        },
+        {
+          "id": "throughput-bound",
+          "metric": "throughput_tokens_per_second",
+          "operator": "gte",
+          "expected": "certification_record.throughput_tokens_per_second",
+          "unit": "tokens_per_second",
+          "threshold_source": "certification_record",
+          "evidence": ["latency_samples", "serving_trace"]
         },
         {
           "id": "output-correctness",
@@ -779,10 +853,9 @@
         "docs/adr/0019-run-a-rust-daemon-with-a-cpp-device-worker.md"
       ],
       "harness": {
-        "status": "contract_only",
-        "kind": "adapter",
         "protocol": "turnvector.benchmark.observability.v1",
-        "entrypoint": null
+        "runner": "observability-qualification",
+        "suite": "../suites/lanes/observability-qualification-v1.json"
       },
       "matrices": [
         {
@@ -795,6 +868,10 @@
             {
               "id": "batch_size",
               "values": [1, 4]
+            },
+            {
+              "id": "context_tokens",
+              "values": [512, 2048, 8192]
             },
             {
               "id": "telemetry",
@@ -840,6 +917,15 @@
       ],
       "gates": [
         {
+          "id": "instruments-capture",
+          "metric": "instruments_capture_missing_count",
+          "operator": "eq",
+          "expected": 0,
+          "unit": "count",
+          "threshold_source": "benchmark_contract",
+          "evidence": ["instruments_trace"]
+        },
+        {
           "id": "timestamp-coverage",
           "metric": "timestamp_coverage_percent",
           "operator": "eq",
@@ -861,36 +947,36 @@
           "id": "calibration-median",
           "metric": "instruments_relative_error_median_percent",
           "operator": "lte",
-          "expected": 10,
+          "expected": "certification_record.instruments_relative_error_median_percent",
           "unit": "percent",
-          "threshold_source": "benchmark_contract",
+          "threshold_source": "certification_record",
           "evidence": ["instruments_trace", "calibration_pairs"]
         },
         {
           "id": "calibration-p95",
           "metric": "instruments_relative_error_p95_percent",
           "operator": "lte",
-          "expected": 20,
+          "expected": "certification_record.instruments_relative_error_p95_percent",
           "unit": "percent",
-          "threshold_source": "benchmark_contract",
+          "threshold_source": "certification_record",
           "evidence": ["instruments_trace", "calibration_pairs"]
         },
         {
           "id": "telemetry-throughput",
           "metric": "telemetry_throughput_regression_percent",
           "operator": "lte",
-          "expected": 2,
+          "expected": "certification_record.telemetry_throughput_regression_percent",
           "unit": "percent",
-          "threshold_source": "benchmark_contract",
+          "threshold_source": "certification_record",
           "evidence": ["latency_samples", "throughput_samples"]
         },
         {
           "id": "telemetry-tpot",
           "metric": "telemetry_tpot_p95_regression_percent",
           "operator": "lte",
-          "expected": 3,
+          "expected": "certification_record.telemetry_tpot_p95_regression_percent",
           "unit": "percent",
-          "threshold_source": "benchmark_contract",
+          "threshold_source": "certification_record",
           "evidence": ["latency_samples"]
         }
       ],
@@ -912,10 +998,9 @@
         "docs/adr/0037-use-a-separate-runtime-metadata-store.md"
       ],
       "harness": {
-        "status": "contract_only",
-        "kind": "adapter",
         "protocol": "turnvector.benchmark.persistence.v1",
-        "entrypoint": null
+        "runner": "persistence-and-recovery",
+        "suite": "../suites/lanes/persistence-and-recovery-v1.json"
       },
       "matrices": [
         {
@@ -1016,10 +1101,9 @@
         "docs/adr/0035-use-protobuf-with-independent-protocol-versions.md"
       ],
       "harness": {
-        "status": "contract_only",
-        "kind": "adapter",
         "protocol": "turnvector.benchmark.worker-supervision.v1",
-        "entrypoint": null
+        "runner": "protocol-and-worker-supervision",
+        "suite": "../suites/lanes/protocol-and-worker-supervision-v1.json"
       },
       "matrices": [
         {
@@ -1084,10 +1168,19 @@
         },
         {
           "id": "bound-compliance",
-          "metric": "transport_bound_violation_count",
-          "operator": "eq",
-          "expected": 0,
-          "unit": "count",
+          "metric": "transport_max_frame_bytes",
+          "operator": "lte",
+          "expected": "certification_record.transport_max_frame_bytes",
+          "unit": "bytes",
+          "threshold_source": "certification_record",
+          "evidence": ["transport_trace", "process_trace"]
+        },
+        {
+          "id": "transport-latency",
+          "metric": "transport_latency_p99_us",
+          "operator": "lte",
+          "expected": "certification_record.transport_latency_p99_us",
+          "unit": "microseconds",
           "threshold_source": "certification_record",
           "evidence": ["transport_trace", "process_trace"]
         }
@@ -1108,10 +1201,9 @@
         "docs/adr/0031-authorize-shared-work-only-from-scoped-certification.md"
       ],
       "harness": {
-        "status": "contract_only",
-        "kind": "adapter",
         "protocol": "turnvector.benchmark.certification.v1",
-        "entrypoint": null
+        "runner": "certification-envelopes",
+        "suite": "../suites/lanes/certification-envelopes-v1.json"
       },
       "matrices": [
         {
@@ -1148,6 +1240,15 @@
       ],
       "gates": [
         {
+          "id": "applicability-exact",
+          "metric": "certification_applicability_mismatch_count",
+          "operator": "eq",
+          "expected": 0,
+          "unit": "count",
+          "threshold_source": "benchmark_contract",
+          "evidence": ["admission_trace", "certification_records"]
+        },
+        {
           "id": "uncertified-start",
           "metric": "uncertified_shared_turn_count",
           "operator": "eq",
@@ -1173,10 +1274,19 @@
           "unit": "count",
           "threshold_source": "benchmark_contract",
           "evidence": ["turn_receipts", "quarantine_trace"]
+        },
+        {
+          "id": "explicit-recertification",
+          "metric": "explicit_recertification_failure_count",
+          "operator": "eq",
+          "expected": 0,
+          "unit": "count",
+          "threshold_source": "benchmark_contract",
+          "evidence": ["certification_records", "admission_trace", "quarantine_trace"]
         }
       ],
       "required_artifacts": ["manifest", "environment", "certification_records", "admission_trace", "turn_receipts", "quarantine_trace", "report", "checksums"],
-      "claim_scope": ["certification_applicability", "capability_quarantine"]
+      "claim_scope": ["certification_applicability", "capability_quarantine", "explicit_recertification"]
     }
   ]
 }
