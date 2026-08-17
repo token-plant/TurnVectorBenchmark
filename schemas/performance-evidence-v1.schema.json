@@ -1,0 +1,258 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://token-plant.github.io/TurnVectorBenchmark/schemas/performance-evidence-v1.schema.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "contract",
+    "lane_id",
+    "support",
+    "session",
+    "environment",
+    "custody",
+    "protocol",
+    "frozen_thresholds",
+    "cases",
+    "artifacts",
+    "publication"
+  ],
+  "properties": {
+    "schema_version": {"const": "turnvector.benchmark.performance-evidence.v1"},
+    "contract": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "sha256"],
+      "properties": {
+        "id": {"$ref": "#/$defs/id"},
+        "sha256": {"$ref": "#/$defs/digest"}
+      }
+    },
+    "lane_id": {"$ref": "#/$defs/id"},
+    "support": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "reason"],
+      "properties": {
+        "status": {"enum": ["supported", "unsupported"]},
+        "reason": {"type": ["string", "null"]}
+      }
+    },
+    "session": {"$ref": "#/$defs/session"},
+    "environment": {"$ref": "#/$defs/environment"},
+    "custody": {
+      "const": ["host_conditions", "request_timestamps", "raw_trials"]
+    },
+    "protocol": {"$ref": "#/$defs/protocol"},
+    "frozen_thresholds": {
+      "type": "object",
+      "propertyNames": {"$ref": "#/$defs/id"},
+      "additionalProperties": {"type": "number", "minimum": 0}
+    },
+    "cases": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/case"}
+    },
+    "artifacts": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/artifact"}
+    },
+    "publication": {"$ref": "#/$defs/publication"}
+  },
+  "$defs": {
+    "id": {"type": "string", "pattern": "^[a-z0-9][a-z0-9._-]*$"},
+    "digest": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "git_sha": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+    "scalar": {"type": ["string", "integer", "number", "boolean"]},
+    "comparison": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "denominator_id",
+        "denominator_sha256",
+        "pairing_key_sha256",
+        "measurement_semantics"
+      ],
+      "properties": {
+        "denominator_id": {"type": "string", "minLength": 1},
+        "denominator_sha256": {"$ref": "#/$defs/digest"},
+        "pairing_key_sha256": {"$ref": "#/$defs/digest"},
+        "measurement_semantics": {"const": "same_session"}
+      }
+    },
+    "session": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "mode",
+        "claim_type",
+        "subject_kind",
+        "started_at",
+        "finished_at",
+        "source_revision",
+        "source_dirty",
+        "benchmark_revision",
+        "benchmark_dirty",
+        "comparison"
+      ],
+      "properties": {
+        "id": {"$ref": "#/$defs/id"},
+        "mode": {"$ref": "#/$defs/id"},
+        "claim_type": {"enum": ["absolute", "paired_delta", "correctness"]},
+        "subject_kind": {"enum": ["implementation", "fixture"]},
+        "started_at": {"type": "string", "format": "date-time"},
+        "finished_at": {"type": "string", "format": "date-time"},
+        "source_revision": {"$ref": "#/$defs/git_sha"},
+        "source_dirty": {"type": "boolean"},
+        "benchmark_revision": {"$ref": "#/$defs/git_sha"},
+        "benchmark_dirty": {"type": "boolean"},
+        "comparison": {
+          "oneOf": [
+            {"type": "null"},
+            {"$ref": "#/$defs/comparison"}
+          ]
+        }
+      }
+    },
+    "environment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "device_class",
+        "memory_bytes",
+        "os_build",
+        "resolved_runtime_sha256",
+        "subject_binary_sha256",
+        "model_manifest_sha256",
+        "prompt_manifest_sha256",
+        "certification_record_sha256",
+        "power_source",
+        "thermal_state_start",
+        "thermal_state_end",
+        "load_average_1m_start",
+        "load_average_1m_end",
+        "top_process_cpu_percent_start",
+        "top_process_cpu_percent_end",
+        "host_admission_passed"
+      ],
+      "properties": {
+        "device_class": {"type": "string", "minLength": 1},
+        "memory_bytes": {"type": "integer", "minimum": 1},
+        "os_build": {"type": "string", "minLength": 1},
+        "resolved_runtime_sha256": {"$ref": "#/$defs/digest"},
+        "subject_binary_sha256": {"$ref": "#/$defs/digest"},
+        "model_manifest_sha256": {"$ref": "#/$defs/digest"},
+        "prompt_manifest_sha256": {"$ref": "#/$defs/digest"},
+        "certification_record_sha256": {"$ref": "#/$defs/digest"},
+        "power_source": {"$ref": "#/$defs/id"},
+        "thermal_state_start": {"$ref": "#/$defs/id"},
+        "thermal_state_end": {"$ref": "#/$defs/id"},
+        "load_average_1m_start": {"type": "number", "minimum": 0},
+        "load_average_1m_end": {"type": "number", "minimum": 0},
+        "top_process_cpu_percent_start": {"type": "number", "minimum": 0},
+        "top_process_cpu_percent_end": {"type": "number", "minimum": 0},
+        "host_admission_passed": {"type": "boolean"}
+      }
+    },
+    "protocol": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "warmup_repetitions",
+        "measured_repetitions",
+        "cooldown_seconds",
+        "process_isolation",
+        "order_policy",
+        "cache_policy",
+        "sampling_policy",
+        "fixed_parameters",
+        "thresholds_frozen_before_run"
+      ],
+      "properties": {
+        "warmup_repetitions": {"type": "integer", "minimum": 0},
+        "measured_repetitions": {"type": "integer", "minimum": 1},
+        "cooldown_seconds": {"type": "number", "minimum": 0},
+        "process_isolation": {"enum": ["fresh_per_repetition", "fresh_per_cell", "session_reuse"]},
+        "order_policy": {"enum": ["balanced", "alternating", "fixed"]},
+        "cache_policy": {"enum": ["disabled", "isolated", "scenario_defined"]},
+        "sampling_policy": {"enum": ["greedy", "sampled", "none"]},
+        "fixed_parameters": {
+          "type": "object",
+          "propertyNames": {"$ref": "#/$defs/id"},
+          "additionalProperties": {"$ref": "#/$defs/scalar"}
+        },
+        "thresholds_frozen_before_run": {"const": true}
+      }
+    },
+    "trial": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["repetition", "metrics"],
+      "properties": {
+        "repetition": {"type": "integer", "minimum": 0},
+        "metrics": {
+          "type": "object",
+          "minProperties": 1,
+          "propertyNames": {"$ref": "#/$defs/id"},
+          "additionalProperties": {"type": "number", "minimum": 0}
+        }
+      }
+    },
+    "case": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["case_id", "matrix_id", "parameters", "status", "trials", "summary"],
+      "properties": {
+        "case_id": {"$ref": "#/$defs/id"},
+        "matrix_id": {"$ref": "#/$defs/id"},
+        "parameters": {
+          "type": "object",
+          "minProperties": 1,
+          "propertyNames": {"$ref": "#/$defs/id"},
+          "additionalProperties": {"$ref": "#/$defs/scalar"}
+        },
+        "status": {"const": "measured"},
+        "trials": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/trial"}},
+        "summary": {
+          "type": "object",
+          "minProperties": 1,
+          "propertyNames": {"$ref": "#/$defs/id"},
+          "additionalProperties": {"type": "number"}
+        }
+      }
+    },
+    "artifact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "path", "size", "sha256", "custody"],
+      "properties": {
+        "id": {"$ref": "#/$defs/id"},
+        "path": {"type": "string", "minLength": 1},
+        "size": {"type": "integer", "minimum": 0},
+        "sha256": {"$ref": "#/$defs/digest"},
+        "custody": {"const": "benchmark"}
+      }
+    },
+    "publication": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "evidence_status",
+        "promotion_status",
+        "candidate",
+        "evidence_reasons",
+        "promotion_reasons",
+        "supersedes"
+      ],
+      "properties": {
+        "evidence_status": {"enum": ["publishable", "not_publishable", "unsupported"]},
+        "promotion_status": {"enum": ["passed", "failed", "not_applicable", "not_evaluated"]},
+        "candidate": {"type": "boolean"},
+        "evidence_reasons": {"type": "array", "uniqueItems": true, "items": {"type": "string", "minLength": 1}},
+        "promotion_reasons": {"type": "array", "uniqueItems": true, "items": {"type": "string", "minLength": 1}},
+        "supersedes": {"type": "array", "uniqueItems": true, "items": {"type": "string", "minLength": 1}}
+      }
+    }
+  }
+}

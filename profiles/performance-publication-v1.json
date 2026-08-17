@@ -1,0 +1,591 @@
+{
+  "schema_version": "turnvector.benchmark.performance-contract.v1",
+  "id": "turnvector-performance-publication-v1",
+  "description": "Fail-closed performance evidence and publication contract for TurnVector workloads.",
+  "source_contract": {
+    "repository": "TurnVector",
+    "revision": "7cbfe2caef3f2f9f95a03e17eb8741ed1acf98a2",
+    "clean_required": true
+  },
+  "publication_policy": {
+    "cross_mode_comparison": "forbidden_without_shared_denominator",
+    "unsupported_result": "explicit_not_publishable",
+    "thresholds_frozen_before_run": true,
+    "raw_trials_required": true,
+    "summary_recomputed": true,
+    "percentile_method": "nearest_rank"
+  },
+  "environment_requirements": {
+    "identity_fields": [
+      "device_class",
+      "memory_bytes",
+      "os_build",
+      "resolved_runtime_sha256",
+      "subject_binary_sha256",
+      "model_manifest_sha256",
+      "prompt_manifest_sha256",
+      "certification_record_sha256"
+    ],
+    "host_condition_fields": [
+      "power_source",
+      "thermal_state_start",
+      "thermal_state_end",
+      "load_average_1m_start",
+      "load_average_1m_end",
+      "top_process_cpu_percent_start",
+      "top_process_cpu_percent_end",
+      "host_admission_passed"
+    ],
+    "admission_limits": {
+      "max_load_average_1m": 2.0,
+      "max_top_process_cpu_percent": 50.0
+    },
+    "benchmark_custody": [
+      "host_conditions",
+      "request_timestamps",
+      "raw_trials"
+    ]
+  },
+  "common_required_artifacts": [
+    "run_manifest",
+    "environment",
+    "raw_trials",
+    "host_samples",
+    "model_manifest",
+    "prompt_manifest",
+    "certification_record"
+  ],
+  "lanes": [
+    {
+      "id": "online-serving-single-client",
+      "description": "Isolated streaming generation with authoritative completion and client-observed latency.",
+      "activation": "core",
+      "session_mode": "online-serving-single-client",
+      "claim_types": ["absolute", "paired_delta"],
+      "matrices": [
+        {
+          "id": "streaming-chat",
+          "dimensions": [
+            {"id": "model_architecture", "values": ["dense", "moe"]},
+            {"id": "quantization", "values": ["4bit", "6bit"]},
+            {"id": "prompt_tokens", "values": [512, 2048]}
+          ]
+        }
+      ],
+      "protocol": {
+        "warmup_repetitions": 1,
+        "measured_repetitions": 3,
+        "cooldown_seconds": 15,
+        "process_isolation": "fresh_per_repetition",
+        "order_policy": "balanced",
+        "cache_policy": "isolated",
+        "sampling_policy": "greedy",
+        "fixed_parameters": {"output_tokens": 256, "temperature": 0}
+      },
+      "metrics": [
+        {"id": "ttft_ms", "unit": "milliseconds", "reducer": "p95"},
+        {"id": "tpot_ms", "unit": "milliseconds", "reducer": "p95"},
+        {"id": "decode_tokens_per_second", "unit": "tokens_per_second", "reducer": "median"},
+        {"id": "effective_prefill_tokens_per_second", "unit": "tokens_per_second", "reducer": "median"},
+        {"id": "completion_contract_violation_count", "unit": "count", "reducer": "sum"},
+        {"id": "process_error_count", "unit": "count", "reducer": "sum"},
+        {"id": "output_mismatch_count", "unit": "count", "reducer": "sum"}
+      ],
+      "gates": [
+        {"id": "completion-contract", "metric": "completion_contract_violation_count", "operator": "eq", "threshold_source": "benchmark_contract", "expected": 0, "decision": "evidence"},
+        {"id": "output-correctness", "metric": "output_mismatch_count", "operator": "eq", "threshold_source": "benchmark_contract", "expected": 0, "decision": "evidence"},
+        {"id": "availability", "metric": "process_error_count", "operator": "eq", "threshold_source": "benchmark_contract", "expected": 0, "decision": "promotion"},
+        {"id": "ttft-bound", "metric": "ttft_ms", "operator": "lte", "threshold_source": "certification_record", "expected": null, "decision": "promotion"},
+        {"id": "tpot-bound", "metric": "tpot_ms", "operator": "lte", "threshold_source": "certification_record", "expected": null, "decision": "promotion"},
+        {"id": "decode-throughput", "metric": "decode_tokens_per_second", "operator": "gte", "threshold_source": "certification_record", "expected": null, "decision": "promotion"}
+      ],
+      "required_artifacts": ["request_trace", "process_audit", "output_hashes"],
+      "claim_boundaries": [
+        "Client-observed prefill includes request and first-chunk overhead.",
+        "Transport completion and output correctness are separate gates.",
+        "Rows from other session modes are not directly comparable."
+      ]
+    },
+    {
+      "id": "online-serving-load",
+      "description": "Closed-loop and open-loop serving load with latency tails, queueing, throughput, and goodput.",
+      "activation": "core",
+      "session_mode": "online-serving-load",
+      "claim_types": ["absolute", "paired_delta"],
+      "matrices": [
+        {
+          "id": "load-shape",
+          "dimensions": [
+            {"id": "model_architecture", "values": ["dense", "moe"]},
+            {"id": "arrival_mode", "values": ["closed_loop", "open_loop"]},
+            {"id": "load_level", "values": ["nominal", "saturated"]}
+          ]
+        }
+      ],
+      "protocol": {
+        "warmup_repetitions": 2,
+        "measured_repetitions": 5,
+        "cooldown_seconds": 15,
+        "process_isolation": "session_reuse",
+        "order_policy": "balanced",
+        "cache_policy": "isolated",
+        "sampling_policy": "greedy",
+        "fixed_parameters": {"requests_per_trial": 24, "output_tokens": 96}
+      },
+      "metrics": [
+        {"id": "ttft_ms", "unit": "milliseconds", "reducer": "p95"},
+        {"id": "tpot_ms", "unit": "milliseconds", "reducer": "p95"},
+        {"id": "stream_gap_ms", "unit": "milliseconds", "reducer": "p95"},
+        {"id": "e2e_ms", "unit": "milliseconds", "reducer": "p95"},
+        {"id": "queue_delay_ms", "unit": "milliseconds", "reducer": "p95"},
+        {"id": "request_throughput", "unit": "requests_per_second", "reducer": "median"},
+        {"id": "output_throughput", "unit": "tokens_per_second", "reducer": "median"},
+        {"id": "slo_goodput_ratio", "unit": "ratio", "reducer": "median"},
+        {"id": "request_error_count", "unit": "count", "reducer": "sum"},
+        {"id": "route_contract_violation_count", "unit": "count", "reducer": "sum"},
+        {"id": "output_mismatch_count", "unit": "count", "reducer": "sum"}
+      ],
+      "gates": [
+        {"id": "route-purity", "metric": "route_contract_violation_count", "operator": "eq", "threshold_source": "benchmark_contract", "expected": 0, "decision": "evidence"},
+        {"id": "output-correctness", "metric": "output_mismatch_count", "operator": "eq", "threshold_source": "benchmark_contract", "expected": 0, "decision": "evidence"},
+        {"id": "availability", "metric": "request_error_count", "operator": "eq", "threshold_source": "benchmark_contract", "expected": 0, "decision": "promotion"},
+        {"id": "ttft-bound", "metric": "ttft_ms", "operator": "lte", "threshold_source": "certification_record", "expected": null, "decision": "promotion"},
+        {"id": "tpot-bound", "metric": "tpot_ms", "operator": "lte", "threshold_source": "certification_record", "expected": null, "decision": "promotion"},
+        {"id": "stream-gap-bound", "metric": "stream_gap_ms", "operator": "lte", "threshold_source": "certification_record", "expected": null, "decision": "promotion"},
+        {"id": "goodput-bound", "metric": "slo_goodput_ratio", "operator": "gte", "threshold_source": "certification_record", "expected": null, "decision": "promotion"}
+      ],
+      "required_artifacts": ["request_trace", "route_trace", "output_hashes"],
+      "claim_boundaries": [
+        "Closed-loop concurrency and open-loop arrival rate are separate rows.",
+        "The prompt mix and SLO thresholds are frozen before execution.",
+        "A smoke corpus cannot support a representative production claim."
+      ]
+    },
+    {
+      "id": "real-model-direct-performance",
+      "description": "Direct generation across architecture, quantization, and prompt depth with correctness retained.",
+      "activation": "core",
+      "session_mode": "direct-generation",
+      "claim_types": ["absolute", "paired_delta"],
+      "matrices": [
+        {
+          "id": "generation-shape",
+          "dimensions": [
+            {"id": "model_architecture", "values": ["dense", "moe"]},
+            {"id": "quantization", "values": ["4bit", "6bit"]},
+            {"id": "prompt_tokens", "values": [128, 512, 2048]}
+          ]
+        }
+      ],
+      "protocol": {
+        "warmup_repetitions": 2,
+        "measured_repetitions": 5,
+        "cooldown_seconds": 15,
+        "process_isolation": "fresh_per_cell",
+        "order_policy": "balanced",
+        "cache_policy": "isolated",
+        "sampling_policy": "greedy",
+        "fixed_parameters": {"output_tokens": 128}
+      },
+      "metrics": [
+        {"id": "decode_tokens_per_second", "unit": "tokens_per_second", "reducer": "median"},
+        {"id": "prefill_tokens_per_second", "unit": "tokens_per_second", "reducer": "median"},
+        {"id": "ttft_ms", "unit": "milliseconds", "reducer": "p95"},
+        {"id": "peak_memory_bytes", "unit": "bytes", "reducer": "max"},
+        {"id": "output_mismatch_count", "unit": "count", "reducer": "sum"},
+        {"id": "degeneracy_violation_count", "unit": "count", "reducer": "sum"},
+        {"id": "route_contract_violation_count", "unit": "count", "reducer": "sum"}
+      ],
+      "gates": [
+        {"id": "output-correctness", "metric": "output_mismatch_count", "operator": "eq", "threshold_source": "benchmark_contract", "expected": 0, "decision": "evidence"},
+        {"id": "non-degenerate-output", "metric": "degeneracy_violation_count", "operator": "eq", "threshold_source": "benchmark_contract", "expected": 0, "decision": "evidence"},
+        {"id": "route-purity", "metric": "route_contract_violation_count", "operator": "eq", "threshold_source": "benchmark_contract", "expected": 0, "decision": "evidence"},
+        {"id": "decode-throughput", "metric": "decode_tokens_per_second", "operator": "gte", "threshold_source": "certification_record", "expected": null, "decision": "promotion"},
+        {"id": "prefill-throughput", "metric": "prefill_tokens_per_second", "operator": "gte", "threshold_source": "certification_record", "expected": null, "decision": "promotion"},
+        {"id": "memory-bound", "metric": "peak_memory_bytes", "operator": "lte", "threshold_source": "certification_record", "expected": null, "decision": "promotion"}
+      ],
+      "required_artifacts": ["output_hashes", "route_trace", "memory_samples"],
+      "claim_boundaries": [
+        "Direct generation is not an online serving latency claim.",
+        "Separate-run comparisons are directional unless a shared paired denominator is recorded.",
+        "A result is limited to the exact model revision and quantization identity."
+      ]
+    },
+    {
+      "id": "long-context-prefill",
+      "description": "Prefill scaling and memory behavior across long context depths.",
+      "activation": "core",
+      "session_mode": "long-context-prefill",
+      "claim_types": ["absolute", "paired_delta"],
+      "matrices": [
+        {
+          "id": "context-scaling",
+          "dimensions": [
+            {"id": "model_architecture", "values": ["dense", "moe"]},
+            {"id": "quantization", "values": ["4bit", "6bit"]},
+            {"id": "context_tokens", "values": [1024, 2048, 4096, 8192]}
+          ]
+        }
+      ],
+      "protocol": {
+        "warmup_repetitions": 1,
+        "measured_repetitions": 3,
+        "cooldown_seconds": 15,
+        "process_isolation": "fresh_per_cell",
+        "order_policy": "fixed",
+        "cache_policy": "isolated",
+        "sampling_policy": "greedy",
+        "fixed_parameters": {"output_tokens": 1}
+      },
+      "metrics": [
+        {"id": "prefill_tokens_per_second", "unit": "tokens_per_second", "reducer": "median"},
+        {"id": "ttft_ms", "unit": "milliseconds", "reducer": "p95"},
+        {"id": "peak_memory_bytes", "unit": "bytes", "reducer": "max"},
+        {"id": "output_mismatch_count", "unit": "count", "reducer": "sum"}
+      ],
+      "gates": [
+        {"id": "output-correctness", "metric": "output_mismatch_count", "operator": "eq", "threshold_source": "benchmark_contract", "expected": 0, "decision": "evidence"},
+        {"id": "prefill-throughput", "metric": "prefill_tokens_per_second", "operator": "gte", "threshold_source": "certification_record", "expected": null, "decision": "promotion"},
+        {"id": "ttft-bound", "metric": "ttft_ms", "operator": "lte", "threshold_source": "certification_record", "expected": null, "decision": "promotion"},
+        {"id": "memory-bound", "metric": "peak_memory_bytes", "operator": "lte", "threshold_source": "certification_record", "expected": null, "decision": "promotion"}
+      ],
+      "required_artifacts": ["output_hashes", "memory_samples"],
+      "claim_boundaries": [
+        "This lane measures single-request prefill rather than concurrent serving.",
+        "Prompt token IDs and hashes are authoritative; nominal text length is not.",
+        "Scaling is not extrapolated beyond measured context depths."
+      ]
+    },
+    {
+      "id": "startup-lifecycle",
+      "description": "Cold process, warm model, and benchmark-warm latency stages kept separate.",
+      "activation": "core",
+      "session_mode": "startup-lifecycle",
+      "claim_types": ["absolute"],
+      "matrices": [
+        {
+          "id": "startup-stage",
+          "dimensions": [
+            {"id": "startup_state", "values": ["process_cold", "model_warm", "benchmark_warm"]},
+            {"id": "context_tokens", "values": [8192]}
+          ]
+        }
+      ],
+      "protocol": {
+        "warmup_repetitions": 0,
+        "measured_repetitions": 3,
+        "cooldown_seconds": 15,
+        "process_isolation": "fresh_per_repetition",
+        "order_policy": "fixed",
+        "cache_policy": "disabled",
+        "sampling_policy": "greedy",
+        "fixed_parameters": {"output_tokens": 128}
+      },
+      "metrics": [
+        {"id": "server_ready_ms", "unit": "milliseconds", "reducer": "p95"},
+        {"id": "model_load_ms", "unit": "milliseconds", "reducer": "p95"},
+        {"id": "ttft_ms", "unit": "milliseconds", "reducer": "p95"},
+        {"id": "decode_tokens_per_second", "unit": "tokens_per_second", "reducer": "median"},
+        {"id": "peak_memory_bytes", "unit": "bytes", "reducer": "max"},
+        {"id": "process_error_count", "unit": "count", "reducer": "sum"}
+      ],
+      "gates": [
+        {"id": "availability", "metric": "process_error_count", "operator": "eq", "threshold_source": "benchmark_contract", "expected": 0, "decision": "promotion"},
+        {"id": "server-ready-bound", "metric": "server_ready_ms", "operator": "lte", "threshold_source": "certification_record", "expected": null, "decision": "promotion"},
+        {"id": "model-load-bound", "metric": "model_load_ms", "operator": "lte", "threshold_source": "certification_record", "expected": null, "decision": "promotion"},
+        {"id": "memory-bound", "metric": "peak_memory_bytes", "operator": "lte", "threshold_source": "certification_record", "expected": null, "decision": "promotion"}
+      ],
+      "required_artifacts": ["process_trace", "memory_samples"],
+      "claim_boundaries": [
+        "Cold-start costs are never merged into warm throughput.",
+        "Each startup state has an explicit cache and process lifecycle.",
+        "Server readiness, model load, and first token remain distinct timestamps."
+      ]
+    },
+    {
+      "id": "prefill-interference",
+      "description": "Interactive decode under long-prefill contention in nominal and saturated arrival modes.",
+      "activation": "core",
+      "session_mode": "prefill-interference",
+      "claim_types": ["paired_delta"],
+      "matrices": [
+        {
+          "id": "interference-shape",
+          "dimensions": [
+            {"id": "prefill_tokens", "values": [2048, 8192, 13824]},
+            {"id": "arrival_mode", "values": ["closed_loop", "open_loop"]},
+            {"id": "turn_policy", "values": ["unbounded", "bounded"]}
+          ]
+        }
+      ],
+      "protocol": {
+        "warmup_repetitions": 1,
+        "measured_repetitions": 3,
+        "cooldown_seconds": 15,
+        "process_isolation": "fresh_per_repetition",
+        "order_policy": "alternating",
+        "cache_policy": "isolated",
+        "sampling_policy": "greedy",
+        "fixed_parameters": {"interactive_output_tokens": 192, "turn_quantum_tokens": 256}
+      },
+      "metrics": [
+        {"id": "interactive_ttft_ms", "unit": "milliseconds", "reducer": "p95"},
+        {"id": "interactive_stream_gap_ms", "unit": "milliseconds", "reducer": "p95"},
+        {"id": "aggregate_output_throughput", "unit": "tokens_per_second", "reducer": "median"},
+        {"id": "queue_delay_ms", "unit": "milliseconds", "reducer": "p95"},
+        {"id": "request_error_count", "unit": "count", "reducer": "sum"},
+        {"id": "output_mismatch_count", "unit": "count", "reducer": "sum"},
+        {"id": "route_contract_violation_count", "unit": "count", "reducer": "sum"}
+      ],
+      "gates": [
+        {"id": "output-correctness", "metric": "output_mismatch_count", "operator": "eq", "threshold_source": "benchmark_contract", "expected": 0, "decision": "evidence"},
+        {"id": "route-purity", "metric": "route_contract_violation_count", "operator": "eq", "threshold_source": "benchmark_contract", "expected": 0, "decision": "evidence"},
+        {"id": "availability", "metric": "request_error_count", "operator": "eq", "threshold_source": "benchmark_contract", "expected": 0, "decision": "promotion"},
+        {"id": "interactive-ttft", "metric": "interactive_ttft_ms", "operator": "lte", "threshold_source": "certification_record", "expected": null, "decision": "promotion"},
+        {"id": "interactive-stream-gap", "metric": "interactive_stream_gap_ms", "operator": "lte", "threshold_source": "certification_record", "expected": null, "decision": "promotion"},
+        {"id": "aggregate-throughput", "metric": "aggregate_output_throughput", "operator": "gte", "threshold_source": "certification_record", "expected": null, "decision": "promotion"}
+      ],
+      "required_artifacts": ["request_trace", "turn_receipts", "output_hashes", "route_trace"],
+      "claim_boundaries": [
+        "Bounded and unbounded rows use an identical prompt and arrival contract.",
+        "Single-process and multi-process topologies are separate comparison identities.",
+        "Prefix-cache reuse must be disabled or explicitly isolated per repetition."
+      ]
+    },
+    {
+      "id": "prefix-cache-restart",
+      "description": "Cross-process prefix snapshot restoration with exact output and KV identity.",
+      "activation": "core",
+      "session_mode": "prefix-cache-restart",
+      "claim_types": ["correctness"],
+      "matrices": [
+        {
+          "id": "restart-roundtrip",
+          "dimensions": [
+            {"id": "cache_architecture", "values": ["full_attention", "sliding_window", "hybrid_linear", "mla"]},
+            {"id": "restart_point", "values": ["after_process_exit"]}
+          ]
+        }
+      ],
+      "protocol": {
+        "warmup_repetitions": 0,
+        "measured_repetitions": 2,
+        "cooldown_seconds": 0,
+        "process_isolation": "fresh_per_repetition",
+        "order_policy": "fixed",
+        "cache_policy": "scenario_defined",
+        "sampling_policy": "greedy",
+        "fixed_parameters": {"output_tokens": 24}
+      },
+      "metrics": [
+        {"id": "disk_hit_miss_count", "unit": "count", "reducer": "sum"},
+        {"id": "output_mismatch_count", "unit": "count", "reducer": "sum"},
+        {"id": "kv_mismatch_count", "unit": "count", "reducer": "sum"},
+        {"id": "invalid_snapshot_restore_count", "unit": "count", "reducer": "sum"}
+      ],
+      "gates": [
+        {"id": "disk-restore", "metric": "disk_hit_miss_count", "operator": "eq", "threshold_source": "benchmark_contract", "expected": 0, "decision": "evidence"},
+        {"id": "output-correctness", "metric": "output_mismatch_count", "operator": "eq", "threshold_source": "benchmark_contract", "expected": 0, "decision": "evidence"},
+        {"id": "kv-correctness", "metric": "kv_mismatch_count", "operator": "eq", "threshold_source": "benchmark_contract", "expected": 0, "decision": "evidence"},
+        {"id": "invalid-snapshot-rejection", "metric": "invalid_snapshot_restore_count", "operator": "eq", "threshold_source": "benchmark_contract", "expected": 0, "decision": "evidence"}
+      ],
+      "required_artifacts": ["snapshot_manifest", "restart_trace", "output_hashes", "kv_hashes"],
+      "claim_boundaries": [
+        "The restoring process is fresh and cannot reuse process-local handles.",
+        "A cache hit without output and KV identity does not pass.",
+        "This correctness lane does not establish cache speedup or endurance."
+      ]
+    },
+    {
+      "id": "prefix-cache-stress",
+      "description": "Concurrent overlapping writes and bounded eviction pressure for persistent prefix state.",
+      "activation": "core",
+      "session_mode": "prefix-cache-stress",
+      "claim_types": ["correctness"],
+      "matrices": [
+        {
+          "id": "stress-mode",
+          "dimensions": [
+            {"id": "stress_kind", "values": ["overlap_writes", "eviction_pressure"]}
+          ]
+        }
+      ],
+      "protocol": {
+        "warmup_repetitions": 0,
+        "measured_repetitions": 3,
+        "cooldown_seconds": 0,
+        "process_isolation": "fresh_per_repetition",
+        "order_policy": "fixed",
+        "cache_policy": "scenario_defined",
+        "sampling_policy": "none",
+        "fixed_parameters": {"workers": 4, "iterations_per_worker": 24, "overlap_keys": 8, "max_entries": 2}
+      },
+      "metrics": [
+        {"id": "corruption_count", "unit": "count", "reducer": "sum"},
+        {"id": "read_miss_count", "unit": "count", "reducer": "sum"},
+        {"id": "worker_failure_count", "unit": "count", "reducer": "sum"},
+        {"id": "eviction_contract_violation_count", "unit": "count", "reducer": "sum"}
+      ],
+      "gates": [
+        {"id": "no-corruption", "metric": "corruption_count", "operator": "eq", "threshold_source": "benchmark_contract", "expected": 0, "decision": "evidence"},
+        {"id": "no-read-miss", "metric": "read_miss_count", "operator": "eq", "threshold_source": "benchmark_contract", "expected": 0, "decision": "evidence"},
+        {"id": "worker-completion", "metric": "worker_failure_count", "operator": "eq", "threshold_source": "benchmark_contract", "expected": 0, "decision": "evidence"},
+        {"id": "bounded-eviction", "metric": "eviction_contract_violation_count", "operator": "eq", "threshold_source": "benchmark_contract", "expected": 0, "decision": "evidence"}
+      ],
+      "required_artifacts": ["stress_trace", "cache_manifest"],
+      "claim_boundaries": [
+        "Primitive cache stress is not a multi-user serving soak claim.",
+        "Every worker and key operation remains in raw evidence.",
+        "Eviction order and retained entry count are checked independently."
+      ]
+    },
+    {
+      "id": "batched-decode-performance",
+      "description": "Dense batched-decode scaling with full-cohort output parity.",
+      "activation": "core",
+      "session_mode": "batched-decode",
+      "claim_types": ["absolute", "paired_delta"],
+      "matrices": [
+        {
+          "id": "batch-scaling",
+          "dimensions": [
+            {"id": "model_architecture", "values": ["dense"]},
+            {"id": "batch_policy", "values": ["shared", "row_exact"]},
+            {"id": "batch_size", "values": [1, 2, 4, 8]}
+          ]
+        }
+      ],
+      "protocol": {
+        "warmup_repetitions": 2,
+        "measured_repetitions": 5,
+        "cooldown_seconds": 10,
+        "process_isolation": "fresh_per_cell",
+        "order_policy": "alternating",
+        "cache_policy": "disabled",
+        "sampling_policy": "greedy",
+        "fixed_parameters": {"prefill_tokens": 32, "output_tokens": 32}
+      },
+      "metrics": [
+        {"id": "aggregate_tokens_per_second", "unit": "tokens_per_second", "reducer": "median"},
+        {"id": "decode_step_us", "unit": "microseconds", "reducer": "p95"},
+        {"id": "cohort_output_mismatch_count", "unit": "count", "reducer": "sum"},
+        {"id": "route_contract_violation_count", "unit": "count", "reducer": "sum"}
+      ],
+      "gates": [
+        {"id": "cohort-output-parity", "metric": "cohort_output_mismatch_count", "operator": "eq", "threshold_source": "benchmark_contract", "expected": 0, "decision": "evidence"},
+        {"id": "route-purity", "metric": "route_contract_violation_count", "operator": "eq", "threshold_source": "benchmark_contract", "expected": 0, "decision": "evidence"},
+        {"id": "aggregate-throughput", "metric": "aggregate_tokens_per_second", "operator": "gte", "threshold_source": "certification_record", "expected": null, "decision": "promotion"},
+        {"id": "step-latency", "metric": "decode_step_us", "operator": "lte", "threshold_source": "certification_record", "expected": null, "decision": "promotion"}
+      ],
+      "required_artifacts": ["output_hashes", "latency_samples", "route_trace"],
+      "claim_boundaries": [
+        "Internal decode-step timing is not end-to-end serving throughput.",
+        "Dense qualification does not imply MoE or hybrid support.",
+        "Every policy and batch cell must retain full-cohort hashes."
+      ]
+    },
+    {
+      "id": "accelerated-generation",
+      "description": "Capability-conditioned accelerated generation against a same-package direct denominator.",
+      "activation": "capability_conditioned",
+      "session_mode": "accelerated-generation",
+      "claim_types": ["paired_delta"],
+      "matrices": [
+        {
+          "id": "accelerated-shape",
+          "dimensions": [
+            {"id": "model_architecture", "values": ["dense", "moe"]},
+            {"id": "quantization", "values": ["6bit"]},
+            {"id": "prompt_suite", "values": ["short_code", "long_code", "module_code"]}
+          ]
+        }
+      ],
+      "protocol": {
+        "warmup_repetitions": 2,
+        "measured_repetitions": 5,
+        "cooldown_seconds": 15,
+        "process_isolation": "fresh_per_cell",
+        "order_policy": "alternating",
+        "cache_policy": "disabled",
+        "sampling_policy": "sampled",
+        "fixed_parameters": {"output_tokens": 1000, "temperature": 0.6, "top_p": 0.95, "top_k": 20}
+      },
+      "metrics": [
+        {"id": "decode_tokens_per_second", "unit": "tokens_per_second", "reducer": "median"},
+        {"id": "decode_speedup_ratio", "unit": "ratio", "reducer": "median"},
+        {"id": "acceptance_ratio", "unit": "ratio", "reducer": "median"},
+        {"id": "direct_fallback_count", "unit": "count", "reducer": "sum"},
+        {"id": "route_contract_violation_count", "unit": "count", "reducer": "sum"},
+        {"id": "degeneracy_violation_count", "unit": "count", "reducer": "sum"},
+        {"id": "output_mismatch_count", "unit": "count", "reducer": "sum"}
+      ],
+      "gates": [
+        {"id": "no-hidden-fallback", "metric": "direct_fallback_count", "operator": "eq", "threshold_source": "benchmark_contract", "expected": 0, "decision": "evidence"},
+        {"id": "route-purity", "metric": "route_contract_violation_count", "operator": "eq", "threshold_source": "benchmark_contract", "expected": 0, "decision": "evidence"},
+        {"id": "non-degenerate-output", "metric": "degeneracy_violation_count", "operator": "eq", "threshold_source": "benchmark_contract", "expected": 0, "decision": "evidence"},
+        {"id": "output-correctness", "metric": "output_mismatch_count", "operator": "eq", "threshold_source": "benchmark_contract", "expected": 0, "decision": "evidence"},
+        {"id": "speedup", "metric": "decode_speedup_ratio", "operator": "gte", "threshold_source": "certification_record", "expected": null, "decision": "promotion"}
+      ],
+      "required_artifacts": ["output_hashes", "route_trace", "acceptance_trace"],
+      "claim_boundaries": [
+        "Unsupported capability is explicit and not publishable as a passing row.",
+        "A slower but correct row remains valid evidence and fails only promotion.",
+        "Prefill and TTFT are context, not acceleration claims."
+      ]
+    },
+    {
+      "id": "embedding-ingest",
+      "description": "Capability-conditioned embedding correctness and ingest scaling with fixed pooling semantics.",
+      "activation": "capability_conditioned",
+      "session_mode": "embedding-ingest",
+      "claim_types": ["absolute", "paired_delta"],
+      "matrices": [
+        {
+          "id": "last-token-pooling",
+          "dimensions": [
+            {"id": "model_size", "values": ["small", "medium", "large"]},
+            {"id": "chunk_tokens", "values": [256, 512]},
+            {"id": "batch_size", "values": [8, 32, 64]}
+          ]
+        },
+        {
+          "id": "mean-head-pooling",
+          "dimensions": [
+            {"id": "model_size", "values": ["small"]},
+            {"id": "chunk_tokens", "values": [256, 512]},
+            {"id": "batch_size", "values": [8, 32, 64]}
+          ]
+        }
+      ],
+      "protocol": {
+        "warmup_repetitions": 2,
+        "measured_repetitions": 5,
+        "cooldown_seconds": 15,
+        "process_isolation": "fresh_per_cell",
+        "order_policy": "alternating",
+        "cache_policy": "disabled",
+        "sampling_policy": "none",
+        "fixed_parameters": {"total_chunks": 512, "normalize_l2": true}
+      },
+      "metrics": [
+        {"id": "chunks_per_second", "unit": "chunks_per_second", "reducer": "median"},
+        {"id": "tokens_per_second", "unit": "tokens_per_second", "reducer": "median"},
+        {"id": "batch_latency_ms", "unit": "milliseconds", "reducer": "p95"},
+        {"id": "vector_mismatch_count", "unit": "count", "reducer": "sum"},
+        {"id": "l2_normalization_max_error", "unit": "absolute_error", "reducer": "max"}
+      ],
+      "gates": [
+        {"id": "vector-correctness", "metric": "vector_mismatch_count", "operator": "eq", "threshold_source": "benchmark_contract", "expected": 0, "decision": "evidence"},
+        {"id": "normalization-correctness", "metric": "l2_normalization_max_error", "operator": "lte", "threshold_source": "certification_record", "expected": null, "decision": "evidence"},
+        {"id": "ingest-throughput", "metric": "chunks_per_second", "operator": "gte", "threshold_source": "certification_record", "expected": null, "decision": "promotion"},
+        {"id": "batch-latency", "metric": "batch_latency_ms", "operator": "lte", "threshold_source": "certification_record", "expected": null, "decision": "promotion"}
+      ],
+      "required_artifacts": ["output_hashes", "pooling_manifest", "latency_samples"],
+      "claim_boundaries": [
+        "Pooling, projection head, and normalization semantics are part of identity.",
+        "Uniform chunk lengths do not establish mixed-length batching behavior.",
+        "Embedding metrics remain separate from generation throughput."
+      ]
+    }
+  ]
+}

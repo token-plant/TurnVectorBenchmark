@@ -227,3 +227,29 @@ Every failure retains the case plan, transcript/raw evidence available before
 failure, metrics, gate details, failure records, environment, source and subject
 identity, reports, and checksums. Human summaries may be derived later, but
 `report.json` remains authoritative.
+
+## Performance Publication Module
+
+Performance publication is a separate module at the evidence-validation seam.
+Its external interface is intentionally small:
+
+```text
+load contract -> inspect / expand case plan / validate evidence
+```
+
+Behind that interface the module owns strict contract parsing, matrix expansion,
+session and comparison identity, host admission, protocol equality, raw-trial
+completeness, summary recomputation, certification applicability, artifact
+validation, gate evaluation, and the final publication decision. The CLI only
+renders the returned result.
+
+This separation prevents optional performance workloads from changing the 12
+required implementation lanes or `full_implementation_status`. It also keeps
+evidence validity separate from promotion: valid negative performance remains
+publishable, while incorrect output, hidden route changes, dirty identity, or
+failed host admission cannot become a publication candidate.
+
+The checked-in performance contract has nine core lanes and two
+capability-conditioned lanes. A capability-conditioned lane may be explicitly
+`unsupported`; a core lane may not. Contract and judge availability before a
+real adapter exists is not a product claim.

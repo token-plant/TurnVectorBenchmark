@@ -13,6 +13,8 @@ from .expectation import (
     expectation_summary,
     load_expectation,
 )
+from .evidence import write_checksums, write_json
+from .performance import load_performance_contract
 from .runner import BenchmarkRunner
 
 
@@ -37,6 +39,20 @@ def _parser() -> argparse.ArgumentParser:
     )
     inspect.add_argument("--expectation", type=Path, required=True)
     inspect.add_argument("--target-repo", type=Path)
+
+    inspect_performance = subparsers.add_parser(
+        "inspect-performance",
+        help="inspect the performance publication contract and expanded case plan",
+    )
+    inspect_performance.add_argument("--contract", type=Path, required=True)
+
+    validate_performance = subparsers.add_parser(
+        "validate-performance",
+        help="independently validate one performance evidence artifact",
+    )
+    validate_performance.add_argument("--contract", type=Path, required=True)
+    validate_performance.add_argument("--evidence", type=Path, required=True)
+    validate_performance.add_argument("--output", type=Path)
 
     def add_controller_arguments(command: argparse.ArgumentParser) -> None:
         command.add_argument("--expectation", type=Path, required=True)
@@ -92,6 +108,36 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
                 )
             )
             return 0
+        if args.command == "inspect-performance":
+            contract = load_performance_contract(args.contract)
+            print(json.dumps(contract.inspect(), sort_keys=True))
+            return 0
+        if args.command == "validate-performance":
+            contract = load_performance_contract(args.contract)
+            report = contract.validate_artifact(args.evidence)
+            if args.output is not None:
+                output = args.output.resolve()
+                if output.exists():
+                    raise FileExistsError(
+                        f"performance validation output already exists: {output}"
+                    )
+                output.mkdir(parents=True)
+                write_json(output / "report.json", report)
+                write_checksums(output)
+                rendered = {
+                    "status": report["status"],
+                    "promotion_status": report["promotion_status"],
+                    "publication_candidate": report["publication_candidate"],
+                    "report": str(output / "report.json"),
+                }
+            else:
+                rendered = report
+            print(json.dumps(rendered, sort_keys=True))
+            return {
+                "publishable": 0,
+                "not_publishable": 3,
+                "unsupported": 4,
+            }[report["status"]]
         if args.command in {"run-lane", "run-all"}:
             controller = LaneController(
                 expectation_path=args.expectation,
