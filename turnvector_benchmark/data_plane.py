@@ -822,6 +822,7 @@ def run_generation(
         client.__enter__()
         if start_barrier is not None:
             start_barrier.wait(timeout=descriptor.frame_timeout_seconds)
+        request_started_ns = time.monotonic_ns()
         accepted = client.submit(
             model_revision=model_revision,
             input_token_ids=_input_tokens(input_token_count, seed),
@@ -910,9 +911,17 @@ def run_generation(
                 token for item in outputs for token in item["token_ids"]
             ],
             "protocol_trace": [dict(item) for item in client.trace],
+            "request_started_ns": request_started_ns,
             "wall_started_ns": started_ns,
             "wall_finished_ns": finished_ns,
         }
+    except BaseException:
+        if start_barrier is not None:
+            try:
+                start_barrier.abort()
+            except threading.BrokenBarrierError:
+                pass
+        raise
     finally:
         client.close()
 
@@ -945,7 +954,6 @@ def run_cross_model_case(
         for architecture, input_count, seed in zip(architectures, input_counts, seeds)
     ]
     barrier = threading.Barrier(2)
-    concurrent_started_ns = time.monotonic_ns()
     with ThreadPoolExecutor(max_workers=2, thread_name_prefix="benchmark-data-plane") as executor:
         futures = [
             executor.submit(
@@ -960,8 +968,26 @@ def run_cross_model_case(
             )
             for architecture, input_count, seed in zip(architectures, input_counts, seeds)
         ]
-        concurrent = [future.result() for future in futures]
-    concurrent_finished_ns = time.monotonic_ns()
+        concurrent_results: List[Optional[Mapping[str, Any]]] = [None] * len(futures)
+        concurrent_errors: List[BaseException] = []
+        for index, future in enumerate(futures):
+            try:
+                concurrent_results[index] = future.result()
+            except BaseException as error:
+                concurrent_errors.append(error)
+        if concurrent_errors:
+            root_error = next(
+                (
+                    error
+                    for error in concurrent_errors
+                    if not isinstance(error, threading.BrokenBarrierError)
+                ),
+                concurrent_errors[0],
+            )
+            raise root_error
+        concurrent = [
+            result for result in concurrent_results if result is not None
+        ]
     ttft = [item["ttft_us"] for item in concurrent]
     if any(value is None or value <= 0 for value in ttft):
         raise ContractError("cross-model serving requires positive TTFT for both requests")
@@ -969,7 +995,10 @@ def run_cross_model_case(
     if not tpot or any(value <= 0 for value in tpot):
         raise ContractError("cross-model serving requires positive TPOT samples")
     tokens = sum(len(item["generated_token_ids"]) for item in concurrent)
-    seconds = (concurrent_finished_ns - concurrent_started_ns) / 1_000_000_000.0
+    seconds = (
+        max(int(item["wall_finished_ns"]) for item in concurrent)
+        - min(int(item["request_started_ns"]) for item in concurrent)
+    ) / 1_000_000_000.0
     if tokens <= 0 or seconds <= 0:
         raise ContractError("cross-model serving produced no measurable work")
     return {

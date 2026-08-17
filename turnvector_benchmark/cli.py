@@ -53,6 +53,11 @@ def _parser() -> argparse.ArgumentParser:
     validate_performance.add_argument("--contract", type=Path, required=True)
     validate_performance.add_argument("--evidence", type=Path, required=True)
     validate_performance.add_argument("--output", type=Path)
+    validate_performance.add_argument(
+        "--require-promotion",
+        action="store_true",
+        help="return exit 5 when publishable evidence fails its promotion gates",
+    )
 
     def add_controller_arguments(command: argparse.ArgumentParser) -> None:
         command.add_argument("--expectation", type=Path, required=True)
@@ -133,11 +138,18 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
             else:
                 rendered = report
             print(json.dumps(rendered, sort_keys=True))
-            return {
+            exit_code = {
                 "publishable": 0,
                 "not_publishable": 3,
                 "unsupported": 4,
             }[report["status"]]
+            if (
+                args.require_promotion
+                and exit_code == 0
+                and report["promotion_status"] not in {"passed", "not_applicable"}
+            ):
+                return 5
+            return exit_code
         if args.command in {"run-lane", "run-all"}:
             controller = LaneController(
                 expectation_path=args.expectation,

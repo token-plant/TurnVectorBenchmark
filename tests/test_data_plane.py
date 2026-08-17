@@ -7,13 +7,16 @@ import tempfile
 import threading
 import unittest
 from pathlib import Path
+from types import SimpleNamespace
 from typing import Any, Optional
+from unittest.mock import patch
 
 from turnvector_benchmark.core import ContractError
 from turnvector_benchmark.data_plane import (
     DataPlaneDescriptor,
     _load_protocol_types,
     protocol_lock,
+    run_cross_model_case,
     run_generation,
 )
 from turnvector_benchmark.expectation import load_expectation
@@ -199,6 +202,67 @@ class DataPlaneTests(unittest.TestCase):
             }
         )
 
+    @staticmethod
+    def generation_result(seed: int, *, concurrent: bool) -> dict[str, Any]:
+        starts = {20260812: 1_000_000_000, 20260813: 1_100_000_000}
+        finishes = {20260812: 2_000_000_000, 20260813: 2_500_000_000}
+        return {
+            "ttft_us": 10.0,
+            "tpot_samples_us": [2.0],
+            "duration_us": 100.0,
+            "generated_token_ids": [seed, seed + 1],
+            "request_started_ns": starts[seed] if concurrent else starts[seed] - 1,
+            "wall_started_ns": starts[seed] - 500_000_000,
+            "wall_finished_ns": finishes[seed],
+        }
+
+    def test_cross_model_throughput_excludes_connection_setup(self) -> None:
+        descriptor = SimpleNamespace(
+            model_revisions={"dense": DENSE_REVISION, "moe": MOE_REVISION}
+        )
+
+        def generation(*args: Any, **kwargs: Any) -> dict[str, Any]:
+            del args
+            return self.generation_result(
+                kwargs["seed"], concurrent=kwargs.get("start_barrier") is not None
+            )
+
+        with patch("turnvector_benchmark.data_plane.run_generation", side_effect=generation):
+            result = run_cross_model_case(
+                descriptor,  # type: ignore[arg-type]
+                {
+                    "model_pair": "dense_moe",
+                    "contender_work": "decode",
+                    "service_class": "interactive",
+                },
+            )
+
+        self.assertEqual(result["throughput"]["seconds"], 1.5)
+
+    def test_cross_model_failure_reports_root_cause_before_broken_barrier(self) -> None:
+        descriptor = SimpleNamespace(
+            model_revisions={"dense": DENSE_REVISION, "moe": MOE_REVISION}
+        )
+
+        def generation(*args: Any, **kwargs: Any) -> dict[str, Any]:
+            del args
+            if kwargs.get("start_barrier") is None:
+                return self.generation_result(kwargs["seed"], concurrent=False)
+            if kwargs["seed"] == 20260812:
+                raise threading.BrokenBarrierError
+            raise ContractError("root connection failure")
+
+        with patch("turnvector_benchmark.data_plane.run_generation", side_effect=generation):
+            with self.assertRaisesRegex(ContractError, "root connection failure"):
+                run_cross_model_case(
+                    descriptor,  # type: ignore[arg-type]
+                    {
+                        "model_pair": "dense_moe",
+                        "contender_work": "decode",
+                        "service_class": "interactive",
+                    },
+                )
+
     def test_locked_protocol_drives_a_real_unix_socket(self) -> None:
         server = FixtureDataPlaneServer(self.root)
         server.start()
@@ -284,7 +348,7 @@ class DataPlaneTests(unittest.TestCase):
             suite=suite,
             plan=plan,
             artifact_root=artifact_root,
-            certification_record=None,
+            frozen_thresholds={gate.metric: gate.expected for gate in lane.gates},
             external_inputs={},
         )
         hello = SubjectHello(

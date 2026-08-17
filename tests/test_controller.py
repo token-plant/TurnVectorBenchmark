@@ -6,9 +6,13 @@ import tempfile
 import unittest
 from pathlib import Path
 from typing import Any, Dict, Optional
+from unittest.mock import patch
 
-from turnvector_benchmark.controller import LaneController
+from turnvector_benchmark.controller import LaneController, _status_for_results
+from turnvector_benchmark.core import ContractError
 from turnvector_benchmark.expectation import load_expectation
+from turnvector_benchmark.lane_contract import resolve_gate_threshold
+from turnvector_benchmark.lane_runner import LaneResult
 
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -83,6 +87,8 @@ class LaneControllerTests(unittest.TestCase):
         self.assertEqual(result.report["executed_case_count"], 385)
         self.assertEqual(result.report["full_implementation_status"], "not_claimable_fixture")
         self.assertFalse(result.report["claimable"])
+        self.assertEqual(result.report["observed_lane_statuses"], ["passed"])
+        self.assertEqual(result.report["lane_status_counts"], {"passed": 12})
         for lane in result.report["lanes"]:
             lane_dir = output / "lanes" / lane["lane_id"]
             for name in (
@@ -137,6 +143,62 @@ class LaneControllerTests(unittest.TestCase):
         self.assertFalse(transcript.exists())
         manifest = json.loads((output / "manifest.json").read_text(encoding="utf-8"))
         self.assertIn("must exactly match", manifest["certification_contract_failure"])
+
+    def test_threshold_snapshot_accumulates_failures_and_blocks_execution(self) -> None:
+        controller = self.controller(self.output_path())
+
+        def fail_selected_thresholds(
+            lane_id: str,
+            gate: Any,
+            record: Any,
+            *,
+            observed_at: Any = None,
+        ) -> Any:
+            if gate.gate_id in {"decision-latency", "decision-throughput"}:
+                raise ContractError(f"cannot freeze {gate.gate_id}")
+            return resolve_gate_threshold(
+                lane_id, gate, record, observed_at=observed_at
+            )
+
+        with patch(
+            "turnvector_benchmark.controller.resolve_gate_threshold",
+            side_effect=fail_selected_thresholds,
+        ):
+            result = controller.run_lane("scheduler-performance")
+
+        self.assertEqual(result.status, "contract_failed")
+        self.assertEqual(result.report["lanes"][0]["executed_case_count"], 0)
+        failure_message = result.report["lanes"][0]["failures"][0]["message"]
+        self.assertIn("decision-latency", failure_message)
+        self.assertIn("decision-throughput", failure_message)
+        manifest = json.loads(
+            (result.artifact_dir / "manifest.json").read_text(encoding="utf-8")
+        )
+        snapshot = manifest["pre_run_thresholds"]
+        self.assertFalse(snapshot["complete"])
+        self.assertFalse(snapshot["frozen"])
+        self.assertEqual(len(snapshot["failures"]["scheduler-performance"]), 2)
+        transcript = (
+            result.artifact_dir
+            / "lanes"
+            / "scheduler-performance"
+            / "subject-transcript.jsonl"
+        )
+        self.assertFalse(transcript.exists())
+
+    def test_gate_evaluation_uses_thresholds_frozen_before_execution(self) -> None:
+        controller = self.controller(self.output_path())
+        assert controller.certification_record is not None
+        record_type = type(controller.certification_record)
+        with patch.object(
+            record_type,
+            "is_expired",
+            side_effect=(False, False, True),
+        ) as expiry_check:
+            result = controller.run_lane("scheduler-performance")
+
+        self.assertEqual(result.status, "passed")
+        self.assertEqual(expiry_check.call_count, 2)
 
     def test_path_escape_and_missing_artifact_fail_closed(self) -> None:
         escaped = self.modified_subject("core-event-replay", "--escape-artifact")
@@ -221,6 +283,25 @@ class LaneControllerTests(unittest.TestCase):
         self.assertEqual(by_lane["core-event-replay"]["status"], "gate_failed")
         self.assertEqual(by_lane["certification-envelopes"]["status"], "passed")
         self.assertEqual(by_lane["certification-envelopes"]["executed_case_count"], 55)
+
+    def test_gate_failure_is_not_hidden_by_unsupported_coverage(self) -> None:
+        def result(status: str) -> LaneResult:
+            return LaneResult(
+                lane_id=status,
+                status=status,
+                case_count=1,
+                executed_case_count=0,
+                metrics={},
+                gates=(),
+                failures=(),
+                artifacts=(),
+                raw_records=(),
+            )
+
+        self.assertEqual(
+            _status_for_results([result("unsupported"), result("gate_failed")]),
+            "gate_failed",
+        )
 
     def _verify_checksums(self, root: Path) -> None:
         for line in (root / "SHA256SUMS").read_text(encoding="ascii").splitlines():

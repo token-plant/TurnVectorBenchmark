@@ -133,6 +133,8 @@ python3 -B -m turnvector_benchmark validate-performance \
 
 Exit code `0` means publishable evidence, `3` means not publishable, `4` means
 explicitly unsupported, and `2` means the contract or artifact is malformed.
+For a release gate, add `--require-promotion`; publishable negative evidence is
+still written and reported, but failed promotion gates return exit code `5`.
 
 ## Adapter Boundary
 

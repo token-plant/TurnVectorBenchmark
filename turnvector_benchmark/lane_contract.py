@@ -581,18 +581,22 @@ def load_certification_record(path: Path) -> CertificationRecord:
 
 
 def resolve_gate_threshold(
-    lane_id: str, gate: Gate, record: Optional[CertificationRecord]
+    lane_id: str,
+    gate: Gate,
+    record: Optional[CertificationRecord],
+    *,
+    observed_at: Optional[datetime] = None,
 ) -> Any:
     if gate.threshold_source == "certification_record":
         if record is None:
             raise ContractError(
                 f"lane {lane_id!r} requires a candidate certification record before execution"
             )
-        if record.is_not_yet_valid():
+        if record.is_not_yet_valid(observed_at):
             raise ContractError(
                 f"certification record {record.record_id!r} is not yet valid"
             )
-        if record.is_expired():
+        if record.is_expired(observed_at):
             raise ContractError(f"certification record {record.record_id!r} is expired")
         return record.threshold(lane_id, gate)
     return gate.expected

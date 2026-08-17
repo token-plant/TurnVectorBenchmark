@@ -16,6 +16,9 @@ from .core import ContractError
 from .evidence import sha256_file
 
 
+MAX_DISTINCT_SAMPLER_ERRORS = 64
+
+
 @dataclass(frozen=True)
 class MemoryCollection:
     process_samples: Tuple[Mapping[str, Any], ...]
@@ -76,7 +79,8 @@ class ProcessMemorySampler:
         self.process_ids = tuple(process_ids)
         self.interval_seconds = interval_seconds
         self.samples: List[Mapping[str, Any]] = []
-        self.errors: List[str] = []
+        self._error_counts: Dict[str, int] = {}
+        self._discarded_error_count = 0
         self._stop = threading.Event()
         self._thread: Optional[threading.Thread] = None
         self._before: Mapping[str, Any] = {}
@@ -105,7 +109,13 @@ class ProcessMemorySampler:
                         raise RuntimeError("process not found")
                     rss_by_pid[str(pid)] = int(value) * 1024
                 except (OSError, ValueError, RuntimeError, subprocess.CalledProcessError, subprocess.TimeoutExpired) as error:
-                    self.errors.append(f"pid {pid}: {error}")
+                    message = f"pid {pid}: {error}"
+                    if message in self._error_counts:
+                        self._error_counts[message] += 1
+                    elif len(self._error_counts) < MAX_DISTINCT_SAMPLER_ERRORS:
+                        self._error_counts[message] = 1
+                    else:
+                        self._discarded_error_count += 1
             if rss_by_pid:
                 self.samples.append(
                     {
@@ -123,11 +133,23 @@ class ProcessMemorySampler:
         self._thread.join(timeout=5.0)
         if self._thread.is_alive():
             raise RuntimeError("process sampler did not stop")
+        errors = [
+            (
+                message
+                if count == 1
+                else f"{message} (repeated {count} times)"
+            )
+            for message, count in self._error_counts.items()
+        ]
+        if self._discarded_error_count:
+            errors.append(
+                f"additional sampler errors discarded: {self._discarded_error_count}"
+            )
         return MemoryCollection(
             process_samples=tuple(self.samples),
             system_pressure_before=self._before,
             system_pressure_after=system_pressure_snapshot(),
-            errors=tuple(self.errors),
+            errors=tuple(errors),
         )
 
 

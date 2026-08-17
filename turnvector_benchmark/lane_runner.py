@@ -40,11 +40,9 @@ from .evidence import (
 from .expectation import ExpectationLane, Gate
 from .lane_contract import (
     CasePlan,
-    CertificationRecord,
     LaneSuite,
     MetricRecipe,
     PlannedCase,
-    resolve_gate_threshold,
 )
 from .lane_oracles import analyze_lane_evidence
 from .subject import SubjectHello, SubjectSession
@@ -68,7 +66,7 @@ class LaneContext:
     suite: LaneSuite
     plan: CasePlan
     artifact_root: Path
-    certification_record: Optional[CertificationRecord]
+    frozen_thresholds: Mapping[str, Any]
     external_inputs: Mapping[str, Mapping[str, Any]]
 
 
@@ -192,13 +190,18 @@ def _gate_passed(operator: str, observed: Any, expected: Any) -> bool:
 def evaluate_gates(
     lane: ExpectationLane,
     metrics: Mapping[str, Any],
-    certification_record: Optional[CertificationRecord],
+    frozen_thresholds: Mapping[str, Any],
 ) -> Tuple[Mapping[str, Any], ...]:
+    expected_metrics = {gate.metric for gate in lane.gates}
+    if set(frozen_thresholds) != expected_metrics:
+        raise ContractError(
+            f"frozen thresholds for lane {lane.lane_id!r} must exactly match gate metrics"
+        )
     results: List[Mapping[str, Any]] = []
     for gate in lane.gates:
         if gate.metric not in metrics:
             raise ContractError(f"metric {gate.metric!r} is missing before gate evaluation")
-        expected = resolve_gate_threshold(lane.lane_id, gate, certification_record)
+        expected = frozen_thresholds[gate.metric]
         observed = metrics[gate.metric]
         results.append(
             {
@@ -299,19 +302,38 @@ def _benchmark_fixture_inputs(
 CPP_DIRECT_BUNDLE_SCHEMA = "turnvector.benchmark.cpp-direct-bundle.v1"
 
 
-def _bundle_file(root: Path, relative_text: Any, where: str) -> Path:
+def _bundle_file(
+    root: Path,
+    relative_text: Any,
+    where: str,
+    *,
+    require_executable: bool = False,
+) -> Path:
     if not isinstance(relative_text, str) or not relative_text:
         raise ContractError(f"{where} must be a non-empty relative path")
     relative = Path(relative_text)
     if relative.is_absolute() or ".." in relative.parts:
         raise ContractError(f"{where} escapes the C++ Direct bundle")
-    candidate = (root / relative).resolve()
+    resolved_root = root.resolve()
+    candidate = resolved_root
+    mode = 0
+    for component in relative.parts:
+        candidate = candidate / component
+        try:
+            mode = os.lstat(candidate).st_mode
+        except OSError as error:
+            raise ContractError(f"{where} cannot be inspected: {error}") from error
+        if stat.S_ISLNK(mode):
+            raise ContractError(f"{where} must not contain a symlink: {candidate}")
+    candidate = candidate.resolve()
     try:
-        candidate.relative_to(root.resolve())
+        candidate.relative_to(resolved_root)
     except ValueError as error:
         raise ContractError(f"{where} escapes the C++ Direct bundle") from error
-    if not candidate.is_file():
+    if not stat.S_ISREG(mode):
         raise ContractError(f"{where} is not a file: {candidate}")
+    if require_executable and not mode & 0o111:
+        raise ContractError(f"{where} must be executable: {candidate}")
     return candidate
 
 
@@ -330,7 +352,7 @@ def _load_cpp_direct_bundle(
     if descriptor.get("kind") != "directory":
         raise ContractError("cpp-direct-build external input must be a directory")
     root = Path(str(descriptor.get("path", ""))).resolve()
-    manifest_path = root / "manifest.json"
+    manifest_path = _bundle_file(root, "manifest.json", "C++ Direct bundle manifest")
     try:
         value = json.loads(manifest_path.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError) as error:
@@ -379,7 +401,12 @@ def _load_cpp_direct_bundle(
     return {
         "root": root,
         "manifest": manifest_path,
-        "binary": _bundle_file(root, value["binary"], "C++ Direct bundle binary"),
+        "binary": _bundle_file(
+            root,
+            value["binary"],
+            "C++ Direct bundle binary",
+            require_executable=True,
+        ),
         "seed": value["seed"],
         "warmup": _positive_int(value["warmup"], "C++ Direct bundle warmup", allow_zero=True),
         "iterations": _positive_int(value["iterations"], "C++ Direct bundle iterations"),
@@ -601,6 +628,7 @@ class EvidenceLaneRunner(LaneRunner):
             collector = self.begin_case_collection(context, hello, case)
             collection: Optional[Mapping[str, Any]] = None
             system_collection: Optional[Mapping[str, Any]] = None
+            case_error: Optional[Exception] = None
             try:
                 step_evidence, step_records, collection = self.execute_case_steps(
                     context,
@@ -611,8 +639,37 @@ class EvidenceLaneRunner(LaneRunner):
                 )
                 raw_records.extend(step_records)
                 case_observations, case_artifacts = subject.case_close(case.case_id)
+            except Exception as error:
+                case_error = error
+                raise
             finally:
-                system_collection = self.end_case_collection(collector)
+                try:
+                    system_collection = self.end_case_collection(collector)
+                except Exception as collector_error:
+                    write_json(
+                        case_root / "collector-cleanup-error.json",
+                        {
+                            "case_id": case.case_id,
+                            "case_error": (
+                                None
+                                if case_error is None
+                                else {
+                                    "type": type(case_error).__name__,
+                                    "message": str(case_error),
+                                }
+                            ),
+                            "collector_error": {
+                                "type": type(collector_error).__name__,
+                                "message": str(collector_error),
+                            },
+                        },
+                    )
+                    if case_error is None:
+                        raise
+                    raise ContractError(
+                        f"{case.case_id}: {case_error}; "
+                        f"collector cleanup failed: {collector_error}"
+                    ) from case_error
             if collection is not None and system_collection is not None:
                 raise ContractError(
                     f"lane {context.lane.lane_id!r} produced two independent case collections"
@@ -685,7 +742,7 @@ class EvidenceLaneRunner(LaneRunner):
             recipe.metric: reduce_observations(recipe, observations[recipe.source])
             for recipe in context.suite.metrics
         }
-        gates = evaluate_gates(context.lane, metrics, context.certification_record)
+        gates = evaluate_gates(context.lane, metrics, context.frozen_thresholds)
         failed = [item for item in gates if item["status"] != "passed"]
         return LaneResult(
             lane_id=context.lane.lane_id,
@@ -945,7 +1002,7 @@ class SchedulerPolicyLaneRunner(LaneRunner):
             "receipt_ledger_mismatch_count": receipt_mismatches,
             "plan_trace_hash_mismatch_count": replay_mismatches,
         }
-        gates = evaluate_gates(context.lane, metrics, context.certification_record)
+        gates = evaluate_gates(context.lane, metrics, context.frozen_thresholds)
         failed = [item for item in gates if item["status"] != "passed"]
         return LaneResult(
             lane_id=context.lane.lane_id,
@@ -2220,7 +2277,7 @@ class MlxNativeCorrectnessLaneRunner(EvidenceLaneRunner):
                 owner_violations,
             ),
         }
-        gates = evaluate_gates(context.lane, metrics, context.certification_record)
+        gates = evaluate_gates(context.lane, metrics, context.frozen_thresholds)
         failed = [item for item in gates if item["status"] != "passed"]
         return LaneResult(
             lane_id=context.lane.lane_id,
@@ -2594,7 +2651,7 @@ class BoundedTurnAndFfiLaneRunner(EvidenceLaneRunner):
             ),
             "unclean_native_outcome_count": unclean_count,
         }
-        gates = evaluate_gates(context.lane, metrics, context.certification_record)
+        gates = evaluate_gates(context.lane, metrics, context.frozen_thresholds)
         failed = [item for item in gates if item["status"] != "passed"]
         return LaneResult(
             lane_id=context.lane.lane_id,
@@ -2970,6 +3027,7 @@ PERSISTENCE_PROCESS_FAULTS = {
     "post_commit_pre_sync_crash": "control_post_commit_pre_sync",
     "indeterminate_effect": "external_effect_started",
 }
+MAX_CONCURRENT_PUBLICATION_IDENTITIES = 8
 
 
 def _persistence_file(
@@ -3172,7 +3230,18 @@ def apply_persistence_fault(
             expected_role=PERSISTENCE_PROCESS_FAULTS[fault],
         )
         evidence["phase_marker"] = marker
-        os.kill(process_id, signal.SIGTERM)
+        if _process_has_stopped(process_id):
+            raise ContractError("persistence target process exited before SIGTERM")
+        if _process_executable(process_id) != executable:
+            raise ContractError(
+                "persistence target process identity changed before SIGTERM"
+            )
+        try:
+            os.kill(process_id, signal.SIGTERM)
+        except ProcessLookupError as error:
+            raise ContractError(
+                "persistence target process exited before SIGTERM"
+            ) from error
         deadline = time.monotonic() + termination_timeout_seconds
         while time.monotonic() < deadline and not _process_has_stopped(process_id):
             time.sleep(0.02)
@@ -3210,15 +3279,18 @@ def apply_persistence_fault(
         if replacement == target or replacement_descriptor["sha256"] == target_descriptor["sha256"]:
             raise ContractError("persistence replacement must have a different file identity")
         evidence["replacement_before"] = replacement_descriptor
-        read_hashes: List[str] = []
+        read_hashes: set[str] = set()
         stop_reader = threading.Event()
 
         def read_during_publication() -> None:
             while not stop_reader.is_set():
                 try:
-                    read_hashes.append(hashlib.sha256(target.read_bytes()).hexdigest())
+                    digest = hashlib.sha256(target.read_bytes()).hexdigest()
+                    if len(read_hashes) < MAX_CONCURRENT_PUBLICATION_IDENTITIES:
+                        read_hashes.add(digest)
                 except FileNotFoundError:
-                    continue
+                    pass
+                stop_reader.wait(0.002)
 
         reader: Optional[threading.Thread] = None
         if fault == "concurrent_reader_writer":
@@ -3227,19 +3299,27 @@ def apply_persistence_fault(
             deadline = time.monotonic() + 1.0
             while not read_hashes and time.monotonic() < deadline:
                 time.sleep(0.001)
-        os.replace(replacement, target)
-        _fsync_parent(target)
+        try:
+            os.replace(replacement, target)
+            _fsync_parent(target)
+            if reader is not None:
+                deadline = time.monotonic() + 1.0
+                while len(read_hashes) < 2 and time.monotonic() < deadline:
+                    time.sleep(0.001)
+        finally:
+            if reader is not None:
+                stop_reader.set()
+                reader.join(timeout=1.0)
         if reader is not None:
-            deadline = time.monotonic() + 1.0
-            while len(read_hashes) < 2 and time.monotonic() < deadline:
-                time.sleep(0.001)
-            stop_reader.set()
-            reader.join(timeout=1.0)
+            if reader.is_alive():
+                raise ContractError("Benchmark concurrent reader did not stop")
             if not read_hashes:
                 raise ContractError("Benchmark concurrent reader captured no file identity")
-            evidence["concurrent_read_sha256"] = sorted(set(read_hashes))
+            evidence["concurrent_read_sha256"] = sorted(read_hashes)
         evidence["action"] = "atomic-replace"
     elif replacement_value is not None:
+        if fault != "duplicate_operation":
+            raise ContractError(f"persistence {fault} must not stage a replacement file")
         replacement, replacement_descriptor = _persistence_file(
             runtime_root,
             replacement_value,
@@ -3248,8 +3328,6 @@ def apply_persistence_fault(
         )
         if not replacement.read_bytes():
             raise ContractError("persistence duplicate operation payload must not be empty")
-        if fault != "duplicate_operation":
-            raise ContractError(f"persistence {fault} must not stage a replacement file")
         with target.open("ab") as stream:
             payload = replacement.read_bytes()
             stream.write(payload)

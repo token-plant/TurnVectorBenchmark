@@ -339,6 +339,38 @@ class PerformancePublicationTests(unittest.TestCase):
         self.assertEqual(report["promotion_status"], "failed")
         self.assertTrue(report["publication_candidate"])
 
+    def test_cli_can_require_promotion_without_changing_publication_status(self) -> None:
+        path, value, _ = self.write_artifact(
+            "online-serving-single-client",
+            threshold_overrides={"ttft-bound": 0},
+        )
+        value["publication"] = {
+            "evidence_status": "publishable",
+            "promotion_status": "failed",
+            "candidate": True,
+            "evidence_reasons": [],
+            "promotion_reasons": ["promotion_gate_failed:ttft-bound"],
+            "supersedes": [],
+        }
+        self.rewrite(path, value)
+        stdout = io.StringIO()
+        with redirect_stdout(stdout):
+            exit_code = main(
+                [
+                    "validate-performance",
+                    "--contract",
+                    str(CONTRACT),
+                    "--evidence",
+                    str(path),
+                    "--require-promotion",
+                ]
+            )
+
+        self.assertEqual(exit_code, 5)
+        report = json.loads(stdout.getvalue())
+        self.assertEqual(report["status"], "publishable")
+        self.assertEqual(report["promotion_status"], "failed")
+
     def test_certification_record_must_match_frozen_thresholds(self) -> None:
         path, value, _ = self.write_artifact("online-serving-single-client")
         value["frozen_thresholds"]["ttft-bound"] = 123

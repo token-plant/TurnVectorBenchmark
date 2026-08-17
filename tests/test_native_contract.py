@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import os
 import tempfile
 import unittest
 from pathlib import Path
@@ -21,6 +22,7 @@ class NativeContractTests(unittest.TestCase):
         (root / "bin").mkdir()
         (root / "graphs").mkdir()
         (root / "bin" / "oracle").write_bytes(b"fixture-binary")
+        os.chmod(root / "bin" / "oracle", 0o755)
         (root / "graphs" / "dense.mlxfn").write_bytes(b"dense")
         (root / "graphs" / "moe.mlxfn").write_bytes(b"moe")
         manifest = {
@@ -72,6 +74,42 @@ class NativeContractTests(unittest.TestCase):
             manifest_path.write_text(json.dumps(value), encoding="utf-8")
             with self.assertRaisesRegex(ContractError, "reference lock"):
                 _load_cpp_direct_bundle(descriptor, ROOT)
+
+    def test_cpp_direct_bundle_rejects_symlinks_and_non_executable_binary(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            self.make_bundle(root)
+            dense_graph = root / "graphs" / "dense.mlxfn"
+            dense_graph.unlink()
+            dense_graph.symlink_to("moe.mlxfn")
+            descriptor = {
+                "kind": "directory",
+                "path": str(root),
+                "sha256": "0" * 64,
+            }
+            with self.assertRaisesRegex(ContractError, "symlink"):
+                _load_cpp_direct_bundle(descriptor, ROOT)
+
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            self.make_bundle(root)
+            os.chmod(root / "bin" / "oracle", 0o644)
+            descriptor = {
+                "kind": "directory",
+                "path": str(root),
+                "sha256": "0" * 64,
+            }
+            with self.assertRaisesRegex(ContractError, "executable"):
+                _load_cpp_direct_bundle(descriptor, ROOT)
+
+    def test_cpp_direct_oracle_guards_arguments_and_sample_output(self) -> None:
+        source = (ROOT / "oracles" / "mlx" / "cpp_direct_oracle.cpp").read_text(
+            encoding="utf-8"
+        )
+        self.assertIn("args.warmup < 0", source)
+        self.assertIn("args.seed < 0", source)
+        self.assertIn("if (!samples.is_open())", source)
+        self.assertIn("failed to write latency samples", source)
 
     def test_native_latency_csv_requires_complete_positive_samples(self) -> None:
         with tempfile.TemporaryDirectory() as directory:

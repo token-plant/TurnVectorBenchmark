@@ -189,7 +189,9 @@ python3 -B -m turnvector_benchmark validate-performance \
 The judge recomputes every summary from raw trials. Correctness and evidence
 failures make a result `not_publishable`; a performance threshold miss remains
 publishable negative evidence with `promotion_status: failed`. Unsupported
-capabilities remain explicit and cannot produce a passing row. See
+capabilities remain explicit and cannot produce a passing row. Add
+`--require-promotion` when the command is being used as a release gate; a
+publishable result with failed promotion gates then exits with code `5`. See
 [Performance Publication](docs/PERFORMANCE-PUBLICATION.md).
 
 The controller records both repositories' HEAD and `git status --short` before

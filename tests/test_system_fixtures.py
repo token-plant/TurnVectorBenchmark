@@ -3,6 +3,8 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import signal
+import socket
 import struct
 import subprocess
 import sys
@@ -10,6 +12,7 @@ import tempfile
 import time
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 from fixtures.workers.worker_proxy import injected_frame, pop_u32be_frames
 from turnvector_benchmark.core import ContractError, canonical_json
@@ -76,6 +79,15 @@ class SystemFixtureTests(unittest.TestCase):
         self.assertTrue(all(value > 0 for value in result.footprint_samples_bytes))
         self.assertIn("platform", result.system_pressure_before)
         self.assertIn("platform", result.system_pressure_after)
+
+    def test_process_sampler_deduplicates_repeated_errors(self) -> None:
+        sampler = ProcessMemorySampler([99_999_999], interval_seconds=0.001)
+        sampler.start()
+        time.sleep(0.05)
+        result = sampler.stop()
+
+        self.assertEqual(len(result.errors), 1)
+        self.assertIn("99999999", result.errors[0])
 
     def test_scheduler_performance_inputs_have_benchmark_owned_exact_plans(self) -> None:
         snapshots, expected = _scheduler_performance_case_input(
@@ -238,6 +250,65 @@ class SystemFixtureTests(unittest.TestCase):
         self.assertEqual(struct.unpack(">I", incompatible[:4])[0], len(incompatible) - 4)
         self.assertNotEqual(malformed, incompatible)
 
+    def test_worker_proxy_preserves_data_through_downstream_backpressure(self) -> None:
+        controller, daemon = socket.socketpair()
+        worker = (
+            "import os,socket,time;"
+            "endpoint=socket.socket(fileno=int(os.environ['TURNVECTOR_BACKEND_FD']));"
+            "time.sleep(0.25);"
+            "chunks=[];"
+            "chunk=endpoint.recv(65536);"
+            "\nwhile chunk:\n chunks.append(chunk); chunk=endpoint.recv(65536)\n"
+            "endpoint.sendall(b''.join(chunks));endpoint.shutdown(socket.SHUT_WR)"
+        )
+        process = subprocess.Popen(
+            [
+                sys.executable,
+                "-B",
+                str(WORKER_PROXY),
+                "--mode",
+                "normal",
+                "--daemon-fd",
+                str(daemon.fileno()),
+                "--",
+                sys.executable,
+                "-c",
+                worker,
+            ],
+            pass_fds=(daemon.fileno(),),
+            stdin=subprocess.DEVNULL,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.PIPE,
+            text=True,
+        )
+        daemon.close()
+        controller.settimeout(5)
+        payload = b"x" * (2 * 1024 * 1024)
+        received = bytearray()
+        transport_error = None
+        try:
+            controller.sendall(payload)
+            controller.shutdown(socket.SHUT_WR)
+            while True:
+                chunk = controller.recv(64 * 1024)
+                if not chunk:
+                    break
+                received.extend(chunk)
+        except OSError as error:
+            transport_error = error
+        finally:
+            controller.close()
+        try:
+            _, stderr = process.communicate(timeout=5)
+        except subprocess.TimeoutExpired:
+            process.kill()
+            _, stderr = process.communicate(timeout=5)
+            self.fail(f"worker proxy did not terminate; stderr={stderr!r}")
+
+        self.assertIsNone(transport_error, stderr)
+        self.assertEqual(process.returncode, 0, stderr)
+        self.assertEqual(bytes(received), payload)
+
     def test_persistence_corruption_mutates_a_real_hash_bound_file(self) -> None:
         temporary = tempfile.TemporaryDirectory()
         self.addCleanup(temporary.cleanup)
@@ -295,6 +366,58 @@ class SystemFixtureTests(unittest.TestCase):
             apply_persistence_fault(
                 root, "corruption", stage, self.allowed_python(os.getpid())
             )
+
+    def test_persistence_rejects_replacement_before_payload_validation(self) -> None:
+        temporary = tempfile.TemporaryDirectory()
+        self.addCleanup(temporary.cleanup)
+        root = Path(temporary.name)
+        target = self.staged_file(root, "snapshot.bin", "snapshot_payload", b"payload")
+        replacement = self.staged_file(
+            root, "unexpected.bin", "snapshot_payload", b""
+        )
+
+        with self.assertRaisesRegex(ContractError, "must not stage a replacement"):
+            apply_persistence_fault(
+                root,
+                "corruption",
+                self.persistence_stage(
+                    process_id=os.getpid(),
+                    fault_target=target,
+                    replacement=replacement,
+                ),
+                self.allowed_python(os.getpid()),
+            )
+
+    def test_persistence_process_exit_race_is_a_contract_failure(self) -> None:
+        temporary = tempfile.TemporaryDirectory()
+        self.addCleanup(temporary.cleanup)
+        root = Path(temporary.name)
+        marker = self.staged_file(
+            root, "payload-ready", "snapshot_payload_staged", b"ready"
+        )
+        stage = self.persistence_stage(
+            process_id=os.getpid(),
+            phase_marker=marker,
+        )
+
+        real_kill = os.kill
+
+        def exit_before_sigterm(process_id: int, selected_signal: int) -> None:
+            if selected_signal == signal.SIGTERM:
+                raise ProcessLookupError
+            real_kill(process_id, selected_signal)
+
+        with patch(
+            "turnvector_benchmark.lane_runner.os.kill",
+            side_effect=exit_before_sigterm,
+        ):
+            with self.assertRaisesRegex(ContractError, "exited before SIGTERM"):
+                apply_persistence_fault(
+                    root,
+                    "interrupted_payload",
+                    stage,
+                    self.allowed_python(os.getpid()),
+                )
 
     def test_persistence_sigterm_is_limited_to_a_hash_bound_process(self) -> None:
         temporary = tempfile.TemporaryDirectory()

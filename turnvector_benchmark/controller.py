@@ -98,9 +98,9 @@ def _status_for_results(results: Sequence[LaneResult]) -> str:
     for status in (
         "infrastructure_failed",
         "contract_failed",
-        "unsupported",
-        "environment_unavailable",
         "gate_failed",
+        "environment_unavailable",
+        "unsupported",
     ):
         if status in statuses:
             return status
@@ -272,7 +272,8 @@ class LaneController:
         if self.output_dir.exists():
             raise FileExistsError(f"output directory already exists: {self.output_dir}")
         self.output_dir.mkdir(parents=True)
-        started_at = _utc_now()
+        started_at_value = datetime.now(timezone.utc)
+        started_at = started_at_value.isoformat().replace("+00:00", "Z")
         run_id = uuid.uuid4().hex
         benchmark_before = git_identity(self.benchmark_repo)
         target_before = git_identity(self.target_repo) if self.target_repo else None
@@ -283,7 +284,9 @@ class LaneController:
             )
             for lane_id in lane_ids
         }
-        pre_run_thresholds = self._pre_run_threshold_manifest(lane_ids)
+        pre_run_thresholds = self._pre_run_threshold_manifest(
+            lane_ids, observed_at=started_at_value
+        )
         manifest = {
             "schema_version": RUN_SCHEMA,
             "run_id": run_id,
@@ -321,6 +324,8 @@ class LaneController:
                 lane_id=lane_id,
                 lane_dir=lane_dir,
                 plan=plan,
+                frozen_thresholds=pre_run_thresholds["values"][lane_id],
+                threshold_failures=pre_run_thresholds["failures"].get(lane_id, ()),
             )
             results.append(result)
             if subject_identity is not None:
@@ -409,6 +414,11 @@ class LaneController:
             "required_lane_count": sum(lane.required for lane in self.expectation.lanes),
             "selected_lane_count": len(lane_ids),
             "passed_lane_count": sum(result.status == "passed" for result in results),
+            "observed_lane_statuses": sorted({result.status for result in results}),
+            "lane_status_counts": {
+                status: sum(result.status == status for result in results)
+                for status in sorted({result.status for result in results})
+            },
             "qualification_case_count": sum(result.case_count for result in results),
             "executed_case_count": sum(result.executed_case_count for result in results),
             "evidence_valid": evidence_valid,
@@ -443,20 +453,45 @@ class LaneController:
             report=report,
         )
 
-    def _pre_run_threshold_manifest(self, lane_ids: Sequence[str]) -> Mapping[str, Any]:
+    def _pre_run_threshold_manifest(
+        self,
+        lane_ids: Sequence[str],
+        *,
+        observed_at: Optional[datetime] = None,
+    ) -> Mapping[str, Any]:
+        resolved_at = observed_at or datetime.now(timezone.utc)
         thresholds: Dict[str, Dict[str, Any]] = {}
-        failures: Dict[str, str] = {}
+        failures: Dict[str, List[Mapping[str, str]]] = {}
         for lane_id in lane_ids:
             lane_values: Dict[str, Any] = {}
+            lane_failures: List[Mapping[str, str]] = []
             for gate in self.expectation.lane(lane_id).gates:
                 try:
                     lane_values[gate.metric] = resolve_gate_threshold(
-                        lane_id, gate, self.certification_record
+                        lane_id,
+                        gate,
+                        self.certification_record,
+                        observed_at=resolved_at,
                     )
                 except ContractError as error:
-                    failures[lane_id] = str(error)
+                    lane_failures.append(
+                        {
+                            "gate_id": gate.gate_id,
+                            "metric": gate.metric,
+                            "message": str(error),
+                        }
+                    )
             thresholds[lane_id] = lane_values
-        return {"values": thresholds, "failures": failures, "frozen": True}
+            if lane_failures:
+                failures[lane_id] = lane_failures
+        complete = not failures
+        return {
+            "resolved_at": resolved_at.isoformat().replace("+00:00", "Z"),
+            "values": thresholds,
+            "failures": failures,
+            "complete": complete,
+            "frozen": complete,
+        }
 
     @staticmethod
     def _file_identity(path: Optional[Path]) -> Optional[Mapping[str, Any]]:
@@ -465,10 +500,41 @@ class LaneController:
         return {"path": str(path), "sha256": sha256_file(path), "size": path.stat().st_size}
 
     def _run_one_lane(
-        self, *, run_id: str, lane_id: str, lane_dir: Path, plan: CasePlan
+        self,
+        *,
+        run_id: str,
+        lane_id: str,
+        lane_dir: Path,
+        plan: CasePlan,
+        frozen_thresholds: Mapping[str, Any],
+        threshold_failures: Sequence[Mapping[str, str]],
     ) -> Tuple[LaneResult, Optional[Mapping[str, Any]]]:
         lane = self.expectation.lane(lane_id)
         suite = self.suites[lane_id]
+        if self.certification_contract_error is not None:
+            return (
+                _lane_failure_result(
+                    lane_id,
+                    plan,
+                    "contract_failed",
+                    self.certification_contract_error,
+                ),
+                None,
+            )
+        if threshold_failures:
+            details = "; ".join(
+                f"{failure['gate_id']}: {failure['message']}"
+                for failure in threshold_failures
+            )
+            return (
+                _lane_failure_result(
+                    lane_id,
+                    plan,
+                    "contract_failed",
+                    f"pre-run threshold snapshot is incomplete: {details}",
+                ),
+                None,
+            )
         adapter = (
             None
             if self.subject_manifest is None
@@ -495,40 +561,6 @@ class LaneController:
                 ),
                 None,
             )
-        if self.certification_contract_error is not None:
-            return (
-                _lane_failure_result(
-                    lane_id,
-                    plan,
-                    "contract_failed",
-                    self.certification_contract_error,
-                ),
-                None,
-            )
-        if any(gate.threshold_source == "certification_record" for gate in lane.gates):
-            if self.certification_record is None:
-                return (
-                    _lane_failure_result(
-                        lane_id,
-                        plan,
-                        "contract_failed",
-                        "candidate certification record is required before execution",
-                    ),
-                    None,
-                )
-            try:
-                for gate in lane.gates:
-                    resolve_gate_threshold(lane_id, gate, self.certification_record)
-            except ContractError as error:
-                return (
-                    _lane_failure_result(
-                        lane_id,
-                        plan,
-                        "contract_failed",
-                        str(error),
-                    ),
-                    None,
-                )
         external_inputs: Dict[str, Mapping[str, Any]] = {}
         if (
             self.subject_manifest is not None
@@ -571,7 +603,7 @@ class LaneController:
             with SubjectSession(adapter) as subject:
                 session = subject
                 hello = subject.hello(run_id, lane_id, suite.protocol)
-                identity_value = self._validate_hello(lane_id, suite, adapter, hello)
+                identity_value = self._validate_hello(adapter, hello)
                 if lane_id not in hello.supported_lanes:
                     result = _lane_failure_result(
                         lane_id,
@@ -601,7 +633,7 @@ class LaneController:
                         suite=suite,
                         plan=plan,
                         artifact_root=raw_root,
-                        certification_record=self.certification_record,
+                        frozen_thresholds=frozen_thresholds,
                         external_inputs=external_inputs,
                     )
                     result = LANE_RUNNER_REGISTRY[lane_id].run(context, subject, hello)
@@ -661,8 +693,6 @@ class LaneController:
 
     def _validate_hello(
         self,
-        lane_id: str,
-        suite: LaneSuite,
         adapter: SubjectAdapter,
         hello: SubjectHello,
     ) -> Mapping[str, Any]:

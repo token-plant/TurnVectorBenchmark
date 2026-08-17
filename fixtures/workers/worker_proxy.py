@@ -101,6 +101,7 @@ def relay(args: argparse.Namespace) -> int:
     environment = dict(os.environ)
     environment[args.worker_fd_env] = str(worker.fileno())
     process: Optional[subprocess.Popen[bytes]] = None
+    selector: Optional[selectors.BaseSelector] = None
     try:
         process = subprocess.Popen(
             child_command(args.worker_command),
@@ -114,39 +115,101 @@ def relay(args: argparse.Namespace) -> int:
         daemon.setblocking(False)
         proxy.setblocking(False)
         selector = selectors.DefaultSelector()
-        selector.register(daemon, selectors.EVENT_READ, (daemon, proxy, "daemon"))
-        selector.register(proxy, selectors.EVENT_READ, (proxy, daemon, "worker"))
+        endpoints = (daemon, proxy)
+        destinations = {daemon: proxy, proxy: daemon}
+        directions = {daemon: "daemon", proxy: "worker"}
+        read_open = {daemon: True, proxy: True}
+        pending = {daemon: bytearray(), proxy: bytearray()}
+        shutdown_pending = {daemon: False, proxy: False}
+        write_closed = {daemon: False, proxy: False}
+        pending_limit = max(64 * 1024, args.max_frame_bytes + 4)
+
+        def finish_half_close(endpoint: socket.socket) -> None:
+            if (
+                shutdown_pending[endpoint]
+                and not pending[endpoint]
+                and not write_closed[endpoint]
+            ):
+                try:
+                    endpoint.shutdown(socket.SHUT_WR)
+                except OSError:
+                    pass
+                write_closed[endpoint] = True
+
+        def refresh_registration(endpoint: socket.socket) -> None:
+            events = 0
+            destination = destinations[endpoint]
+            if read_open[endpoint] and len(pending[destination]) < pending_limit:
+                events |= selectors.EVENT_READ
+            if pending[endpoint]:
+                events |= selectors.EVENT_WRITE
+            try:
+                key = selector.get_key(endpoint)
+            except KeyError:
+                if events:
+                    selector.register(endpoint, events, endpoint)
+            else:
+                if events:
+                    selector.modify(endpoint, events, endpoint)
+                else:
+                    selector.unregister(key.fileobj)
+
+        for endpoint in endpoints:
+            refresh_registration(endpoint)
         worker_frames = 0
         worker_buffer = bytearray()
         while selector.get_map():
             events = selector.select(timeout=0.25)
-            if not events and process.poll() is not None:
+            if (
+                not events
+                and process.poll() is not None
+                and not read_open[proxy]
+                and not any(pending.values())
+            ):
                 break
-            for key, _ in events:
-                source, destination, direction = key.data
-                data = source.recv(64 * 1024)
-                if not data:
-                    if direction == "worker" and worker_buffer:
-                        raise RuntimeError("worker closed with a partial length-framed message")
-                    selector.unregister(source)
+            for key, event_mask in events:
+                endpoint = key.data
+                destination = destinations[endpoint]
+                direction = directions[endpoint]
+                if event_mask & selectors.EVENT_READ:
                     try:
-                        destination.shutdown(socket.SHUT_WR)
-                    except OSError:
-                        pass
-                    continue
-                if args.mode == "crash-during-turn" and direction == "daemon":
-                    process.terminate()
-                    process.wait(timeout=5)
-                    return 73
-                if args.mode == "duplicate-receipt" and direction == "worker":
-                    worker_buffer.extend(data)
-                    for frame in pop_u32be_frames(worker_buffer, args.max_frame_bytes):
-                        worker_frames += 1
-                        destination.sendall(frame)
-                        if worker_frames == args.duplicate_worker_frame_index:
-                            destination.sendall(frame)
-                else:
-                    destination.sendall(data)
+                        data = endpoint.recv(64 * 1024)
+                    except BlockingIOError:
+                        data = None
+                    if data == b"":
+                        if direction == "worker" and worker_buffer:
+                            raise RuntimeError(
+                                "worker closed with a partial length-framed message"
+                            )
+                        read_open[endpoint] = False
+                        shutdown_pending[destination] = True
+                        finish_half_close(destination)
+                    elif data is not None:
+                        if args.mode == "crash-during-turn" and direction == "daemon":
+                            process.terminate()
+                            process.wait(timeout=5)
+                            return 73
+                        if args.mode == "duplicate-receipt" and direction == "worker":
+                            worker_buffer.extend(data)
+                            for frame in pop_u32be_frames(
+                                worker_buffer, args.max_frame_bytes
+                            ):
+                                worker_frames += 1
+                                pending[destination].extend(frame)
+                                if worker_frames == args.duplicate_worker_frame_index:
+                                    pending[destination].extend(frame)
+                        else:
+                            pending[destination].extend(data)
+                if event_mask & selectors.EVENT_WRITE and pending[endpoint]:
+                    try:
+                        written = endpoint.send(pending[endpoint])
+                    except BlockingIOError:
+                        written = 0
+                    if written:
+                        del pending[endpoint][:written]
+                        finish_half_close(endpoint)
+                for changed in endpoints:
+                    refresh_registration(changed)
         if (
             args.mode == "duplicate-receipt"
             and worker_frames < args.duplicate_worker_frame_index
@@ -156,6 +219,8 @@ def relay(args: argparse.Namespace) -> int:
             )
         return process.wait(timeout=5)
     finally:
+        if selector is not None:
+            selector.close()
         for endpoint in (daemon, proxy, worker):
             try:
                 endpoint.close()

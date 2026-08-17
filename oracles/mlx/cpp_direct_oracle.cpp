@@ -87,6 +87,9 @@ int main(int argc, char** argv) try {
       args.kv_heads <= 0 || args.head_dim <= 0 || args.iterations <= 0) {
     throw std::runtime_error("shape and iteration arguments must be positive");
   }
+  if (args.warmup < 0 || args.seed < 0) {
+    throw std::runtime_error("warmup and seed arguments must be non-negative");
+  }
 
   auto turn = mx::import_function(args.graph);
   mx::Args turn_inputs;
@@ -107,6 +110,9 @@ int main(int argc, char** argv) try {
   mx::eval(turn_inputs);
 
   std::ofstream samples(args.output + ".csv");
+  if (!samples.is_open()) {
+    throw std::runtime_error("failed to open latency samples output");
+  }
   samples << "iteration,wall_us\n";
   for (int iteration = 0; iteration < args.warmup + args.iterations; ++iteration) {
     const auto start = Clock::now();
@@ -129,6 +135,10 @@ int main(int argc, char** argv) try {
           std::chrono::duration<double, std::micro>(end - start).count();
       samples << (iteration - args.warmup) << ',' << elapsed << '\n';
     }
+  }
+  samples.flush();
+  if (!samples) {
+    throw std::runtime_error("failed to write latency samples");
   }
   return 0;
 } catch (const std::exception& error) {

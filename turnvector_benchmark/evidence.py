@@ -173,5 +173,5 @@ def write_checksums(root: Path, *, exclude: Sequence[str] = ("SHA256SUMS",)) -> 
             continue
         entries.append(f"{sha256_file(path)}  {relative}")
     output = root / "SHA256SUMS"
-    output.write_text("\n".join(entries) + "\n", encoding="ascii")
+    output.write_text("\n".join(entries) + "\n", encoding="utf-8")
     return output

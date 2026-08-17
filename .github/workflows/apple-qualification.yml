@@ -70,6 +70,10 @@ jobs:
           --external-fixtures "$EXTERNAL_FIXTURES"
           --target-repo "$TURNVECTOR_REPOSITORY"
           --output "$RUNNER_TEMP/turnvector-qualification"
+      - name: Require passed implementation claim
+        run: >-
+          jq -e '.full_implementation_status == "passed" and .claimable == true'
+          "$RUNNER_TEMP/turnvector-qualification/report.json"
       - name: Upload qualification evidence
         if: always()
         uses: actions/upload-artifact@v4
@@ -105,6 +109,10 @@ jobs:
           --external-fixtures "$EXTERNAL_FIXTURES"
           --target-repo "$TURNVECTOR_REPOSITORY"
           --output "$RUNNER_TEMP/turnvector-nightly"
+      - name: Require passed implementation claim
+        run: >-
+          jq -e '.full_implementation_status == "passed" and .claimable == true'
+          "$RUNNER_TEMP/turnvector-nightly/report.json"
       - name: Upload nightly evidence
         if: always()
         uses: actions/upload-artifact@v4

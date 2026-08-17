@@ -1,9 +1,12 @@
 from __future__ import annotations
 
 import json
+import os
 import queue
+import select
 import subprocess
 import threading
+import time
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict, List, Mapping, Optional, Sequence, TextIO, Tuple
@@ -118,16 +121,48 @@ class SubjectSession:
             )
         request_value = dict(message)
         self.transcript.append({"direction": "request", "message": request_value})
+        deadline = time.monotonic() + self.adapter.timeout_seconds
+        payload = (canonical_json(request_value) + "\n").encode("utf-8")
+        payload_view = memoryview(payload)
         try:
-            self.process.stdin.write(canonical_json(request_value) + "\n")
-            self.process.stdin.flush()
-        except (BrokenPipeError, OSError) as error:
+            file_descriptor = self.process.stdin.fileno()
+            os.set_blocking(file_descriptor, False)
+            offset = 0
+            while offset < len(payload):
+                remaining = deadline - time.monotonic()
+                if remaining <= 0:
+                    raise ContractError(
+                        f"subject adapter timed out after {self.adapter.timeout_seconds:g}s while "
+                        f"writing {message.get('kind')!r}; stderr={self.stderr_text()!r}"
+                    )
+                _, writable, _ = select.select([], [file_descriptor], [], remaining)
+                if not writable:
+                    raise ContractError(
+                        f"subject adapter timed out after {self.adapter.timeout_seconds:g}s while "
+                        f"writing {message.get('kind')!r}; stderr={self.stderr_text()!r}"
+                    )
+                try:
+                    written = os.write(file_descriptor, payload_view[offset:])
+                except BlockingIOError:
+                    continue
+                if written <= 0:
+                    raise BrokenPipeError("subject adapter stdin accepted no bytes")
+                offset += written
+        except ContractError:
+            raise
+        except (BrokenPipeError, OSError, ValueError) as error:
             raise ContractError(
                 f"subject adapter closed stdin while handling {message.get('kind')!r}; "
                 f"stderr={self.stderr_text()!r}"
             ) from error
+        remaining = deadline - time.monotonic()
+        if remaining <= 0:
+            raise ContractError(
+                f"subject adapter timed out after {self.adapter.timeout_seconds:g}s while "
+                f"handling {message.get('kind')!r}; stderr={self.stderr_text()!r}"
+            )
         try:
-            line = self.responses.get(timeout=self.adapter.timeout_seconds)
+            line = self.responses.get(timeout=remaining)
         except queue.Empty as error:
             raise ContractError(
                 f"subject adapter timed out after {self.adapter.timeout_seconds:g}s while "

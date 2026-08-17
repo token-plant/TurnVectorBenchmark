@@ -62,6 +62,7 @@ def _directory_identity(root: Path) -> Tuple[int, str]:
                 "kind": "file",
                 "size": size,
                 "sha256": sha256_file(path),
+                "executable": bool(mode & 0o111),
             }
         )
     digest = hashlib.sha256(canonical_json(records).encode("utf-8")).hexdigest()
@@ -112,6 +113,12 @@ def load_external_fixture_manifest(
         artifact_path = Path(raw["path"])
         if not artifact_path.is_absolute():
             artifact_path = path.parent / artifact_path
+        try:
+            artifact_mode = os.lstat(artifact_path).st_mode
+        except OSError as error:
+            raise ContractError(f"{where}.path cannot be inspected: {error}") from error
+        if stat.S_ISLNK(artifact_mode):
+            raise ContractError(f"{where}.path must not be a symlink: {artifact_path}")
         artifact_path = artifact_path.resolve()
         kind = raw["kind"]
         if kind not in {"file", "directory"}:
