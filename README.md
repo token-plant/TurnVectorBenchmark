@@ -77,6 +77,12 @@ See [SubjectAdapter Protocol](docs/SUBJECT-PROTOCOL.md),
 [Benchmark Design](docs/BENCHMARK-DESIGN.md), and the legacy
 [Scheduler Driver Protocol](docs/DRIVER-PROTOCOL.md).
 
+The future AX Engine comparison is grounded by two non-measurement analytic
+references: [V1 definitions and baseline equations](docs/AX-TURNVECTOR-SCHEDULER-THEORY-V1.md)
+and [V2 feasible regions, bounds, and critical states](docs/AX-TURNVECTOR-SCHEDULER-THEORY-V2.md).
+They define benchmark inputs and invariants but contain no product benchmark
+result.
+
 ## Run
 
 The benchmark requires Python 3.9 or newer and its locked protobuf runtime.
