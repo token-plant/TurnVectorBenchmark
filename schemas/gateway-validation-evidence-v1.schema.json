@@ -1,0 +1,160 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://token-plant.github.io/TurnVectorBenchmark/schemas/gateway-validation-evidence-v1.schema.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "contract",
+    "session",
+    "environment",
+    "effective_limits",
+    "artifacts"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "turnvector.benchmark.gateway-validation-evidence.v1"
+    },
+    "contract": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "sha256"],
+      "properties": {
+        "id": {"$ref": "#/$defs/id"},
+        "sha256": {"$ref": "#/$defs/digest"}
+      }
+    },
+    "session": {"$ref": "#/$defs/session"},
+    "environment": {"$ref": "#/$defs/environment"},
+    "effective_limits": {"$ref": "#/$defs/limits"},
+    "artifacts": {
+      "type": "array",
+      "minItems": 4,
+      "maxItems": 4,
+      "items": {"$ref": "#/$defs/artifact"}
+    }
+  },
+  "$defs": {
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9._-]*$"
+    },
+    "digest": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "git_sha": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{40}$"
+    },
+    "status_lines": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {"type": "string", "minLength": 1}
+    },
+    "session": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "subject_kind",
+        "started_at",
+        "finished_at",
+        "turnvector_head_before",
+        "turnvector_head_after",
+        "turnvector_status_before",
+        "turnvector_status_after",
+        "benchmark_head_before",
+        "benchmark_head_after",
+        "benchmark_status_before",
+        "benchmark_status_after",
+        "source_contract_sha256",
+        "gateway_build_sha256",
+        "daemon_build_sha256",
+        "compatibility_profile_sha256",
+        "route_manifest_sha256",
+        "tokenizer_template_sha256",
+        "model_revision_sha256",
+        "data_plane_descriptor_sha256",
+        "effective_limits_sha256",
+        "clock_mode",
+        "clock_calibration_sha256"
+      ],
+      "properties": {
+        "id": {"$ref": "#/$defs/id"},
+        "subject_kind": {"enum": ["implementation", "fixture"]},
+        "started_at": {"type": "string", "format": "date-time"},
+        "finished_at": {"type": "string", "format": "date-time"},
+        "turnvector_head_before": {"$ref": "#/$defs/git_sha"},
+        "turnvector_head_after": {"$ref": "#/$defs/git_sha"},
+        "turnvector_status_before": {"$ref": "#/$defs/status_lines"},
+        "turnvector_status_after": {"$ref": "#/$defs/status_lines"},
+        "benchmark_head_before": {"$ref": "#/$defs/git_sha"},
+        "benchmark_head_after": {"$ref": "#/$defs/git_sha"},
+        "benchmark_status_before": {"$ref": "#/$defs/status_lines"},
+        "benchmark_status_after": {"$ref": "#/$defs/status_lines"},
+        "source_contract_sha256": {"$ref": "#/$defs/digest"},
+        "gateway_build_sha256": {"$ref": "#/$defs/digest"},
+        "daemon_build_sha256": {"$ref": "#/$defs/digest"},
+        "compatibility_profile_sha256": {"$ref": "#/$defs/digest"},
+        "route_manifest_sha256": {"$ref": "#/$defs/digest"},
+        "tokenizer_template_sha256": {"$ref": "#/$defs/digest"},
+        "model_revision_sha256": {"$ref": "#/$defs/digest"},
+        "data_plane_descriptor_sha256": {"$ref": "#/$defs/digest"},
+        "effective_limits_sha256": {"$ref": "#/$defs/digest"},
+        "clock_mode": {"const": "single_monotonic"},
+        "clock_calibration_sha256": {"type": "null"}
+      }
+    },
+    "environment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "hardware_id",
+        "memory_bytes",
+        "os_build",
+        "power_source",
+        "thermal_state_start",
+        "thermal_state_end",
+        "host_admission_passed"
+      ],
+      "properties": {
+        "hardware_id": {"type": "string", "minLength": 1},
+        "memory_bytes": {"type": "integer", "minimum": 1},
+        "os_build": {"type": "string", "minLength": 1},
+        "power_source": {"$ref": "#/$defs/id"},
+        "thermal_state_start": {"$ref": "#/$defs/id"},
+        "thermal_state_end": {"$ref": "#/$defs/id"},
+        "host_admission_passed": {"type": "boolean"}
+      }
+    },
+    "limits": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "http_write_no_progress_ns",
+        "http_write_total_ns",
+        "cancellation_completion_ns"
+      ],
+      "properties": {
+        "http_write_no_progress_ns": {"type": "integer", "minimum": 1},
+        "http_write_total_ns": {"type": "integer", "minimum": 1},
+        "cancellation_completion_ns": {"type": "integer", "minimum": 1}
+      }
+    },
+    "artifact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "path", "size", "sha256", "custody"],
+      "properties": {
+        "id": {
+          "enum": ["run_manifest", "lifecycle_trace", "transport_trials", "host_samples"]
+        },
+        "path": {"type": "string", "minLength": 1},
+        "size": {"type": "integer", "minimum": 0},
+        "sha256": {"$ref": "#/$defs/digest"},
+        "custody": {"const": "benchmark"}
+      }
+    }
+  }
+}
