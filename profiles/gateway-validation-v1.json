@@ -1,0 +1,136 @@
+{
+  "schema_version": "turnvector.benchmark.gateway-validation-contract.v1",
+  "id": "turnvector-gateway-validation-v1",
+  "description": "Fail-closed response-lifetime and per-request Unix connection validation for the optional Compatibility Gateway.",
+  "source_contract": {
+    "repository": "TurnVector",
+    "path": "docs/plans/2026-08-20-gateway-lifecycle-uds-validation.md",
+    "id": "turnvector.gateway-validation.v1",
+    "sha256": "fd227a1544b9942c5bf9ec50f1608920575e7f352901dc49b9cecf76bb766449"
+  },
+  "policy": {
+    "raw_artifacts_required": true,
+    "summary_recomputed": true,
+    "predictions_separate_from_measurements": true,
+    "fixture_status": "not_claimable_fixture",
+    "ownership_change_authorized": false,
+    "percentile_method": "nearest_rank"
+  },
+  "lifecycle": {
+    "cases": [
+      {
+        "id": "fast-fit",
+        "response_mode": "non_streaming",
+        "reader_mode": "fast",
+        "buffer_relation": "fits",
+        "expected_outcome": "complete",
+        "requires_decoupling": false,
+        "requires_peer_progress": false
+      },
+      {
+        "id": "slow-fit",
+        "response_mode": "streaming",
+        "reader_mode": "slow",
+        "buffer_relation": "fits",
+        "expected_outcome": "complete",
+        "requires_decoupling": true,
+        "requires_peer_progress": true
+      },
+      {
+        "id": "stalled-fit",
+        "response_mode": "streaming",
+        "reader_mode": "stalled",
+        "buffer_relation": "fits",
+        "expected_outcome": "bounded_close",
+        "requires_decoupling": true,
+        "requires_peer_progress": true
+      },
+      {
+        "id": "stalled-overflow",
+        "response_mode": "streaming",
+        "reader_mode": "stalled",
+        "buffer_relation": "overflows",
+        "expected_outcome": "bounded_cancel",
+        "requires_decoupling": false,
+        "requires_peer_progress": false
+      },
+      {
+        "id": "disconnect-mid-stream",
+        "response_mode": "streaming",
+        "reader_mode": "disconnect",
+        "buffer_relation": "fits",
+        "expected_outcome": "disconnect_cancel",
+        "requires_decoupling": false,
+        "requires_peer_progress": false
+      }
+    ],
+    "event_kinds": [
+      "exchange_reserved",
+      "request_accepted",
+      "backend_ownership_acquired",
+      "output_production_started",
+      "backpressure_entered",
+      "deadline_expired",
+      "client_disconnected",
+      "cancel_ordered",
+      "terminal_observed",
+      "request_state_release_accepted",
+      "peer_request_progress",
+      "http_last_byte_committed",
+      "response_closed"
+    ],
+    "counter_ids": [
+      "device_executor_socket_waits",
+      "unreserved_output_publications",
+      "capacity_overruns",
+      "duplicate_outputs",
+      "replays",
+      "retries",
+      "resumes",
+      "ownership_transfers",
+      "backend_leaks",
+      "gateway_resource_leaks"
+    ]
+  },
+  "transport": {
+    "dimensions": [
+      {
+        "id": "probe_path",
+        "values": ["kernel_uds", "production_data_plane"]
+      },
+      {
+        "id": "concurrency",
+        "values": [1, 8, 32, 128]
+      },
+      {
+        "id": "wire_class",
+        "values": ["minimum", "profile_maximum"]
+      },
+      {
+        "id": "process_state",
+        "values": ["process_cold", "process_warm"]
+      }
+    ],
+    "protocol": {
+      "cold_process_warmups": 0,
+      "warm_process_warmups": 100,
+      "measured_repetitions": 100,
+      "cooldown_seconds": 1,
+      "order_policy": "balanced"
+    },
+    "stage_ids": [
+      "socket_ns",
+      "connect_accept_ns",
+      "peer_credential_ns",
+      "hello_ns",
+      "descriptor_validation_ns"
+    ],
+    "reuse_factors": [2, 8, 32]
+  },
+  "required_artifacts": [
+    "run_manifest",
+    "lifecycle_trace",
+    "transport_trials",
+    "host_samples"
+  ]
+}
