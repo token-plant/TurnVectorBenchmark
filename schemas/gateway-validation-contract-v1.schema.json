@@ -1,0 +1,154 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://token-plant.github.io/TurnVectorBenchmark/schemas/gateway-validation-contract-v1.schema.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "id",
+    "description",
+    "source_contract",
+    "policy",
+    "lifecycle",
+    "transport",
+    "required_artifacts"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "turnvector.benchmark.gateway-validation-contract.v1"
+    },
+    "id": {"$ref": "#/$defs/id"},
+    "description": {"type": "string", "minLength": 1},
+    "source_contract": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["repository", "path", "id", "sha256"],
+      "properties": {
+        "repository": {"const": "TurnVector"},
+        "path": {"type": "string", "minLength": 1},
+        "id": {"$ref": "#/$defs/id"},
+        "sha256": {"$ref": "#/$defs/digest"}
+      }
+    },
+    "policy": {
+      "const": {
+        "raw_artifacts_required": true,
+        "summary_recomputed": true,
+        "predictions_separate_from_measurements": true,
+        "fixture_status": "not_claimable_fixture",
+        "ownership_change_authorized": false,
+        "percentile_method": "nearest_rank"
+      }
+    },
+    "lifecycle": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["cases", "event_kinds", "counter_ids"],
+      "properties": {
+        "cases": {
+          "type": "array",
+          "minItems": 1,
+          "items": {"$ref": "#/$defs/lifecycle_case"}
+        },
+        "event_kinds": {"$ref": "#/$defs/ids"},
+        "counter_ids": {"$ref": "#/$defs/ids"}
+      }
+    },
+    "transport": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["dimensions", "protocol", "stage_ids", "reuse_factors"],
+      "properties": {
+        "dimensions": {
+          "type": "array",
+          "minItems": 1,
+          "items": {"$ref": "#/$defs/dimension"}
+        },
+        "protocol": {"$ref": "#/$defs/protocol"},
+        "stage_ids": {"$ref": "#/$defs/ids"},
+        "reuse_factors": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {"type": "integer", "minimum": 2}
+        }
+      }
+    },
+    "required_artifacts": {
+      "const": ["run_manifest", "lifecycle_trace", "transport_trials", "host_samples"]
+    }
+  },
+  "$defs": {
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9._-]*$"
+    },
+    "digest": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "ids": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {"$ref": "#/$defs/id"}
+    },
+    "lifecycle_case": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "response_mode",
+        "reader_mode",
+        "buffer_relation",
+        "expected_outcome",
+        "requires_decoupling",
+        "requires_peer_progress"
+      ],
+      "properties": {
+        "id": {"$ref": "#/$defs/id"},
+        "response_mode": {"enum": ["streaming", "non_streaming"]},
+        "reader_mode": {"enum": ["fast", "slow", "stalled", "disconnect"]},
+        "buffer_relation": {"enum": ["fits", "overflows"]},
+        "expected_outcome": {
+          "enum": ["complete", "bounded_close", "bounded_cancel", "disconnect_cancel"]
+        },
+        "requires_decoupling": {"type": "boolean"},
+        "requires_peer_progress": {"type": "boolean"}
+      }
+    },
+    "scalar": {"type": ["string", "integer", "boolean"]},
+    "dimension": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "values"],
+      "properties": {
+        "id": {"$ref": "#/$defs/id"},
+        "values": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {"$ref": "#/$defs/scalar"}
+        }
+      }
+    },
+    "protocol": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "cold_process_warmups",
+        "warm_process_warmups",
+        "measured_repetitions",
+        "cooldown_seconds",
+        "order_policy"
+      ],
+      "properties": {
+        "cold_process_warmups": {"type": "integer", "minimum": 0},
+        "warm_process_warmups": {"type": "integer", "minimum": 0},
+        "measured_repetitions": {"type": "integer", "minimum": 1},
+        "cooldown_seconds": {"type": "integer", "minimum": 0},
+        "order_policy": {"const": "balanced"}
+      }
+    }
+  }
+}

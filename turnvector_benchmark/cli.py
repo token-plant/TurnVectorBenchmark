@@ -14,6 +14,7 @@ from .expectation import (
     load_expectation,
 )
 from .evidence import write_checksums, write_json
+from .gateway_validation import load_gateway_validation_contract
 from .performance import load_performance_contract
 from .runner import BenchmarkRunner
 
@@ -58,6 +59,21 @@ def _parser() -> argparse.ArgumentParser:
         action="store_true",
         help="return exit 5 when publishable evidence fails its promotion gates",
     )
+
+    inspect_gateway = subparsers.add_parser(
+        "inspect-gateway-validation",
+        help="inspect the Gateway lifecycle and Unix transport CasePlan",
+    )
+    inspect_gateway.add_argument("--contract", type=Path, required=True)
+    inspect_gateway.add_argument("--target-repo", type=Path)
+
+    validate_gateway = subparsers.add_parser(
+        "validate-gateway-validation",
+        help="independently validate one Gateway evidence artifact",
+    )
+    validate_gateway.add_argument("--contract", type=Path, required=True)
+    validate_gateway.add_argument("--evidence", type=Path, required=True)
+    validate_gateway.add_argument("--output", type=Path)
 
     def add_controller_arguments(command: argparse.ArgumentParser) -> None:
         command.add_argument("--expectation", type=Path, required=True)
@@ -150,6 +166,34 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
             ):
                 return 5
             return exit_code
+        if args.command == "inspect-gateway-validation":
+            contract = load_gateway_validation_contract(args.contract)
+            print(json.dumps(contract.inspect(args.target_repo), sort_keys=True))
+            return 0
+        if args.command == "validate-gateway-validation":
+            contract = load_gateway_validation_contract(args.contract)
+            report = contract.validate_artifact(args.evidence)
+            if args.output is not None:
+                output = args.output.resolve()
+                if output.exists():
+                    raise FileExistsError(
+                        f"Gateway validation output already exists: {output}"
+                    )
+                output.mkdir(parents=True)
+                write_json(output / "report.json", report)
+                write_checksums(output)
+                rendered = {
+                    "status": report["status"],
+                    "report": str(output / "report.json"),
+                }
+            else:
+                rendered = report
+            print(json.dumps(rendered, sort_keys=True))
+            return {
+                "publishable": 0,
+                "not_publishable": 3,
+                "not_claimable_fixture": 4,
+            }[report["status"]]
         if args.command in {"run-lane", "run-all"}:
             controller = LaneController(
                 expectation_path=args.expectation,

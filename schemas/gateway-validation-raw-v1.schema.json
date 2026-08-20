@@ -1,0 +1,172 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://token-plant.github.io/TurnVectorBenchmark/schemas/gateway-validation-raw-v1.schema.json",
+  "description": "Row schemas for Benchmark-owned Gateway JSONL artifacts.",
+  "oneOf": [
+    {"$ref": "#/$defs/lifecycle_row"},
+    {"$ref": "#/$defs/transport_row"},
+    {"$ref": "#/$defs/host_row"}
+  ],
+  "$defs": {
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9._-]*$"
+    },
+    "nonnegative_integer": {"type": "integer", "minimum": 0},
+    "event": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["sequence", "request_role", "kind", "at_ns"],
+      "properties": {
+        "sequence": {"$ref": "#/$defs/nonnegative_integer"},
+        "request_role": {"enum": ["a", "b"]},
+        "kind": {
+          "enum": [
+            "exchange_reserved",
+            "request_accepted",
+            "backend_ownership_acquired",
+            "output_production_started",
+            "backpressure_entered",
+            "deadline_expired",
+            "client_disconnected",
+            "cancel_ordered",
+            "terminal_observed",
+            "request_state_release_accepted",
+            "peer_request_progress",
+            "http_last_byte_committed",
+            "response_closed"
+          ]
+        },
+        "at_ns": {"$ref": "#/$defs/nonnegative_integer"}
+      }
+    },
+    "counters": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "device_executor_socket_waits",
+        "unreserved_output_publications",
+        "capacity_overruns",
+        "duplicate_outputs",
+        "replays",
+        "retries",
+        "resumes",
+        "ownership_transfers",
+        "backend_leaks",
+        "gateway_resource_leaks"
+      ],
+      "properties": {
+        "device_executor_socket_waits": {"$ref": "#/$defs/nonnegative_integer"},
+        "unreserved_output_publications": {"$ref": "#/$defs/nonnegative_integer"},
+        "capacity_overruns": {"$ref": "#/$defs/nonnegative_integer"},
+        "duplicate_outputs": {"$ref": "#/$defs/nonnegative_integer"},
+        "replays": {"$ref": "#/$defs/nonnegative_integer"},
+        "retries": {"$ref": "#/$defs/nonnegative_integer"},
+        "resumes": {"$ref": "#/$defs/nonnegative_integer"},
+        "ownership_transfers": {"$ref": "#/$defs/nonnegative_integer"},
+        "backend_leaks": {"$ref": "#/$defs/nonnegative_integer"},
+        "gateway_resource_leaks": {"$ref": "#/$defs/nonnegative_integer"}
+      }
+    },
+    "queue": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "capacity_bytes",
+        "initial_occupancy_bytes",
+        "producer_bytes_per_second",
+        "consumer_bytes_per_second",
+        "peak_occupancy_bytes"
+      ],
+      "properties": {
+        "capacity_bytes": {"type": "integer", "minimum": 1},
+        "initial_occupancy_bytes": {"$ref": "#/$defs/nonnegative_integer"},
+        "producer_bytes_per_second": {"$ref": "#/$defs/nonnegative_integer"},
+        "consumer_bytes_per_second": {"$ref": "#/$defs/nonnegative_integer"},
+        "peak_occupancy_bytes": {"$ref": "#/$defs/nonnegative_integer"}
+      }
+    },
+    "lifecycle_row": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["case_id", "events", "counters", "queue"],
+      "properties": {
+        "case_id": {"$ref": "#/$defs/id"},
+        "events": {
+          "type": "array",
+          "minItems": 1,
+          "items": {"$ref": "#/$defs/event"}
+        },
+        "counters": {"$ref": "#/$defs/counters"},
+        "queue": {"$ref": "#/$defs/queue"}
+      }
+    },
+    "stages": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "socket_ns",
+        "connect_accept_ns",
+        "peer_credential_ns",
+        "hello_ns",
+        "descriptor_validation_ns"
+      ],
+      "properties": {
+        "socket_ns": {"$ref": "#/$defs/nonnegative_integer"},
+        "connect_accept_ns": {"$ref": "#/$defs/nonnegative_integer"},
+        "peer_credential_ns": {"$ref": "#/$defs/nonnegative_integer"},
+        "hello_ns": {"$ref": "#/$defs/nonnegative_integer"},
+        "descriptor_validation_ns": {"$ref": "#/$defs/nonnegative_integer"}
+      }
+    },
+    "transport_row": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "case_id",
+        "repetition",
+        "stages",
+        "request_variable_ns",
+        "cpu_ns",
+        "context_switches",
+        "frame_payload_bytes",
+        "fd_peak",
+        "connection_count",
+        "error_count",
+        "first_response_ns"
+      ],
+      "properties": {
+        "case_id": {"$ref": "#/$defs/id"},
+        "repetition": {"$ref": "#/$defs/nonnegative_integer"},
+        "stages": {"$ref": "#/$defs/stages"},
+        "request_variable_ns": {"$ref": "#/$defs/nonnegative_integer"},
+        "cpu_ns": {"$ref": "#/$defs/nonnegative_integer"},
+        "context_switches": {"$ref": "#/$defs/nonnegative_integer"},
+        "frame_payload_bytes": {
+          "type": "array",
+          "items": {"$ref": "#/$defs/nonnegative_integer"}
+        },
+        "fd_peak": {"$ref": "#/$defs/nonnegative_integer"},
+        "connection_count": {"$ref": "#/$defs/nonnegative_integer"},
+        "error_count": {"$ref": "#/$defs/nonnegative_integer"},
+        "first_response_ns": {"$ref": "#/$defs/nonnegative_integer"}
+      }
+    },
+    "host_row": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "at_ns",
+        "load_average_1m",
+        "top_process_cpu_percent",
+        "thermal_state"
+      ],
+      "properties": {
+        "at_ns": {"$ref": "#/$defs/nonnegative_integer"},
+        "load_average_1m": {"type": "number", "minimum": 0},
+        "top_process_cpu_percent": {"type": "number", "minimum": 0},
+        "thermal_state": {"$ref": "#/$defs/id"}
+      }
+    }
+  }
+}

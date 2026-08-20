@@ -206,6 +206,22 @@ weights, MLX/mlx-c source and build caches, and raw Instruments traces remain
 outside Git and are recursively size/hash checked through the external fixture
 manifest.
 
+## Gateway Validation Profile
+
+The separate `profiles/gateway-validation-v1.json` contract fixes five
+response-lifecycle cases and 32 Unix connection-cost cells without changing the
+12 required implementation lanes. Its judge recomputes lifecycle durations,
+peer progress, bounded failure outcomes, Unix setup stages, wire bytes,
+distributions, and perfect-reuse upper bounds from Benchmark-owned raw JSONL.
+
+```bash
+python3 -B -m turnvector_benchmark inspect-gateway-validation \
+  --contract profiles/gateway-validation-v1.json
+```
+
+A passing fixture remains `not_claimable_fixture`; no v1 result authorizes
+pooling or multiplexing. See [Gateway Validation](docs/GATEWAY-VALIDATION.md).
+
 ## Native Oracle Lock
 
 `oracles/mlx/reference-lock-v1.json` fixes seed `20260812`, MLX and mlx-c source
