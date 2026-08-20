@@ -33,6 +33,10 @@ jobs:
         run: >-
           python -B -m turnvector_benchmark inspect
           --expectation expectations/turnvector-implementation-v1.json
+      - name: Inspect Gateway validation contract
+        run: >-
+          python -B -m turnvector_benchmark inspect-gateway-validation
+          --contract profiles/gateway-validation-v1.json
       - name: Validate scheduler suite
         run: python -B -m turnvector_benchmark validate --suite suites/scheduler-policy-v1.json
       - name: Run reference benchmark
