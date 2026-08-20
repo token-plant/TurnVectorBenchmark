@@ -253,3 +253,23 @@ The checked-in performance contract has nine core lanes and two
 capability-conditioned lanes. A capability-conditioned lane may be explicitly
 `unsupported`; a core lane may not. Contract and judge availability before a
 real adapter exists is not a product claim.
+
+## Gateway Validation Module
+
+Gateway validation is a separate Module at the optional network-edge evidence
+Seam. It does not add a thirteenth required implementation lane. Its Interface
+is `load -> inspect -> validate`; private implementations own fixed CasePlan
+closure, source identity, raw artifact custody, lifecycle ordering, bounded-tail
+gates, Unix-stage reduction, wire-byte accounting, and predicted reuse bounds.
+
+The lifecycle judge consumes content-free observations from the real HTTP
+Gateway, production Data Plane, daemon, and Backend lifecycle. A TurnVector
+adapter may launch those processes but cannot provide pass/fail fields. The
+Unix judge measures the current one-request-per-connection design only. Its
+perfect-reuse result is a theory upper bound and cannot authorize pooling or
+multiplexing.
+
+The run manifest freezes the five lifecycle cases, 32 transport cells,
+effective limits, balanced order, warmups, and repetitions before collection.
+Both repositories must retain the same clean identities through the run.
+Fixture evidence remains structurally non-claimable even when all gates pass.
