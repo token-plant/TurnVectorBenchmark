@@ -7,6 +7,7 @@ from typing import Any
 
 from turnvector_benchmark.core import ContractError
 from turnvector_benchmark.expectation import load_expectation
+from turnvector_benchmark.fixture_provenance import CaseStartMonitor
 from turnvector_benchmark.lane_contract import CasePlan, expand_case_plan, load_all_lane_suites
 from turnvector_benchmark.lane_runner import EvidenceLaneRunner, LaneContext
 
@@ -53,6 +54,9 @@ class LaneRunnerTests(unittest.TestCase):
                 artifact_root=Path(directory),
                 frozen_thresholds={gate.metric: gate.expected for gate in lane.gates},
                 external_inputs={},
+                execution_provenance="production_subject",
+                fixture_id=None,
+                case_start_monitor=CaseStartMonitor(),
             )
 
             with self.assertRaisesRegex(

@@ -38,6 +38,7 @@ from .evidence import (
     write_jsonl,
 )
 from .expectation import ExpectationLane, Gate
+from .fixture_provenance import CaseStartMonitor, validate_execution_provenance
 from .lane_contract import (
     CasePlan,
     LaneSuite,
@@ -68,6 +69,17 @@ class LaneContext:
     artifact_root: Path
     frozen_thresholds: Mapping[str, Any]
     external_inputs: Mapping[str, Mapping[str, Any]]
+    #: Strict typed execution provenance: exactly production_subject or
+    #: benchmark_fixture; fixture_id is required exactly for benchmark_fixture
+    #: and forbidden for production_subject (missing/unknown/mismatched fail).
+    execution_provenance: str
+    fixture_id: Optional[str]
+    #: Per-run mutable monitor shared with LaneController; runners mark the
+    #: lane when its first CasePlan START is issued.
+    case_start_monitor: CaseStartMonitor
+
+    def __post_init__(self) -> None:
+        validate_execution_provenance(self.execution_provenance, self.fixture_id)
 
 
 @dataclass(frozen=True)
@@ -601,6 +613,7 @@ class EvidenceLaneRunner(LaneRunner):
             if context.lane.lane_id == "persistence-and-recovery":
                 benchmark_runtime_root = case_root / "runtime-root"
                 benchmark_runtime_root.mkdir()
+            context.case_start_monitor.mark_case_started(context.lane.lane_id)
             open_status = subject.case_open(
                 context.run_id, case, context.artifact_root, case_directory
             )
@@ -834,6 +847,7 @@ class SchedulerPolicyLaneRunner(LaneRunner):
             scenario = scenarios[scenario_id]
             case_directory = f"cases/{case.ordinal:04d}"
             (context.artifact_root / case_directory).mkdir(parents=True, exist_ok=False)
+            context.case_start_monitor.mark_case_started(context.lane.lane_id)
             open_status = subject.case_open(
                 context.run_id, case, context.artifact_root, case_directory
             )
@@ -2092,6 +2106,7 @@ class MlxNativeCorrectnessLaneRunner(EvidenceLaneRunner):
                 )
             case_directory = f"cases/{case.ordinal:04d}"
             (context.artifact_root / case_directory).mkdir(parents=True, exist_ok=False)
+            context.case_start_monitor.mark_case_started(context.lane.lane_id)
             open_status = subject.case_open(
                 context.run_id, case, context.artifact_root, case_directory
             )
@@ -2443,6 +2458,7 @@ class BoundedTurnAndFfiLaneRunner(EvidenceLaneRunner):
                 raise ContractError(f"candidate boundary has no prior C++ Direct pair for {key!r}")
             case_directory = f"cases/{case.ordinal:04d}"
             (context.artifact_root / case_directory).mkdir(parents=True, exist_ok=False)
+            context.case_start_monitor.mark_case_started(context.lane.lane_id)
             open_status = subject.case_open(
                 context.run_id, case, context.artifact_root, case_directory
             )

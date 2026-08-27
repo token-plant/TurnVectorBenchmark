@@ -8,7 +8,7 @@ import uuid
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple
+from typing import Any, Dict, List, Mapping, Optional, Sequence, Set, Tuple
 
 from . import __version__
 from .core import ContractError
@@ -28,6 +28,13 @@ from .expectation import (
     inspect_source_contract,
     load_expectation,
 )
+from .fixture_provenance import (
+    BENCHMARK_FIXTURE,
+    CaseStartMonitor,
+    ExecutionProvenance,
+    PRODUCTION_SUBJECT,
+    validate_execution_provenance,
+)
 from .lane_contract import (
     SUBJECT_PROTOCOL,
     CasePlan,
@@ -45,6 +52,11 @@ from .lane_contract import (
 )
 from .lane_oracles import ANALYZERS
 from .lane_runner import LANE_RUNNER_REGISTRY, LaneContext, LaneResult
+from .owner_lifecycle_fixture import (
+    FIXTURE_SELECTION_SEAM,
+    fixture_descriptor,
+    known_fixture_ids,
+)
 from .subject import SubjectHello, SubjectSession
 
 
@@ -105,6 +117,123 @@ def _status_for_results(results: Sequence[LaneResult]) -> str:
         if status in statuses:
             return status
     return "passed"
+
+
+def _safe_repr(value: Any) -> str:
+    """Best-effort repr that can never raise while formatting a ContractError."""
+    try:
+        return repr(value)
+    except Exception:
+        return f"<{type(value).__name__}>"
+
+
+def validate_fixture_taint_state(run_fixture_taint: Any, fixture_ids: Any) -> str:
+    """Strictly validate one run fixture-taint binding; unknown/inconsistent fails closed.
+
+    Only ``clean`` and ``fixture_tainted`` are admitted, and only as real
+    strings: any non-string value (``None``, numbers, hostile objects with
+    custom equality) fails closed with :class:`ContractError` before any
+    membership comparison can reach it. ``clean`` binds exactly no fixture IDs
+    and ``fixture_tainted`` binds at least one known benchmark fixture ID; any
+    other combination is an inconsistent taint state and fails closed with
+    :class:`ContractError` rather than being treated as clean. ``fixture_ids``
+    must be a list or tuple of known benchmark fixture ID strings in canonical
+    sorted order with no duplicates: ``None``, strings, dicts, non-string
+    entries, duplicate known IDs, and unsorted pairs are all rejected as
+    :class:`ContractError` (never a bare :class:`TypeError`).
+    """
+    if not isinstance(run_fixture_taint, str) or run_fixture_taint not in (
+        "clean",
+        "fixture_tainted",
+    ):
+        raise ContractError(
+            f"unknown run_fixture_taint state {_safe_repr(run_fixture_taint)}; only "
+            "'clean' and 'fixture_tainted' are admitted"
+        )
+    if not isinstance(fixture_ids, (list, tuple)):
+        raise ContractError(
+            "fixture_ids must be a list or tuple of known benchmark fixture IDs; "
+            f"observed {_safe_repr(fixture_ids)}"
+        )
+    known = set(known_fixture_ids())
+    seen: Set[str] = set()
+    previous: Optional[str] = None
+    for index, fixture_id in enumerate(fixture_ids):
+        if not isinstance(fixture_id, str):
+            raise ContractError(
+                f"fixture_ids[{index}] must be a known benchmark fixture ID string; "
+                f"observed {_safe_repr(fixture_id)}"
+            )
+        if fixture_id not in known:
+            raise ContractError(
+                f"run fixture IDs must be known benchmark fixtures; unknown {fixture_id!r}"
+            )
+        if fixture_id in seen:
+            raise ContractError(
+                f"fixture_ids must not repeat a known benchmark fixture ID; "
+                f"duplicate {fixture_id!r}"
+            )
+        seen.add(fixture_id)
+        if previous is not None and previous >= fixture_id:
+            raise ContractError(
+                "fixture_ids must be in canonical sorted order; "
+                f"{previous!r} precedes {fixture_id!r}"
+            )
+        previous = fixture_id
+    if run_fixture_taint == "clean" and seen:
+        raise ContractError(
+            "clean run_fixture_taint must bind no fixture IDs; "
+            f"observed {sorted(seen)!r}"
+        )
+    if run_fixture_taint == "fixture_tainted" and not seen:
+        raise ContractError(
+            "fixture_tainted run_fixture_taint must bind at least one known "
+            "benchmark fixture ID"
+        )
+    return run_fixture_taint
+
+
+def resolve_full_implementation_status(
+    *,
+    run_fixture_taint: str,
+    fixture_subject: bool,
+    all_required_selected: bool,
+    aggregate_status: str,
+    evidence_valid: bool,
+    source_matches: bool,
+    fixture_ids: Any = (),
+) -> str:
+    """Fail-closed claimability decision.
+
+    Claimability evaluates ``run_fixture_taint`` before subject kind, lane
+    results, repository evidence, source match, or later authority readiness:
+    ``fixture_tainted`` always yields ``not_claimable_fixture``, even for a
+    non-fixture subject with every lane/gate passing and exact source
+    authority. Only ``clean`` and ``fixture_tainted`` are admitted; unknown or
+    inconsistent taint state fails closed with :class:`ContractError`.
+    """
+    validate_fixture_taint_state(run_fixture_taint, fixture_ids)
+    fixture_tainted = run_fixture_taint == "fixture_tainted"
+    implementation_passed = (
+        not fixture_tainted
+        and not fixture_subject
+        and all_required_selected
+        and aggregate_status == "passed"
+        and evidence_valid
+        and source_matches
+    )
+    if fixture_tainted or fixture_subject:
+        return "not_claimable_fixture"
+    if not all_required_selected:
+        return "not_evaluated"
+    if implementation_passed:
+        return "passed"
+    return "failed"
+
+
+def resolve_claimable(**kwargs: Any) -> bool:
+    """A run is claimable exactly when its full status is ``passed``."""
+    return resolve_full_implementation_status(**kwargs) == "passed"
 
 
 @dataclass(frozen=True)
@@ -176,6 +305,24 @@ class LaneController:
             )
         )
         self._validate_registry()
+        self._begin_fixture_taint_state()
+
+    def _begin_fixture_taint_state(self) -> None:
+        """Reset the absorbing fixture-taint state machine for one run.
+
+        ``run_fixture_taint`` starts ``clean``; the only transition is the
+        absorbing ``clean -> fixture_tainted`` applied while binding
+        pre-dispatch LaneContext when any selected driver, collector, fixture
+        helper, or LaneContext has ``benchmark_fixture`` provenance. No
+        transition ever returns to ``clean``. ``_frozen_provenance`` records
+        the pre-run driver selection snapshot that LaneContext binding
+        revalidates against.
+        """
+        self.run_fixture_taint = "clean"
+        self.fixture_ids: Tuple[str, ...] = ()
+        self._fixture_id_set: Set[str] = set()
+        self._case_start_monitor = CaseStartMonitor()
+        self._frozen_provenance: Dict[str, ExecutionProvenance] = {}
 
     def _validate_registry(self) -> None:
         expected = {lane.lane_id for lane in self.expectation.lanes}
@@ -272,6 +419,7 @@ class LaneController:
         if self.output_dir.exists():
             raise FileExistsError(f"output directory already exists: {self.output_dir}")
         self.output_dir.mkdir(parents=True)
+        self._begin_fixture_taint_state()
         started_at_value = datetime.now(timezone.utc)
         started_at = started_at_value.isoformat().replace("+00:00", "Z")
         run_id = uuid.uuid4().hex
@@ -284,34 +432,16 @@ class LaneController:
             )
             for lane_id in lane_ids
         }
+        # Resolve and apply every selected lane's strict execution provenance
+        # before any lane or subject work and before the run manifest is
+        # written: a selected benchmark fixture taints the run even if
+        # threshold, adapter, handshake, identity, or other early lane work
+        # fails. The resolved provenance is frozen here and revalidated when
+        # each LaneContext is bound pre-dispatch.
+        resolved_provenance = self._resolve_and_apply_pre_run_provenance(lane_ids)
         pre_run_thresholds = self._pre_run_threshold_manifest(
             lane_ids, observed_at=started_at_value
         )
-        manifest = {
-            "schema_version": RUN_SCHEMA,
-            "run_id": run_id,
-            "started_at": started_at,
-            "profile": self.profile,
-            "expectation": {
-                "id": self.expectation.expectation_id,
-                "schema_version": self.expectation.schema_version,
-                "path": str(self.expectation.source_path),
-                "sha256": sha256_file(self.expectation.source_path),
-            },
-            "subject_manifest": self._file_identity(self.subject_manifest_path),
-            "certification_record": self._file_identity(self.certification_record_path),
-            "external_fixture_manifest": self._file_identity(
-                self.external_fixture_manifest_path
-            ),
-            "pre_run_thresholds": pre_run_thresholds,
-            "certification_contract_failure": self.certification_contract_error,
-            "requested_lane_ids": list(lane_ids),
-            "qualification_case_count": sum(len(plan.cases) for plan in plans.values()),
-            "benchmark_git_before": benchmark_before,
-            "target_git_before": target_before,
-            "source_contract": source_contract,
-        }
-        write_json(self.output_dir / "manifest.json", manifest)
         results: List[LaneResult] = []
         subject_identities: Dict[str, Mapping[str, Any]] = {}
         for lane_id in lane_ids:
@@ -326,6 +456,7 @@ class LaneController:
                 plan=plan,
                 frozen_thresholds=pre_run_thresholds["values"][lane_id],
                 threshold_failures=pre_run_thresholds["failures"].get(lane_id, ()),
+                provenance=resolved_provenance[lane_id],
             )
             results.append(result)
             if subject_identity is not None:
@@ -387,27 +518,54 @@ class LaneController:
             self.subject_manifest is not None
             and self.subject_manifest.subject_kind == "fixture"
         )
-        implementation_passed = (
-            all_required_selected
-            and aggregate_status == "passed"
-            and evidence_valid
-            and not fixture_subject
-            and source_contract.get("matches") is True
+        # The global run manifest and the global report bind the exact same
+        # absorbing run_fixture_taint and sorted fixture_ids state. The
+        # manifest is written after lane output (per the run artifact DAG) so a
+        # late attempted fixture selection that taints the run mid-flight is
+        # bound identically by both artifacts.
+        self._assert_fixture_taint_invariant()
+        manifest = {
+            "schema_version": RUN_SCHEMA,
+            "run_id": run_id,
+            "started_at": started_at,
+            "profile": self.profile,
+            "expectation": {
+                "id": self.expectation.expectation_id,
+                "schema_version": self.expectation.schema_version,
+                "path": str(self.expectation.source_path),
+                "sha256": sha256_file(self.expectation.source_path),
+            },
+            "subject_manifest": self._file_identity(self.subject_manifest_path),
+            "certification_record": self._file_identity(self.certification_record_path),
+            "external_fixture_manifest": self._file_identity(
+                self.external_fixture_manifest_path
+            ),
+            "pre_run_thresholds": pre_run_thresholds,
+            "certification_contract_failure": self.certification_contract_error,
+            "run_fixture_taint": self.run_fixture_taint,
+            "fixture_ids": list(self.fixture_ids),
+            "requested_lane_ids": list(lane_ids),
+            "qualification_case_count": sum(len(plan.cases) for plan in plans.values()),
+            "benchmark_git_before": benchmark_before,
+            "target_git_before": target_before,
+            "source_contract": source_contract,
+        }
+        write_json(self.output_dir / "manifest.json", manifest)
+        full_status = resolve_full_implementation_status(
+            run_fixture_taint=self.run_fixture_taint,
+            fixture_ids=self.fixture_ids,
+            fixture_subject=fixture_subject,
+            all_required_selected=all_required_selected,
+            aggregate_status=aggregate_status,
+            evidence_valid=evidence_valid,
+            source_matches=source_contract.get("matches") is True,
         )
-        if fixture_subject:
-            full_status = "not_claimable_fixture"
-        elif not all_required_selected:
-            full_status = "not_evaluated"
-        elif implementation_passed:
-            full_status = "passed"
-        else:
-            full_status = "failed"
         report = {
             "schema_version": REPORT_SCHEMA,
             "run_id": run_id,
             "status": aggregate_status,
             "full_implementation_status": full_status,
-            "claimable": implementation_passed,
+            "claimable": full_status == "passed",
             "profile": self.profile,
             "started_at": started_at,
             "finished_at": _utc_now(),
@@ -422,6 +580,8 @@ class LaneController:
             "qualification_case_count": sum(result.case_count for result in results),
             "executed_case_count": sum(result.executed_case_count for result in results),
             "evidence_valid": evidence_valid,
+            "run_fixture_taint": self.run_fixture_taint,
+            "fixture_ids": list(self.fixture_ids),
             "source_contract": source_contract,
             "benchmark_git_before": benchmark_before,
             "benchmark_git_after": benchmark_after,
@@ -499,6 +659,131 @@ class LaneController:
             return None
         return {"path": str(path), "sha256": sha256_file(path), "size": path.stat().st_size}
 
+    def _resolve_lane_provenance(self, lane_id: str) -> ExecutionProvenance:
+        """Resolve one lane's strict execution provenance from the fixture seam.
+
+        The seam is inactive in PR 3 (the active runner registry never selects a
+        benchmark fixture); PR 4 activates the owner-lifecycle lane through it.
+        Missing, unknown, or driver/context disagreement fails closed.
+        """
+        fixture_id = FIXTURE_SELECTION_SEAM.get(lane_id)
+        if fixture_id is None:
+            return validate_execution_provenance(PRODUCTION_SUBJECT, None)
+        if not isinstance(fixture_id, str):
+            raise ContractError(
+                f"fixture selection for lane {lane_id!r} must name a fixture ID string"
+            )
+        descriptor = fixture_descriptor(fixture_id)
+        if descriptor is None:
+            raise ContractError(
+                f"unknown benchmark fixture ID {fixture_id!r} selected for lane {lane_id!r}"
+            )
+        if (
+            descriptor.get("fixture_id") != fixture_id
+            or descriptor.get("execution_provenance") != BENCHMARK_FIXTURE
+        ):
+            raise ContractError(
+                f"benchmark fixture descriptor disagrees with selection for {fixture_id!r}"
+            )
+        return validate_execution_provenance(BENCHMARK_FIXTURE, fixture_id)
+
+    def _apply_fixture_provenance(
+        self, lane_id: str, provenance: ExecutionProvenance
+    ) -> None:
+        """Absorbing fixture-taint transition: ``clean -> fixture_tainted``.
+
+        Fires on any ``benchmark_fixture`` provenance; no transition ever
+        returns to ``clean``. The transition itself never rejects for lateness:
+        an attempted late selection is detected by
+        :meth:`_bind_and_revalidate_provenance`, which applies this transition
+        first and then fails closed, leaving the run ``fixture_tainted``.
+        """
+        del lane_id
+        if provenance.value != BENCHMARK_FIXTURE:
+            return
+        if provenance.fixture_id not in known_fixture_ids():
+            raise ContractError(
+                f"unknown benchmark fixture ID {provenance.fixture_id!r}"
+            )
+        self.run_fixture_taint = "fixture_tainted"
+        assert provenance.fixture_id is not None
+        self._fixture_id_set.add(provenance.fixture_id)
+        self.fixture_ids = tuple(sorted(self._fixture_id_set))
+
+    def _resolve_and_apply_pre_run_provenance(
+        self, lane_ids: Sequence[str]
+    ) -> Dict[str, ExecutionProvenance]:
+        """Resolve and apply every selected lane's provenance before lane work.
+
+        Runs before the run manifest is written and before any lane or subject
+        work, so a selected benchmark fixture taints the run even if threshold,
+        adapter, handshake, identity, or other early lane work fails. The
+        resolved provenance becomes the frozen driver selection snapshot that
+        LaneContext binding revalidates against.
+        """
+        resolved: Dict[str, ExecutionProvenance] = {}
+        for lane_id in lane_ids:
+            provenance = self._resolve_lane_provenance(lane_id)
+            self._apply_fixture_provenance(lane_id, provenance)
+            resolved[lane_id] = provenance
+        self._frozen_provenance = dict(resolved)
+        return resolved
+
+    def _bind_and_revalidate_provenance(
+        self, lane_id: str, frozen_provenance: ExecutionProvenance
+    ) -> None:
+        """Strict binding/revalidation step applied while binding pre-dispatch LaneContext.
+
+        The LaneContext provenance comes from the frozen pre-run driver
+        selection. If the mutable selection seam still matches, an unchanged
+        preselected fixture is allowed even after another lane's first case
+        START. If the seam changed after the pre-run snapshot, the run fails
+        closed: a changed selection naming a known benchmark fixture taints
+        first and then fails for disagreement or lateness (the late-selection
+        boundary is global: the first CasePlan START in any lane closes it);
+        missing, unknown, descriptor mismatch, and driver/context mismatch all
+        fail closed.
+        """
+        current = self._resolve_lane_provenance(lane_id)
+        if current == frozen_provenance:
+            self._apply_fixture_provenance(lane_id, current)
+            return
+        if current.value == BENCHMARK_FIXTURE:
+            self._apply_fixture_provenance(lane_id, current)
+            if self._case_start_monitor.first_case_started:
+                raise ContractError(
+                    f"late benchmark fixture selection for lane {lane_id!r} after "
+                    "the first case START in the run; the run remains fixture_tainted"
+                )
+            raise ContractError(
+                f"benchmark fixture selection for lane {lane_id!r} changed after "
+                "the pre-run snapshot; the run remains fixture_tainted"
+            )
+        raise ContractError(
+            f"benchmark fixture selection for lane {lane_id!r} disagrees with the "
+            "frozen pre-run driver selection"
+        )
+
+    def _revalidate_frozen_provenance(self) -> None:
+        """Revalidate every selected lane against the frozen pre-run snapshot.
+
+        Runs after each runner returns, still inside the ContractError
+        normalization path of :meth:`_run_one_lane`. A runner may mutate the
+        mutable selection seam for its own lane or any already-bound selected
+        lane after issuing its first CasePlan START; without this step such a
+        post-bind mutation would go undetected and the run would return passed
+        clean. A changed selection naming a known benchmark fixture first
+        applies the absorbing taint and then fails closed as a global late
+        selection; unchanged preselected provenance remains allowed.
+        """
+        for lane_id, frozen in self._frozen_provenance.items():
+            self._bind_and_revalidate_provenance(lane_id, frozen)
+
+    def _assert_fixture_taint_invariant(self) -> None:
+        """Strict run fixture-taint binding invariant: clean iff no fixture IDs,
+        fixture_tainted iff at least one known benchmark fixture ID."""
+        validate_fixture_taint_state(self.run_fixture_taint, self.fixture_ids)
+
     def _run_one_lane(
         self,
         *,
@@ -508,6 +793,7 @@ class LaneController:
         plan: CasePlan,
         frozen_thresholds: Mapping[str, Any],
         threshold_failures: Sequence[Mapping[str, str]],
+        provenance: ExecutionProvenance,
     ) -> Tuple[LaneResult, Optional[Mapping[str, Any]]]:
         lane = self.expectation.lane(lane_id)
         suite = self.suites[lane_id]
@@ -635,8 +921,34 @@ class LaneController:
                         artifact_root=raw_root,
                         frozen_thresholds=frozen_thresholds,
                         external_inputs=external_inputs,
+                        execution_provenance=provenance.value,
+                        fixture_id=provenance.fixture_id,
+                        case_start_monitor=self._case_start_monitor,
                     )
-                    result = LANE_RUNNER_REGISTRY[lane_id].run(context, subject, hello)
+                    # While binding the pre-dispatch LaneContext, revalidate the
+                    # frozen driver selection and apply the absorbing
+                    # fixture-taint transition; an attempted late or mutated
+                    # fixture selection fails closed and still leaves the run
+                    # fixture_tainted.
+                    self._bind_and_revalidate_provenance(lane_id, provenance)
+                    # The post-run revalidation runs in a try/finally around
+                    # the runner dispatch (still inside the ContractError
+                    # normalization path): a runner may mutate the mutable
+                    # selection seam for its own lane or any already-bound
+                    # selected lane after issuing its first CasePlan START and
+                    # then either return or raise. A new known benchmark
+                    # fixture first applies the absorbing taint and then fails
+                    # closed as a global late selection, normalized to
+                    # contract_failed even when the runner also threw; unchanged
+                    # preselected provenance remains allowed, and when the seam
+                    # is unchanged the runner's own exception classification is
+                    # preserved.
+                    try:
+                        result = LANE_RUNNER_REGISTRY[lane_id].run(
+                            context, subject, hello
+                        )
+                    finally:
+                        self._revalidate_frozen_provenance()
                 subject.finish()
                 write_jsonl(lane_dir / "subject-transcript.jsonl", subject.transcript)
                 if subject.stderr_text():
