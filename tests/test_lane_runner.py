@@ -13,7 +13,7 @@ from turnvector_benchmark.lane_runner import EvidenceLaneRunner, LaneContext
 
 
 ROOT = Path(__file__).resolve().parent.parent
-EXPECTATION = ROOT / "expectations" / "turnvector-implementation-v1.json"
+EXPECTATION = ROOT / "expectations" / "turnvector-implementation-v2.json"
 
 
 class _FailingSubject:

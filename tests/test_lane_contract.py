@@ -20,7 +20,7 @@ from turnvector_benchmark.lane_contract import (
 
 
 ROOT = Path(__file__).resolve().parent.parent
-EXPECTATION = ROOT / "expectations" / "turnvector-implementation-v1.json"
+EXPECTATION = ROOT / "expectations" / "turnvector-implementation-v2.json"
 CERTIFICATION = ROOT / "certification" / "reference-fixture-v1.json"
 REFERENCE_LOCK = ROOT / "oracles" / "mlx" / "reference-lock-v1.json"
 
@@ -144,6 +144,36 @@ class LaneContractTests(unittest.TestCase):
             record = load_certification_record(path)
             with self.assertRaisesRegex(ContractError, "every qualification dimension"):
                 validate_certification_contract(record, expectation)
+
+    def test_time_free_v1_certification_record_is_rejected_as_superseded(self) -> None:
+        # A v1 Certification Record is superseded by the successor TurnVector
+        # contract regardless of its content; this one stays time-free so the
+        # rejection is about supersession, not the forbidden time fields.
+        value = json.loads(CERTIFICATION.read_text(encoding="utf-8"))
+        value["schema_version"] = "turnvector.benchmark.certification-record.v1"
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "record.json"
+            path.write_text(json.dumps(value), encoding="utf-8")
+            with self.assertRaisesRegex(ContractError, "superseded"):
+                load_certification_record(path)
+
+    def test_v2_certification_record_forbids_issued_at(self) -> None:
+        value = json.loads(CERTIFICATION.read_text(encoding="utf-8"))
+        value["issued_at"] = "2026-08-12T00:00:00Z"
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "record.json"
+            path.write_text(json.dumps(value), encoding="utf-8")
+            with self.assertRaisesRegex(ContractError, "issued_at"):
+                load_certification_record(path)
+
+    def test_v2_certification_record_forbids_expires_at(self) -> None:
+        value = json.loads(CERTIFICATION.read_text(encoding="utf-8"))
+        value["expires_at"] = "2027-08-12T00:00:00Z"
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "record.json"
+            path.write_text(json.dumps(value), encoding="utf-8")
+            with self.assertRaisesRegex(ContractError, "expires_at"):
+                load_certification_record(path)
 
 
 if __name__ == "__main__":
