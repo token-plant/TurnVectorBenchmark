@@ -4,9 +4,9 @@
 
 SubjectAdapter v1 is the narrow seam between the independent benchmark and the
 TurnVector build under test. An implementation adapter invokes a real pure Core,
-native Worker, or daemon/worker system. It does not contain a benchmark oracle,
-read expected output, reduce metrics, choose thresholds, or manufacture a
-production protocol result.
+native runtime, or daemon/Device Executor system. It does not contain a
+benchmark oracle, read expected output, reduce metrics, choose thresholds, or
+manufacture a production protocol result.
 
 The benchmark launches one adapter process per lane. JSON objects are exchanged
 one per line on standard input and output. Standard error is diagnostic and is
@@ -230,11 +230,14 @@ byte corruption, journal truncation, duplicate append, concurrent read/write,
 or phase-bound `SIGTERM`; the adapter only acknowledges the resulting custody
 record and restarts/inspects production state. The Benchmark owns `fault_trace`.
 
-For Worker supervision, each operation payload includes a hash-bound
-`turnvector.benchmark.worker-fixture.v1` command prefix. The adapter appends the
-real production Worker command and lets the real daemon supervise the proxy.
-The proxy owns only deterministic normal/crash/timeout/malformed/incompatible/
-duplicate-frame injection; it contains no production protocol decision.
+For `protocol-and-owner-lifecycle`, each operation payload carries the frozen
+same-process owner-lifecycle fixture inputs
+(`turnvector.benchmark.owner-lifecycle-fixture.v1`): fixture ID, daemon outcome,
+client protocol relation, and the fail-closed transport bound. The lane models
+one daemon process containing a fake Device Executor; it never claims a real
+Backend Interface and never launches or describes a separate MLX Worker, so no
+subprocess command prefix is produced. Fixture evidence is always
+`not_claimable_fixture`.
 
 ## Case Close and Artifacts
 
