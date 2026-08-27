@@ -106,7 +106,7 @@ class OwnerLifecycleFixtureContractTests(unittest.TestCase):
             [plan.case_id for plan in plans],
         )
 
-    def test_descriptor_and_seam_are_inactive_in_pr3(self) -> None:
+    def test_descriptor_and_seam_are_active_in_pr4(self) -> None:
         descriptor = OWNER_LIFECYCLE_FIXTURE_DESCRIPTOR
         self.assertEqual(descriptor["fixture_id"], OWNER_LIFECYCLE_FIXTURE_ID)
         self.assertEqual(
@@ -122,7 +122,12 @@ class OwnerLifecycleFixtureContractTests(unittest.TestCase):
         )
         self.assertIs(fixture_descriptor(OWNER_LIFECYCLE_FIXTURE_ID), descriptor)
         self.assertIsNone(fixture_descriptor("no-such-fixture"))
-        self.assertEqual(FIXTURE_SELECTION_SEAM, {})
+        # PR 4 activates the owner-lifecycle lane through the fixture
+        # selection seam under the absorbing fixture-taint interlock.
+        self.assertEqual(
+            FIXTURE_SELECTION_SEAM,
+            {"protocol-and-owner-lifecycle": OWNER_LIFECYCLE_FIXTURE_ID},
+        )
         self.assertEqual(set(FIXTURE_DESCRIPTORS), {OWNER_LIFECYCLE_FIXTURE_ID})
 
     def test_protocol_acceptance_domains(self) -> None:

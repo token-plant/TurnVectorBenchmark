@@ -18,7 +18,7 @@ from turnvector_benchmark.owner_lifecycle_fixture import OWNER_LIFECYCLE_FIXTURE
 
 
 ROOT = Path(__file__).resolve().parent.parent
-EXPECTATION = ROOT / "expectations" / "turnvector-implementation-v1.json"
+EXPECTATION = ROOT / "expectations" / "turnvector-implementation-v2.json"
 SUBJECT = ROOT / "subjects" / "reference-fixture-v1.json"
 CERTIFICATION = ROOT / "certification" / "reference-fixture-v1.json"
 
@@ -89,10 +89,10 @@ class FixtureTaintClaimabilityTests(unittest.TestCase):
         tainted_output = self.output_path("tainted")
         with patch.dict(
             "turnvector_benchmark.controller.FIXTURE_SELECTION_SEAM",
-            {"protocol-and-worker-supervision": OWNER_LIFECYCLE_FIXTURE_ID},
+            {"protocol-and-owner-lifecycle": OWNER_LIFECYCLE_FIXTURE_ID},
         ):
             tainted_result = self.controller(tainted_output).run_lane(
-                "protocol-and-worker-supervision"
+                "protocol-and-owner-lifecycle"
             )
         self.assertEqual(tainted_result.report["run_fixture_taint"], "fixture_tainted")
         self.assertEqual(
@@ -282,9 +282,9 @@ class FixtureTaintClaimabilityTests(unittest.TestCase):
         )
         with patch.dict(
             "turnvector_benchmark.controller.FIXTURE_SELECTION_SEAM",
-            {"protocol-and-worker-supervision": OWNER_LIFECYCLE_FIXTURE_ID},
+            {"protocol-and-owner-lifecycle": OWNER_LIFECYCLE_FIXTURE_ID},
         ):
-            result = controller.run_lane("protocol-and-worker-supervision")
+            result = controller.run_lane("protocol-and-owner-lifecycle")
         # The adapter failure blocks execution, but the selected fixture still
         # tainted the run before any lane work.
         self.assertEqual(result.status, "unsupported")
