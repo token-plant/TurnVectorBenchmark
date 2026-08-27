@@ -1,0 +1,221 @@
+{
+  "$defs": {
+    "blocker_ids": {
+      "items": {
+        "$ref": "#/$defs/id"
+      },
+      "type": "array",
+      "uniqueItems": true
+    },
+    "id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]*$",
+      "type": "string"
+    },
+    "identifier_array": {
+      "items": {
+        "$ref": "#/$defs/id"
+      },
+      "minItems": 1,
+      "type": "array",
+      "uniqueItems": true
+    },
+    "nonempty_string": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "posix_path": {
+      "pattern": "^(?!\\.(?:/|$))(?!\\.\\.(?:/|$))(?!.*//)(?!.*/\\.(?!\\.)(?:/|$))(?!.*/\\.\\.(?:/|$))[A-Za-z0-9._-]+(?:/[A-Za-z0-9._-]+)*$",
+      "type": "string"
+    },
+    "readiness_status": {
+      "enum": [
+        "adapter_blocked",
+        "design_ready",
+        "environment_blocked",
+        "intentionally_out_of_scope"
+      ]
+    },
+    "sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "type": "string"
+    },
+    "u64": {
+      "maximum": 18446744073709551615,
+      "minimum": 0,
+      "type": "integer"
+    }
+  },
+  "$id": "https://token-plant.github.io/TurnVectorBenchmark/schemas/obligation-record-v1.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "else": {
+    "else": {
+      "else": {
+        "else": false,
+        "if": {
+          "properties": {
+            "readiness_status": {
+              "const": "intentionally_out_of_scope"
+            },
+            "required": {
+              "const": false
+            }
+          }
+        },
+        "then": {
+          "properties": {
+            "blocker_ids": {
+              "maxItems": 0
+            }
+          }
+        }
+      },
+      "if": {
+        "properties": {
+          "readiness_status": {
+            "const": "environment_blocked"
+          },
+          "required": {
+            "const": true
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "blocker_ids": {
+            "minItems": 1
+          }
+        }
+      }
+    },
+    "if": {
+      "properties": {
+        "readiness_status": {
+          "const": "adapter_blocked"
+        },
+        "required": {
+          "const": true
+        }
+      }
+    },
+    "then": {
+      "properties": {
+        "blocker_ids": {
+          "minItems": 1
+        }
+      }
+    }
+  },
+  "if": {
+    "properties": {
+      "readiness_status": {
+        "const": "design_ready"
+      },
+      "required": {
+        "const": true
+      }
+    }
+  },
+  "properties": {
+    "behavior_case_id": {
+      "$ref": "#/$defs/id"
+    },
+    "blocker_ids": {
+      "$ref": "#/$defs/blocker_ids"
+    },
+    "claim_class": {
+      "$ref": "#/$defs/nonempty_string"
+    },
+    "design_gate_revision": {
+      "$ref": "#/$defs/sha256"
+    },
+    "evidence_grade": {
+      "$ref": "#/$defs/nonempty_string"
+    },
+    "id": {
+      "$ref": "#/$defs/id"
+    },
+    "invalidation_rule": {
+      "$ref": "#/$defs/nonempty_string"
+    },
+    "kind": {
+      "const": "obligation"
+    },
+    "lane_id": {
+      "enum": [
+        "core-event-replay",
+        "scheduler-policy",
+        "scheduler-performance",
+        "request-serving-lifecycle",
+        "mlx-native-correctness",
+        "bounded-turn-and-ffi",
+        "residency-and-memory-governor",
+        "cross-model-serving",
+        "observability-qualification",
+        "persistence-and-recovery",
+        "protocol-and-owner-lifecycle",
+        "certification-envelopes"
+      ]
+    },
+    "module_ids": {
+      "$ref": "#/$defs/identifier_array"
+    },
+    "observable_seam": {
+      "$ref": "#/$defs/nonempty_string"
+    },
+    "readiness_status": {
+      "$ref": "#/$defs/readiness_status"
+    },
+    "required": {
+      "type": "boolean"
+    },
+    "seam_id": {
+      "$ref": "#/$defs/id"
+    },
+    "section_end": {
+      "$ref": "#/$defs/u64"
+    },
+    "section_sha256": {
+      "$ref": "#/$defs/sha256"
+    },
+    "section_start": {
+      "$ref": "#/$defs/u64"
+    },
+    "source_file_sha256": {
+      "$ref": "#/$defs/sha256"
+    },
+    "source_path": {
+      "$ref": "#/$defs/posix_path"
+    }
+  },
+  "required": [
+    "kind",
+    "id",
+    "required",
+    "claim_class",
+    "source_path",
+    "source_file_sha256",
+    "section_start",
+    "section_end",
+    "section_sha256",
+    "module_ids",
+    "seam_id",
+    "observable_seam",
+    "evidence_grade",
+    "invalidation_rule",
+    "lane_id",
+    "behavior_case_id",
+    "readiness_status",
+    "blocker_ids",
+    "design_gate_revision"
+  ],
+  "then": {
+    "properties": {
+      "blocker_ids": {
+        "maxItems": 0
+      }
+    }
+  },
+  "title": "obligation-record-v1",
+  "type": "object"
+}

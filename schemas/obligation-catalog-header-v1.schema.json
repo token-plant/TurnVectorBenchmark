@@ -1,0 +1,117 @@
+{
+  "$defs": {
+    "catalog_predecessor": {
+      "additionalProperties": false,
+      "properties": {
+        "chronology_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "compile_custody_lineage_id": {
+          "$ref": "#/$defs/id"
+        }
+      },
+      "required": [
+        "chronology_sha256",
+        "compile_custody_lineage_id"
+      ],
+      "type": "object"
+    },
+    "id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]*$",
+      "type": "string"
+    },
+    "predecessor": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "$ref": "#/$defs/catalog_predecessor"
+        }
+      ]
+    },
+    "sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "type": "string"
+    },
+    "u64": {
+      "maximum": 18446744073709551615,
+      "minimum": 0,
+      "type": "integer"
+    }
+  },
+  "$id": "https://token-plant.github.io/TurnVectorBenchmark/schemas/obligation-catalog-header-v1.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "compile_custody_lineage_id": {
+      "const": "tvb-qualification-d0-catalog-v1"
+    },
+    "compile_custody_policy_sha256": {
+      "$ref": "#/$defs/sha256"
+    },
+    "custody_domain_id": {
+      "$ref": "#/$defs/id"
+    },
+    "custody_domain_sha256": {
+      "$ref": "#/$defs/sha256"
+    },
+    "design_gate_revision": {
+      "$ref": "#/$defs/sha256"
+    },
+    "expectation_sha256": {
+      "$ref": "#/$defs/sha256"
+    },
+    "id": {
+      "$ref": "#/$defs/id"
+    },
+    "kind": {
+      "const": "catalog"
+    },
+    "lineage_id": {
+      "$ref": "#/$defs/id"
+    },
+    "predecessor": {
+      "$ref": "#/$defs/predecessor"
+    },
+    "profile_id": {
+      "const": "turnvector-implementation-v2"
+    },
+    "record_count": {
+      "$ref": "#/$defs/u64",
+      "minimum": 1
+    },
+    "required_obligation_count": {
+      "const": 46
+    },
+    "schema_version": {
+      "const": "turnvector.benchmark.obligation-catalog.v1"
+    },
+    "source_reconciliation_sha256": {
+      "$ref": "#/$defs/sha256"
+    },
+    "t_max": {
+      "const": 8
+    }
+  },
+  "required": [
+    "kind",
+    "schema_version",
+    "id",
+    "profile_id",
+    "lineage_id",
+    "predecessor",
+    "design_gate_revision",
+    "source_reconciliation_sha256",
+    "expectation_sha256",
+    "compile_custody_policy_sha256",
+    "custody_domain_id",
+    "custody_domain_sha256",
+    "compile_custody_lineage_id",
+    "t_max",
+    "required_obligation_count",
+    "record_count"
+  ],
+  "title": "obligation-catalog-header-v1",
+  "type": "object"
+}

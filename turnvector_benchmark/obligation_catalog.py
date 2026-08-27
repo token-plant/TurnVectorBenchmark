@@ -415,3 +415,103 @@ def _check_readiness_algebra(
                 f"{where} an intentionally_out_of_scope record must not name blockers"
             )
 
+
+def load_obligation_catalog(
+    path: Path, limits: Optional[CompileLimits] = None
+) -> ObligationCatalog:
+    """Load and strictly validate a canonical obligation-catalog JSONL file.
+
+    Raises :class:`~turnvector_benchmark.core.ContractError` on any structural,
+    canonical-encoding, count, or algebra violation. Source files cited by the
+    catalog are not read here; call
+    :func:`turnvector_benchmark.obligation_sources.verify_obligation_sources`
+    against a caller-provided canonical authority/source root.
+    """
+    limits = limits or CompileLimits.frozen()
+    raw = read_no_follow_regular(
+        path, limits.largest_single_serialized_parser_input_max, "obligation catalog"
+    )
+    if len(raw) > limits.serialized_input_bytes_total_max:
+        raise ContractError(
+            f"obligation catalog {path} exceeds the "
+            f"{limits.serialized_input_bytes_total_max}-byte serialized-input bound"
+        )
+    records = parse_canonical_jsonl_records(
+        raw,
+        f"obligation catalog {path}",
+        record_limit=limits.catalog_record_count_max,
+    )
+    if not records:
+        raise ContractError(f"obligation catalog {path} must contain a header record")
+    if len(records) > limits.catalog_record_count_max:
+        raise ContractError(
+            f"obligation catalog {path} exceeds the "
+            f"{limits.catalog_record_count_max}-record bound"
+        )
+    header = _parse_header(records[0], f"obligation catalog {path} header")
+    if any(record.get("kind") == CATALOG_KIND for record in records[1:]):
+        raise ContractError(f"obligation catalog {path} must contain exactly one header, first")
+    obligations = tuple(
+        _parse_obligation(record, f"obligation catalog {path} record[{index}]")
+        for index, record in enumerate(records[1:], start=1)
+    )
+    if len(obligations) > limits.obligation_count_max:
+        raise ContractError(
+            f"obligation catalog {path} exceeds the "
+            f"{limits.obligation_count_max}-obligation bound"
+        )
+    ids = [record.id for record in obligations]
+    if any(left >= right for left, right in zip(ids, ids[1:])):
+        raise ContractError(
+            f"obligation catalog {path} obligation ids must be sorted and unique"
+        )
+    if header.id in ids:
+        raise ContractError(
+            f"obligation catalog {path} an obligation id must not equal the header id"
+        )
+    if header.record_count != 1 + len(obligations):
+        raise ContractError(
+            f"obligation catalog {path} header record_count must equal the actual "
+            f"record count ({1 + len(obligations)})"
+        )
+    if any(
+        record.design_gate_revision != header.design_gate_revision
+        for record in obligations
+    ):
+        raise ContractError(
+            f"obligation catalog {path} every obligation design_gate_revision must "
+            f"equal the header design_gate_revision"
+        )
+    required = [record for record in obligations if record.required]
+    if len(required) != REQUIRED_OBLIGATION_COUNT:
+        raise ContractError(
+            f"obligation catalog {path} must contain exactly "
+            f"{REQUIRED_OBLIGATION_COUNT} required obligations"
+        )
+    if header.required_obligation_count != len(required):
+        raise ContractError(
+            f"obligation catalog {path} header required_obligation_count must equal "
+            f"the actual required count ({len(required)})"
+        )
+    lane_counts = Counter(record.lane_id for record in required)
+    if lane_counts != Counter(EXACT_LANE_OBLIGATION_COUNTS):
+        raise ContractError(
+            f"obligation catalog {path} per-lane required counts must equal "
+            f"{dict(EXACT_LANE_OBLIGATION_COUNTS)}"
+        )
+    pairs = [(record.lane_id, record.behavior_case_id) for record in obligations]
+    if len(set(pairs)) != len(pairs):
+        raise ContractError(
+            f"obligation catalog {path} (lane_id, behavior_case_id) pairs must be unique"
+        )
+    try:
+        resolved = path.resolve()
+    except (OSError, RuntimeError) as exc:
+        raise ContractError("cannot resolve obligation catalog") from exc
+    return ObligationCatalog(
+        header=header,
+        obligations=obligations,
+        source_path=resolved,
+        file_sha256=hashlib.sha256(raw).hexdigest(),
+        file_size=len(raw),
+    )
