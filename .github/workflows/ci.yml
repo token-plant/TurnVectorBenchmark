@@ -32,7 +32,7 @@ jobs:
       - name: Validate implementation expectation
         run: >-
           python -B -m turnvector_benchmark inspect
-          --expectation expectations/turnvector-implementation-v1.json
+          --expectation expectations/turnvector-implementation-v2.json
       - name: Inspect Gateway validation contract
         run: >-
           python -B -m turnvector_benchmark inspect-gateway-validation
@@ -42,16 +42,16 @@ jobs:
       - name: Run reference benchmark
         run: >-
           python -B -m turnvector_benchmark run
-          --expectation expectations/turnvector-implementation-v1.json
+          --expectation expectations/turnvector-implementation-v2.json
           --lane scheduler-policy
           --suite suites/scheduler-policy-v1.json
           --driver-command "python -B drivers/reference_driver.py"
           --output "$RUNNER_TEMP/legacy-scheduler-artifact"
-      - name: Run all 385 judge self-test cases
+      - name: Run all 425 judge self-test cases
         run: >-
           python -B -m turnvector_benchmark run-all
           --profile qualification
-          --expectation expectations/turnvector-implementation-v1.json
+          --expectation expectations/turnvector-implementation-v2.json
           --subject-manifest subjects/reference-fixture-v1.json
           --certification-record certification/reference-fixture-v1.json
           --output "$RUNNER_TEMP/full-judge-self-test"
