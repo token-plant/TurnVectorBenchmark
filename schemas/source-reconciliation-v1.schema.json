@@ -1,0 +1,104 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://token-plant.github.io/TurnVectorBenchmark/schemas/source-reconciliation-v1.schema.json",
+  "title": "source-reconciliation-v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "id",
+    "predecessor_expectation",
+    "successor_expectation",
+    "target_source",
+    "mappings",
+    "design_gate_revision"
+  ],
+  "properties": {
+    "schema_version": {"const": "turnvector.benchmark.source-reconciliation.v1"},
+    "id": {"$ref": "#/$defs/id"},
+    "predecessor_expectation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "source_revision", "exact_file_sha256"],
+      "properties": {
+        "id": {"$ref": "#/$defs/id"},
+        "source_revision": {"$ref": "#/$defs/revision40"},
+        "exact_file_sha256": {"$ref": "#/$defs/sha256"}
+      }
+    },
+    "successor_expectation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "schema_version"],
+      "properties": {
+        "id": {"$ref": "#/$defs/id"},
+        "schema_version": {"const": "turnvector.benchmark.expectation.v3"}
+      }
+    },
+    "target_source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["repository", "revision", "clean_required"],
+      "properties": {
+        "repository": {"type": "string", "minLength": 1},
+        "revision": {"$ref": "#/$defs/revision40"},
+        "clean_required": {"type": "boolean", "const": true}
+      }
+    },
+    "mappings": {
+      "type": "array",
+      "minItems": 7,
+      "maxItems": 7,
+      "items": {"$ref": "#/$defs/mapping"}
+    },
+    "design_gate_revision": {"$ref": "#/$defs/sha256"}
+  },
+  "$defs": {
+    "id": {"type": "string", "pattern": "^[a-z0-9][a-z0-9._-]*$"},
+    "revision40": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+    "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "lane_id": {"type": "string", "pattern": "^[a-z0-9][a-z0-9._-]*$"},
+    "lane_ids": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {"$ref": "#/$defs/lane_id"}
+    },
+    "posix_path": {
+      "type": "string",
+      "pattern": "^(?!\\.(?:/|$))(?!\\.\\.(?:/|$))(?!.*//)(?!.*/\\.(?!\\.)(?:/|$))(?!.*/\\.\\.(?:/|$))[A-Za-z0-9._-]+(?:/[A-Za-z0-9._-]+)*$"
+    },
+    "mapping": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "adr_number",
+        "old_revision",
+        "old_path",
+        "old_sha256",
+        "current_revision",
+        "current_path",
+        "current_sha256",
+        "classification",
+        "affected_lane_ids",
+        "disposition",
+        "summary"
+      ],
+      "properties": {
+        "adr_number": {"type": "string", "pattern": "^[0-9]{4}$"},
+        "old_revision": {"$ref": "#/$defs/revision40"},
+        "old_path": {"$ref": "#/$defs/posix_path"},
+        "old_sha256": {"$ref": "#/$defs/sha256"},
+        "current_revision": {"$ref": "#/$defs/revision40"},
+        "current_path": {"$ref": "#/$defs/posix_path"},
+        "current_sha256": {"$ref": "#/$defs/sha256"},
+        "classification": {"enum": ["material", "scope_clarification"]},
+        "affected_lane_ids": {"$ref": "#/$defs/lane_ids"},
+        "disposition": {
+          "enum": ["replace_topology_obligations", "retain_with_scope_update"]
+        },
+        "summary": {"type": "string", "minLength": 1, "maxLength": 1024}
+      }
+    }
+  }
+}
