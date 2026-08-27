@@ -20,6 +20,7 @@ from turnvector_benchmark.data_plane import (
     run_generation,
 )
 from turnvector_benchmark.expectation import load_expectation
+from turnvector_benchmark.fixture_provenance import CaseStartMonitor
 from turnvector_benchmark.lane_contract import (
     CasePlan,
     expand_case_plan,
@@ -350,6 +351,9 @@ class DataPlaneTests(unittest.TestCase):
             artifact_root=artifact_root,
             frozen_thresholds={gate.metric: gate.expected for gate in lane.gates},
             external_inputs={},
+            execution_provenance="production_subject",
+            fixture_id=None,
+            case_start_monitor=CaseStartMonitor(),
         )
         hello = SubjectHello(
             identity=SubjectIdentity(
