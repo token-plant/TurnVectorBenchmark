@@ -28,7 +28,7 @@ LANE_PROTOCOLS = {
     "cross-model-serving": "turnvector.benchmark.cross-model-serving.v1",
     "observability-qualification": "turnvector.benchmark.observability.v1",
     "persistence-and-recovery": "turnvector.benchmark.persistence.v1",
-    "protocol-and-worker-supervision": "turnvector.benchmark.worker-supervision.v1",
+    "protocol-and-owner-lifecycle": "turnvector.benchmark.owner-lifecycle.v1",
     "certification-envelopes": "turnvector.benchmark.certification.v1",
 }
 
@@ -43,7 +43,7 @@ REQUIRED_RAW_ARTIFACTS = {
     "cross-model-serving": ["workload", "serving_trace", "turn_receipts", "latency_samples", "output_hashes"],
     "observability-qualification": ["command_buffer_trace", "turn_receipts", "instruments_trace", "calibration_pairs", "latency_samples", "throughput_samples"],
     "persistence-and-recovery": ["snapshot_manifest", "fault_trace", "control_trace", "audit_trace", "recovery_trace", "output_hashes", "kv_hashes"],
-    "protocol-and-worker-supervision": ["handshake_trace", "transport_trace", "process_trace", "turn_receipts"],
+    "protocol-and-owner-lifecycle": ["bootstrap_trace", "client_transport_trace", "process_trace", "turn_receipts"],
     "certification-envelopes": ["certification_records", "admission_trace", "turn_receipts", "quarantine_trace"],
 }
 
@@ -341,13 +341,31 @@ class FixtureSubject:
                 "authorities": [{"expected": "same", "observed": "same"}],
                 "effects": [{"id": "effect-1", "executions": 1}],
             }
-        elif lane == "protocol-and-worker-supervision":
+        elif lane == "protocol-and-owner-lifecycle":
+            outcome = self.case_parameters.get("daemon_outcome")
+            relation = self.case_parameters.get("client_protocol_relation")
+            accepted = relation in {"exact", "compatible"}
+            initialized = accepted and outcome != "failure_before_backend_initialization"
+            accepted_frames = []
+            if accepted and outcome in {
+                "normal",
+                "duplicate_client_command",
+                "failure_during_turn",
+                "safe_point_timeout",
+            }:
+                accepted_frames = (
+                    [128, 256]
+                    if outcome in {"normal", "duplicate_client_command"}
+                    else [128]
+                )
             record = {
-                "owners": ["worker-1"],
-                "handshake": {"negotiated": True, "turn_started": True},
-                "worker_loss": {"lost": True, "successful_receipt": False},
-                "transport": {
-                    "frame_bytes": [128, 256],
+                "daemon": {
+                    "owners": ["daemon-1"] if initialized else [],
+                    "backend_calls_before_initialization": 0,
+                    "successful_receipts_after_daemon_loss": 0,
+                },
+                "client_transport": {
+                    "frame_bytes": accepted_frames,
                     "latency_us": [10, 12],
                 },
             }
@@ -490,16 +508,16 @@ class FixtureSubject:
             record["authorities"][0]["observed"] = "different"
         elif gate == "persistence-and-recovery.effect-replay":
             record["effects"][0]["executions"] = 2
-        elif gate == "protocol-and-worker-supervision.multiple-owner":
-            record["owners"].append("worker-2")
-        elif gate == "protocol-and-worker-supervision.unnegotiated-execution":
-            record["handshake"]["negotiated"] = False
-        elif gate == "protocol-and-worker-supervision.fabricated-receipt":
-            record["worker_loss"]["successful_receipt"] = True
-        elif gate == "protocol-and-worker-supervision.bound-compliance":
-            record["transport"]["frame_bytes"] = [1e18]
-        elif gate == "protocol-and-worker-supervision.transport-latency":
-            record["transport"]["latency_us"] = [1e18]
+        elif gate == "protocol-and-owner-lifecycle.multiple-owner":
+            record["daemon"]["owners"] = ["daemon-1", "daemon-2"]
+        elif gate == "protocol-and-owner-lifecycle.unnegotiated-execution":
+            record["daemon"]["backend_calls_before_initialization"] = 1
+        elif gate == "protocol-and-owner-lifecycle.fabricated-receipt":
+            record["daemon"]["successful_receipts_after_daemon_loss"] = 1
+        elif gate == "protocol-and-owner-lifecycle.bound-compliance":
+            record["client_transport"]["frame_bytes"] = [1e18]
+        elif gate == "protocol-and-owner-lifecycle.transport-latency":
+            record["client_transport"]["latency_us"] = [1e18]
         elif gate == "certification-envelopes.applicability-exact":
             record["admissions"][0]["observed_record_applicable"] = not record[
                 "admissions"

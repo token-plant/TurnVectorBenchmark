@@ -582,50 +582,63 @@ def persistence(
     }
 
 
-def worker_supervision(
+def owner_lifecycle(
     parameters: Mapping[str, Any], evidence: Sequence[Mapping[str, Any]], close: Mapping[str, Any]
 ) -> Mapping[str, Any]:
     del parameters
-    lane = "protocol-and-worker-supervision"
+    lane = "protocol-and-owner-lifecycle"
     _empty_close(close, lane)
-    value = _keys(_record(evidence, lane), ["owners", "handshake", "worker_loss", "transport"], lane)
-    handshake = _keys(value["handshake"], ["negotiated", "turn_started"], f"{lane}.handshake")
-    loss = _keys(value["worker_loss"], ["lost", "successful_receipt"], f"{lane}.worker_loss")
+    value = _keys(_record(evidence, lane), ["daemon", "client_transport"], lane)
+    daemon = _keys(
+        value["daemon"],
+        ["owners", "backend_calls_before_initialization", "successful_receipts_after_daemon_loss"],
+        f"{lane}.daemon",
+    )
     transport = _keys(
-        value["transport"],
+        value["client_transport"],
         ["frame_bytes", "latency_us"],
-        f"{lane}.transport",
+        f"{lane}.client_transport",
     )
     frame_bytes = [
-        _number(item, f"{lane}.transport.frame_bytes[{index}]")
+        _number(item, f"{lane}.client_transport.frame_bytes[{index}]")
         for index, item in enumerate(
-            _list(transport["frame_bytes"], f"{lane}.transport.frame_bytes")
+            _list(transport["frame_bytes"], f"{lane}.client_transport.frame_bytes")
         )
     ]
     latency_us = [
-        _number(item, f"{lane}.transport.latency_us[{index}]")
+        _number(item, f"{lane}.client_transport.latency_us[{index}]")
         for index, item in enumerate(
-            _list(transport["latency_us"], f"{lane}.transport.latency_us")
+            _list(transport["latency_us"], f"{lane}.client_transport.latency_us")
         )
     ]
-    if not frame_bytes or not latency_us or any(
-        item <= 0 for item in [*frame_bytes, *latency_us]
-    ):
+    if not latency_us or any(item <= 0 for item in latency_us):
         raise ContractError(
-            f"{lane} transport frame and latency samples must be non-empty and positive"
+            f"{lane} client transport latency samples must be non-empty and positive"
+        )
+    if any(item < 0 for item in frame_bytes):
+        raise ContractError(
+            f"{lane} client transport frame bytes must be non-negative"
+        )
+    backend_before = _number(
+        daemon["backend_calls_before_initialization"],
+        f"{lane}.daemon.backend_calls_before_initialization",
+    )
+    receipts_after_loss = _number(
+        daemon["successful_receipts_after_daemon_loss"],
+        f"{lane}.daemon.successful_receipts_after_daemon_loss",
+    )
+    if backend_before < 0 or receipts_after_loss < 0:
+        raise ContractError(
+            f"{lane} daemon counts must be non-negative"
         )
     return {
-        "simultaneous_device_owners": len(set(_list(value["owners"], f"{lane}.owners"))),
-        "turns_before_negotiation": int(
-            _boolean(handshake["turn_started"], "turn_started")
-            and not _boolean(handshake["negotiated"], "negotiated")
+        "simultaneous_device_owner_count": len(
+            set(_list(value["daemon"]["owners"], f"{lane}.daemon.owners"))
         ),
-        "successful_receipts_after_worker_loss": int(
-            _boolean(loss["lost"], "lost")
-            and _boolean(loss["successful_receipt"], "successful_receipt")
-        ),
-        "transport_frame_bytes": max(frame_bytes),
-        "transport_latency_samples_us": latency_us,
+        "backend_calls_before_initialization_count": backend_before,
+        "successful_receipt_after_daemon_loss_count": receipts_after_loss,
+        "client_transport_max_frame_bytes": max(frame_bytes, default=0),
+        "client_transport_latency_samples_us": latency_us,
     }
 
 
@@ -715,7 +728,7 @@ ANALYZERS: Mapping[
     "cross-model-serving": cross_model_serving,
     "observability-qualification": observability,
     "persistence-and-recovery": persistence,
-    "protocol-and-worker-supervision": worker_supervision,
+    "protocol-and-owner-lifecycle": owner_lifecycle,
     "certification-envelopes": certification,
 }
 

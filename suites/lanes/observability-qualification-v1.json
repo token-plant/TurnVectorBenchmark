@@ -22,7 +22,7 @@
   "requirements": {
     "execution_boundary": "benchmark_orchestrated",
     "real_subject_required": true,
-    "external_inputs": ["xctrace", "daemon-worker-build", "dense-model", "moe-model"],
+    "external_inputs": ["xctrace", "turnvector-daemon-build", "dense-model", "moe-model"],
     "diagnostic_only_cases": []
   }
 }

@@ -1,0 +1,26 @@
+{
+  "schema_version": "turnvector.benchmark.lane-suite.v1",
+  "id": "protocol-and-owner-lifecycle-v1",
+  "lane_id": "protocol-and-owner-lifecycle",
+  "protocol": "turnvector.benchmark.owner-lifecycle.v1",
+  "runner": "protocol-and-owner-lifecycle",
+  "adapter_category": "system",
+  "matrix_ids": ["daemon-outcome"],
+  "behavior_case_ids": ["owner-initialization", "bounded-client-transport", "mid-turn-daemon-failure", "fresh-daemon-runtime"],
+  "gate_ids": ["multiple-owner", "unnegotiated-execution", "fabricated-receipt", "bound-compliance", "transport-latency"],
+  "case_schema": "../../schemas/lanes/protocol-and-owner-lifecycle-case-v1.json",
+  "operations": ["launch-fixture-daemon", "inject-daemon-outcome", "inspect-daemon-fail-closed"],
+  "metrics": [
+    {"metric": "simultaneous_device_owner_count", "source": "simultaneous_device_owner_count", "reducer": "max"},
+    {"metric": "backend_calls_before_initialization_count", "source": "backend_calls_before_initialization_count", "reducer": "sum"},
+    {"metric": "successful_receipt_after_daemon_loss_count", "source": "successful_receipt_after_daemon_loss_count", "reducer": "sum"},
+    {"metric": "client_transport_max_frame_bytes", "source": "client_transport_max_frame_bytes", "reducer": "max"},
+    {"metric": "client_transport_latency_p99_us", "source": "client_transport_latency_samples_us", "reducer": "p99"}
+  ],
+  "requirements": {
+    "execution_boundary": "benchmark_orchestrated",
+    "real_subject_required": true,
+    "external_inputs": ["daemon-build"],
+    "diagnostic_only_cases": []
+  }
+}

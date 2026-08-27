@@ -329,7 +329,7 @@ class DataPlaneTests(unittest.TestCase):
         }
         root = Path(__file__).resolve().parent.parent
         expectation = load_expectation(
-            root / "expectations" / "turnvector-implementation-v1.json"
+            root / "expectations" / "turnvector-implementation-v2.json"
         )
         lane = expectation.lane("request-serving-lifecycle")
         suite = load_all_lane_suites(expectation)[lane.lane_id]

@@ -38,7 +38,7 @@ from .evidence import (
     write_jsonl,
 )
 from .expectation import ExpectationLane, Gate
-from .fixture_provenance import CaseStartMonitor, validate_execution_provenance
+from .fixture_provenance import BENCHMARK_FIXTURE, CaseStartMonitor, validate_execution_provenance
 from .lane_contract import (
     CasePlan,
     LaneSuite,
@@ -46,6 +46,14 @@ from .lane_contract import (
     PlannedCase,
 )
 from .lane_oracles import analyze_lane_evidence
+from .owner_lifecycle_fixture import (
+    FAILURE_INJECTIONS,
+    MAX_CLIENT_FRAME_BYTES,
+    OWNER_LIFECYCLE_FIXTURE_ID,
+    OWNER_LIFECYCLE_FIXTURE_SCHEMA,
+    validate_client_protocol_relation,
+    validate_daemon_outcome,
+)
 from .subject import SubjectHello, SubjectSession
 from .system_collectors import ProcessMemorySampler, XctraceCollector
 
@@ -261,53 +269,54 @@ def _lane_result_with_message(
 
 
 def _benchmark_fixture_inputs(
-    lane_id: str, parameters: Mapping[str, Any]
+    lane_id: str,
+    execution_provenance: str,
+    fixture_id: Optional[str],
+    parameters: Mapping[str, Any],
 ) -> Mapping[str, Any]:
-    if lane_id != "protocol-and-worker-supervision":
+    """Successor owner-lifecycle fixture inputs for the protocol-and-owner-lifecycle lane.
+
+    The replacement fixture is one same-process daemon containing a fake Device
+    Executor. It never launches or describes a separate MLX Worker and never
+    claims a real Backend Interface, so no subprocess command is produced: the
+    frozen fixture identity, plan parameters, and fail-closed transport bound
+    are bound per CasePlan. The old worker fixture path is not part of the
+    successor runtime.
+
+    Emission is provenance-bound at the boundary: the payload is emitted only
+    when the bound LaneContext provenance is ``benchmark_fixture`` with exactly
+    the owner-lifecycle fixture ID. Under ``production_subject`` provenance no
+    fixture payload is emitted, and a mismatched fixture identity fails closed,
+    so fixture evidence can never leak into production-subject case steps.
+    """
+    if lane_id != "protocol-and-owner-lifecycle":
         return {}
-    path = Path(__file__).resolve().parent.parent / "fixtures" / "workers" / "worker_proxy.py"
-    if not path.is_file():
-        raise ContractError(f"Benchmark Worker fixture is missing: {path}")
-    outcome = parameters.get("outcome")
-    relation = parameters.get("protocol_relation")
-    outcome_modes = {
-        "normal": "normal",
-        "crash_before_start": "crash-before-start",
-        "crash_during_turn": "crash-during-turn",
-        "timeout": "timeout",
-        "malformed_frame": "malformed-frame",
-        "duplicate_receipt": "duplicate-receipt",
-    }
-    if outcome not in outcome_modes:
-        raise ContractError(f"unknown Worker fixture outcome: {outcome!r}")
-    if relation not in {"exact", "compatible", "incompatible", "unknown_capability"}:
-        raise ContractError(f"unknown Worker protocol relation: {relation!r}")
-    mode = (
-        "incompatible-handshake"
-        if relation in {"incompatible", "unknown_capability"}
-        else outcome_modes[outcome]
-    )
-    max_frame_bytes = 1024
+    if execution_provenance != BENCHMARK_FIXTURE:
+        return {}
+    if fixture_id != OWNER_LIFECYCLE_FIXTURE_ID:
+        raise ContractError(
+            f"owner-lifecycle fixture emission requires fixture_id "
+            f"{OWNER_LIFECYCLE_FIXTURE_ID!r}, not {fixture_id!r}"
+        )
+    outcome = parameters.get("daemon_outcome")
+    relation = parameters.get("client_protocol_relation")
+    validate_daemon_outcome(outcome)
+    validate_client_protocol_relation(relation)
     return {
-        "schema_version": "turnvector.benchmark.worker-fixture.v1",
-        "command_prefix": [
-            sys.executable,
-            "-B",
-            str(path),
-            "--mode",
-            mode,
-            "--max-frame-bytes",
-            str(max_frame_bytes),
-            "--timeout-seconds",
-            "1",
-            "--",
-        ],
-        "source_sha256": sha256_file(path),
-        "mode": mode,
-        "max_frame_bytes": max_frame_bytes,
-        "protocol_relation": relation,
-        "requires_production_worker_command": mode
-        not in {"crash-before-start", "timeout", "malformed-frame", "incompatible-handshake"},
+        "schema_version": OWNER_LIFECYCLE_FIXTURE_SCHEMA,
+        "fixture_id": OWNER_LIFECYCLE_FIXTURE_ID,
+        "execution_provenance": BENCHMARK_FIXTURE,
+        "same_process": True,
+        "daemon_processes": 1,
+        "device_executor": "fake",
+        "real_backend_interface": False,
+        "separate_mlx_worker": False,
+        "daemon_outcome": outcome,
+        "client_protocol_relation": relation,
+        "injection": FAILURE_INJECTIONS[outcome],
+        "max_frame_bytes": MAX_CLIENT_FRAME_BYTES,
+        "frozen": True,
+        "claimable": False,
     }
 
 
@@ -549,7 +558,10 @@ class EvidenceLaneRunner(LaneRunner):
                     "data_plane": hello.data_plane,
                     "external_inputs": dict(context.external_inputs),
                     "benchmark_fixtures": _benchmark_fixture_inputs(
-                        context.lane.lane_id, case.parameters
+                        context.lane.lane_id,
+                        context.execution_provenance,
+                        context.fixture_id,
+                        case.parameters,
                     ),
                     "benchmark_runtime_root": (
                         None
@@ -3518,8 +3530,8 @@ class PersistenceAndRecoveryLaneRunner(EvidenceLaneRunner):
         return (_local_artifact("fault_trace", path, context.artifact_root),)
 
 
-class ProtocolAndWorkerSupervisionLaneRunner(RealDaemonEvidenceLaneRunner):
-    lane_id = "protocol-and-worker-supervision"
+class ProtocolAndOwnerLifecycleLaneRunner(RealDaemonEvidenceLaneRunner):
+    lane_id = "protocol-and-owner-lifecycle"
 
 
 class CertificationEnvelopesLaneRunner(RealDaemonEvidenceLaneRunner):
@@ -3539,7 +3551,7 @@ LANE_RUNNER_REGISTRY: Mapping[str, LaneRunner] = {
         CrossModelServingLaneRunner(),
         ObservabilityQualificationLaneRunner(),
         PersistenceAndRecoveryLaneRunner(),
-        ProtocolAndWorkerSupervisionLaneRunner(),
+        ProtocolAndOwnerLifecycleLaneRunner(),
         CertificationEnvelopesLaneRunner(),
     )
 }

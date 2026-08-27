@@ -24,7 +24,7 @@
       "category": "system",
       "command": ["python3", "-B", "drivers/reference_subject.py"],
       "cwd": "..",
-      "lanes": ["request-serving-lifecycle", "residency-and-memory-governor", "cross-model-serving", "observability-qualification", "persistence-and-recovery", "protocol-and-worker-supervision", "certification-envelopes"],
+      "lanes": ["request-serving-lifecycle", "residency-and-memory-governor", "cross-model-serving", "observability-qualification", "persistence-and-recovery", "protocol-and-owner-lifecycle", "certification-envelopes"],
       "timeout_seconds": 5
     }
   ]

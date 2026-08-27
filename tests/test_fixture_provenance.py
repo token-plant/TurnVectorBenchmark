@@ -94,7 +94,7 @@ class CaseStartMonitorTests(unittest.TestCase):
         monitor.mark_case_started("scheduler-policy")
         self.assertTrue(monitor.first_case_started)
         self.assertTrue(monitor.has_started("core-event-replay"))
-        self.assertFalse(monitor.has_started("protocol-and-worker-supervision"))
+        self.assertFalse(monitor.has_started("protocol-and-owner-lifecycle"))
         self.assertEqual(monitor.started_lanes, ("core-event-replay", "scheduler-policy"))
 
 

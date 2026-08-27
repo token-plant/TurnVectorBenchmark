@@ -40,7 +40,7 @@ from turnvector_benchmark.subject import SubjectHello, SubjectIdentity
 
 
 ROOT = Path(__file__).resolve().parent.parent
-EXPECTATION = ROOT / "expectations" / "turnvector-implementation-v1.json"
+EXPECTATION = ROOT / "expectations" / "turnvector-implementation-v2.json"
 SUBJECT = ROOT / "subjects" / "reference-fixture-v1.json"
 CERTIFICATION = ROOT / "certification" / "reference-fixture-v1.json"
 
@@ -183,9 +183,9 @@ class FixtureTaintControllerTests(unittest.TestCase):
         controller = self.controller(output)
         with patch.dict(
             "turnvector_benchmark.controller.FIXTURE_SELECTION_SEAM",
-            {"protocol-and-worker-supervision": OWNER_LIFECYCLE_FIXTURE_ID},
+            {"protocol-and-owner-lifecycle": OWNER_LIFECYCLE_FIXTURE_ID},
         ):
-            result = controller.run_lane("protocol-and-worker-supervision")
+            result = controller.run_lane("protocol-and-owner-lifecycle")
         self.assertEqual(result.status, "passed")
         # All 24 cases executed after the absorbing transition was bound.
         self.assertEqual(result.report["lanes"][0]["executed_case_count"], 24)
@@ -195,7 +195,7 @@ class FixtureTaintControllerTests(unittest.TestCase):
             result.report["full_implementation_status"], "not_claimable_fixture"
         )
         self.assertTrue(
-            controller._case_start_monitor.has_started("protocol-and-worker-supervision")
+            controller._case_start_monitor.has_started("protocol-and-owner-lifecycle")
         )
         manifest = json.loads((output / "manifest.json").read_text(encoding="utf-8"))
         self.assertEqual(manifest["run_fixture_taint"], "fixture_tainted")
@@ -207,10 +207,10 @@ class FixtureTaintControllerTests(unittest.TestCase):
         controller = self.controller(output)
         with patch.dict(
             "turnvector_benchmark.controller.FIXTURE_SELECTION_SEAM",
-            {"protocol-and-worker-supervision": OWNER_LIFECYCLE_FIXTURE_ID},
+            {"protocol-and-owner-lifecycle": OWNER_LIFECYCLE_FIXTURE_ID},
         ):
             result = controller._run(
-                ("protocol-and-worker-supervision", "core-event-replay")
+                ("protocol-and-owner-lifecycle", "core-event-replay")
             )
         self.assertEqual(result.status, "passed")
         self.assertEqual(result.report["run_fixture_taint"], "fixture_tainted")
@@ -239,9 +239,9 @@ class FixtureTaintControllerTests(unittest.TestCase):
         output = self.output_path()
         with patch.dict(
             "turnvector_benchmark.controller.FIXTURE_SELECTION_SEAM",
-            {"protocol-and-worker-supervision": OWNER_LIFECYCLE_FIXTURE_ID},
+            {"protocol-and-owner-lifecycle": OWNER_LIFECYCLE_FIXTURE_ID},
         ):
-            result = self.controller(output).run_lane("protocol-and-worker-supervision")
+            result = self.controller(output).run_lane("protocol-and-owner-lifecycle")
         manifest = json.loads((output / "manifest.json").read_text(encoding="utf-8"))
         report = json.loads((output / "report.json").read_text(encoding="utf-8"))
         # The run manifest and the global report bind the exact same
@@ -475,24 +475,28 @@ class FixtureTaintControllerTests(unittest.TestCase):
 
     def test_runners_mark_first_case_start_on_the_shared_monitor(self) -> None:
         controller = self.controller(self.output_path())
-        result = controller.run_lane("protocol-and-worker-supervision")
+        result = controller.run_lane("protocol-and-owner-lifecycle")
         self.assertEqual(result.status, "passed")
         self.assertEqual(
             controller._case_start_monitor.started_lanes,
-            ("protocol-and-worker-supervision",),
+            ("protocol-and-owner-lifecycle",),
         )
 
-    def test_no_active_registry_change(self) -> None:
+    def test_pr4_activation_renames_the_registry_and_activates_the_seam(self) -> None:
         expectation = load_expectation(EXPECTATION)
         expected_lanes = {lane.lane_id for lane in expectation.lanes}
         self.assertEqual(set(LANE_RUNNER_REGISTRY), expected_lanes)
         self.assertEqual(len(LANE_RUNNER_REGISTRY), 12)
-        self.assertNotIn("protocol-and-owner-lifecycle", LANE_RUNNER_REGISTRY)
-        self.assertEqual(owner_lifecycle_fixture.FIXTURE_SELECTION_SEAM, {})
+        self.assertIn("protocol-and-owner-lifecycle", LANE_RUNNER_REGISTRY)
+        self.assertNotIn("protocol-and-worker-supervision", LANE_RUNNER_REGISTRY)
+        self.assertEqual(
+            owner_lifecycle_fixture.FIXTURE_SELECTION_SEAM,
+            {"protocol-and-owner-lifecycle": OWNER_LIFECYCLE_FIXTURE_ID},
+        )
         summary = LaneController.inspect(expectation_path=EXPECTATION, target_repo=None)
         self.assertEqual(summary["status"], "ready")
         self.assertEqual(summary["registered_lane_runner_count"], 12)
-        self.assertEqual(summary["qualification_case_count"], 385)
+        self.assertEqual(summary["qualification_case_count"], 425)
         self.assertEqual(summary["self_test_gate_count"], 58)
 
 

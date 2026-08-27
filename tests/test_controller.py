@@ -4,6 +4,7 @@ import hashlib
 import json
 import tempfile
 import unittest
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, Optional
 from unittest.mock import patch
@@ -16,7 +17,7 @@ from turnvector_benchmark.lane_runner import LaneResult
 
 
 ROOT = Path(__file__).resolve().parent.parent
-EXPECTATION = ROOT / "expectations" / "turnvector-implementation-v1.json"
+EXPECTATION = ROOT / "expectations" / "turnvector-implementation-v2.json"
 SUBJECT = ROOT / "subjects" / "reference-fixture-v1.json"
 CERTIFICATION = ROOT / "certification" / "reference-fixture-v1.json"
 
@@ -62,7 +63,7 @@ class LaneControllerTests(unittest.TestCase):
         path.write_text(json.dumps(value), encoding="utf-8")
         return path
 
-    def test_inspect_derives_complete_385_case_readiness(self) -> None:
+    def test_inspect_derives_complete_425_case_readiness(self) -> None:
         report = LaneController.inspect(
             expectation_path=EXPECTATION,
             target_repo=None,
@@ -73,7 +74,7 @@ class LaneControllerTests(unittest.TestCase):
         self.assertEqual(report["evidence_oracle_count"], 12)
         self.assertTrue(report["oracle_registry_complete"])
         self.assertEqual(report["self_test_gate_count"], 58)
-        self.assertEqual(report["qualification_case_count"], 385)
+        self.assertEqual(report["qualification_case_count"], 425)
         self.assertEqual(report["readiness"], "derived_complete")
 
     def test_reference_fixture_runs_all_cases_but_is_never_claimable(self) -> None:
@@ -83,8 +84,8 @@ class LaneControllerTests(unittest.TestCase):
         self.assertEqual(result.status, "passed")
         self.assertEqual(result.exit_code, 0)
         self.assertEqual(result.report["passed_lane_count"], 12)
-        self.assertEqual(result.report["qualification_case_count"], 385)
-        self.assertEqual(result.report["executed_case_count"], 385)
+        self.assertEqual(result.report["qualification_case_count"], 425)
+        self.assertEqual(result.report["executed_case_count"], 425)
         self.assertEqual(result.report["full_implementation_status"], "not_claimable_fixture")
         self.assertFalse(result.report["claimable"])
         self.assertEqual(result.report["observed_lane_statuses"], ["passed"])
@@ -109,7 +110,13 @@ class LaneControllerTests(unittest.TestCase):
         result = self.controller(output, subject=None).run_all()
         self.assertEqual(result.status, "unsupported")
         self.assertEqual(result.report["passed_lane_count"], 0)
-        self.assertEqual(result.report["full_implementation_status"], "failed")
+        # The owner-lifecycle lane is always fixture-selected in the active
+        # successor contract, so the run is tainted before any adapter work and
+        # is never claimable; the missing adapter still leaves every lane
+        # unsupported.
+        self.assertEqual(
+            result.report["full_implementation_status"], "not_claimable_fixture"
+        )
         self.assertTrue(all(item["status"] == "unsupported" for item in result.report["lanes"]))
 
     def test_missing_certification_record_fails_before_performance_execution(self) -> None:
@@ -189,16 +196,28 @@ class LaneControllerTests(unittest.TestCase):
     def test_gate_evaluation_uses_thresholds_frozen_before_execution(self) -> None:
         controller = self.controller(self.output_path())
         assert controller.certification_record is not None
-        record_type = type(controller.certification_record)
-        with patch.object(
-            record_type,
-            "is_expired",
-            side_effect=(False, False, True),
-        ) as expiry_check:
-            result = controller.run_lane("scheduler-performance")
-
+        expectation = load_expectation(EXPECTATION)
+        lane = expectation.lane("scheduler-performance")
+        certification_gate = next(
+            gate for gate in lane.gates if gate.threshold_source == "certification_record"
+        )
+        # Wall clock is provenance only: certification-sourced thresholds
+        # resolve from the immutable record at any observed time, with no
+        # issued_at/expires_at applicability authority.
+        threshold = resolve_gate_threshold(
+            "scheduler-performance",
+            certification_gate,
+            controller.certification_record,
+            observed_at=datetime(2099, 1, 1, tzinfo=timezone.utc),
+        )
+        self.assertEqual(
+            threshold,
+            controller.certification_record.threshold(
+                "scheduler-performance", certification_gate
+            ),
+        )
+        result = controller.run_lane("scheduler-performance")
         self.assertEqual(result.status, "passed")
-        self.assertEqual(expiry_check.call_count, 2)
 
     def test_path_escape_and_missing_artifact_fail_closed(self) -> None:
         escaped = self.modified_subject("core-event-replay", "--escape-artifact")
@@ -282,7 +301,7 @@ class LaneControllerTests(unittest.TestCase):
         }
         self.assertEqual(by_lane["core-event-replay"]["status"], "gate_failed")
         self.assertEqual(by_lane["certification-envelopes"]["status"], "passed")
-        self.assertEqual(by_lane["certification-envelopes"]["executed_case_count"], 55)
+        self.assertEqual(by_lane["certification-envelopes"]["executed_case_count"], 95)
 
     def test_gate_failure_is_not_hidden_by_unsupported_coverage(self) -> None:
         def result(status: str) -> LaneResult:

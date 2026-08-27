@@ -22,7 +22,7 @@ from turnvector_benchmark.subject import SubjectHello, SubjectIdentity
 
 
 ROOT = Path(__file__).resolve().parent.parent
-EXPECTATION = ROOT / "expectations" / "turnvector-implementation-v1.json"
+EXPECTATION = ROOT / "expectations" / "turnvector-implementation-v2.json"
 SUBJECT = ROOT / "subjects" / "reference-fixture-v1.json"
 CERTIFICATION = ROOT / "certification" / "reference-fixture-v1.json"
 
@@ -194,11 +194,11 @@ class FixtureTaintLateSelectionTests(unittest.TestCase):
         frozen = ExecutionProvenance(PRODUCTION_SUBJECT, None)
         with patch.dict(
             "turnvector_benchmark.controller.FIXTURE_SELECTION_SEAM",
-            {"protocol-and-worker-supervision": OWNER_LIFECYCLE_FIXTURE_ID},
+            {"protocol-and-owner-lifecycle": OWNER_LIFECYCLE_FIXTURE_ID},
         ):
             with self.assertRaisesRegex(ContractError, "late benchmark fixture selection"):
                 controller._bind_and_revalidate_provenance(
-                    "protocol-and-worker-supervision", frozen
+                    "protocol-and-owner-lifecycle", frozen
                 )
         # The attempted late selection still leaves the run fixture_tainted.
         self.assertEqual(controller.run_fixture_taint, "fixture_tainted")
@@ -210,12 +210,12 @@ class FixtureTaintLateSelectionTests(unittest.TestCase):
         frozen = ExecutionProvenance(BENCHMARK_FIXTURE, OWNER_LIFECYCLE_FIXTURE_ID)
         with patch.dict(
             "turnvector_benchmark.controller.FIXTURE_SELECTION_SEAM",
-            {"protocol-and-worker-supervision": OWNER_LIFECYCLE_FIXTURE_ID},
+            {"protocol-and-owner-lifecycle": OWNER_LIFECYCLE_FIXTURE_ID},
         ):
             # Unchanged frozen provenance is usable in a later lane even after
             # another lane started; it is not misclassified as late.
             controller._bind_and_revalidate_provenance(
-                "protocol-and-worker-supervision", frozen
+                "protocol-and-owner-lifecycle", frozen
             )
         self.assertEqual(controller.run_fixture_taint, "fixture_tainted")
         self.assertEqual(controller.fixture_ids, (OWNER_LIFECYCLE_FIXTURE_ID,))

@@ -20,7 +20,7 @@
   "requirements": {
     "execution_boundary": "benchmark_orchestrated",
     "real_subject_required": true,
-    "external_inputs": ["daemon-worker-build"],
+    "external_inputs": ["turnvector-daemon-build", "adapter-build", "mlx-build", "backend-interface-descriptor"],
     "diagnostic_only_cases": []
   }
 }

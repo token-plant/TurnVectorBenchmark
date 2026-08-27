@@ -220,19 +220,78 @@ class SystemFixtureTests(unittest.TestCase):
         self.assertEqual(value["duplicate_unit"], "complete-worker-frame")
         self.assertFalse(value["production_protocol_decisions"])
 
-    def test_worker_case_receives_hash_bound_benchmark_launch_contract(self) -> None:
+    def test_owner_lifecycle_case_receives_frozen_in_process_fixture_inputs(self) -> None:
         value = _benchmark_fixture_inputs(
-            "protocol-and-worker-supervision",
-            {"outcome": "normal", "protocol_relation": "incompatible"},
+            "protocol-and-owner-lifecycle",
+            "benchmark_fixture",
+            "owner-lifecycle-device-executor-v1",
+            {
+                "daemon_outcome": "failure_during_turn",
+                "client_protocol_relation": "incompatible",
+            },
         )
         self.assertEqual(
-            value["schema_version"], "turnvector.benchmark.worker-fixture.v1"
+            value["schema_version"], "turnvector.benchmark.owner-lifecycle-fixture.v1"
         )
-        self.assertEqual(value["mode"], "incompatible-handshake")
+        self.assertEqual(value["fixture_id"], "owner-lifecycle-device-executor-v1")
+        self.assertEqual(value["execution_provenance"], "benchmark_fixture")
+        self.assertTrue(value["same_process"])
+        self.assertEqual(value["daemon_processes"], 1)
+        self.assertFalse(value["real_backend_interface"])
+        self.assertFalse(value["separate_mlx_worker"])
+        self.assertEqual(value["daemon_outcome"], "failure_during_turn")
+        self.assertEqual(value["client_protocol_relation"], "incompatible")
+        self.assertEqual(value["injection"], "inject-failure_during_turn")
         self.assertEqual(value["max_frame_bytes"], 1024)
-        self.assertEqual(value["source_sha256"], sha256_file(WORKER_PROXY))
-        self.assertIn(str(WORKER_PROXY), value["command_prefix"])
-        self.assertFalse(value["requires_production_worker_command"])
+        self.assertFalse(value["claimable"])
+        # The successor runtime produces no subprocess worker launch command.
+        self.assertNotIn("command_prefix", value)
+        self.assertNotIn("mode", value)
+        # Non-owner lanes receive no benchmark fixture inputs.
+        self.assertEqual(
+            _benchmark_fixture_inputs(
+                "core-event-replay",
+                "benchmark_fixture",
+                "owner-lifecycle-device-executor-v1",
+                {"daemon_outcome": "normal"},
+            ),
+            {},
+        )
+
+    def test_owner_lifecycle_fixture_inputs_are_suppressed_under_production_subject(
+        self,
+    ) -> None:
+        # production_subject provenance never emits a fixture payload, even on
+        # the owner-lifecycle lane: fixture evidence cannot leak into
+        # production-subject case steps.
+        self.assertEqual(
+            _benchmark_fixture_inputs(
+                "protocol-and-owner-lifecycle",
+                "production_subject",
+                None,
+                {
+                    "daemon_outcome": "normal",
+                    "client_protocol_relation": "exact",
+                },
+            ),
+            {},
+        )
+
+    def test_owner_lifecycle_fixture_inputs_reject_a_mismatched_fixture_identity(
+        self,
+    ) -> None:
+        # A benchmark_fixture LaneContext bound to a different fixture ID must
+        # fail closed instead of emitting the owner-lifecycle payload.
+        with self.assertRaisesRegex(ContractError, "requires fixture_id"):
+            _benchmark_fixture_inputs(
+                "protocol-and-owner-lifecycle",
+                "benchmark_fixture",
+                "some-other-fixture",
+                {
+                    "daemon_outcome": "normal",
+                    "client_protocol_relation": "exact",
+                },
+            )
 
     def test_worker_proxy_uses_complete_u32be_frames(self) -> None:
         first = struct.pack(">I", 3) + b"one"

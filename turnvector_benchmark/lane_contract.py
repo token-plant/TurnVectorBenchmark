@@ -3,7 +3,6 @@ from __future__ import annotations
 import json
 import math
 from dataclasses import dataclass
-from datetime import datetime, timezone
 from itertools import product
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Mapping, Optional, Sequence, Tuple
@@ -15,7 +14,8 @@ from .expectation import ExpectationLane, Gate, ImplementationExpectation
 LANE_SUITE_SCHEMA = "turnvector.benchmark.lane-suite.v1"
 CASE_SCHEMA = "turnvector.benchmark.case-schema.v1"
 SUBJECT_MANIFEST_SCHEMA = "turnvector.benchmark.subject-manifest.v1"
-CERTIFICATION_RECORD_SCHEMA = "turnvector.benchmark.certification-record.v1"
+CERTIFICATION_RECORD_SCHEMA = "turnvector.benchmark.certification-record.v2"
+CERTIFICATION_RECORD_SCHEMA_V1 = "turnvector.benchmark.certification-record.v1"
 SUBJECT_PROTOCOL = "turnvector.benchmark.subject.v1"
 
 ADAPTER_CATEGORIES = {"core", "native", "system"}
@@ -208,8 +208,6 @@ class CertificationRecord:
     record_id: str
     subject_build_identity: str
     protocol_version: str
-    issued_at: datetime
-    expires_at: datetime
     environment_identity: Mapping[str, Any]
     matrix_applicability: Mapping[str, Tuple[Any, ...]]
     thresholds: Mapping[str, Mapping[str, Any]]
@@ -223,14 +221,6 @@ class CertificationRecord:
                 f"{lane_id}.{gate.metric}"
             )
         return lane_thresholds[gate.metric]
-
-    def is_expired(self, now: Optional[datetime] = None) -> bool:
-        observed = now or datetime.now(timezone.utc)
-        return observed >= self.expires_at
-
-    def is_not_yet_valid(self, now: Optional[datetime] = None) -> bool:
-        observed = now or datetime.now(timezone.utc)
-        return observed < self.issued_at
 
 
 def _validate_case_schema(path: Path, lane: ExpectationLane) -> None:
@@ -502,19 +492,14 @@ def load_subject_manifest(path: Path, expectation: ImplementationExpectation) ->
     )
 
 
-def _parse_timestamp(value: Any, where: str) -> datetime:
-    text = _string(value, where)
-    try:
-        parsed = datetime.fromisoformat(text.replace("Z", "+00:00"))
-    except ValueError as error:
-        raise ContractError(f"{where} must be an RFC 3339 timestamp") from error
-    if parsed.tzinfo is None:
-        raise ContractError(f"{where} must include a timezone")
-    return parsed.astimezone(timezone.utc)
-
-
 def load_certification_record(path: Path) -> CertificationRecord:
     obj = _read_json(path, "certification record")
+    for forbidden in ("issued_at", "expires_at"):
+        if forbidden in obj:
+            raise ContractError(
+                f"{path}.{forbidden} is forbidden: TurnVector Certification Records "
+                "are immutable and have no invented wall-clock validity authority"
+            )
     _strict_keys(
         obj,
         [
@@ -522,8 +507,6 @@ def load_certification_record(path: Path) -> CertificationRecord:
             "id",
             "subject_build_identity",
             "protocol_version",
-            "issued_at",
-            "expires_at",
             "environment_identity",
             "matrix_applicability",
             "thresholds",
@@ -531,12 +514,16 @@ def load_certification_record(path: Path) -> CertificationRecord:
         [],
         str(path),
     )
+    if obj["schema_version"] not in {CERTIFICATION_RECORD_SCHEMA, CERTIFICATION_RECORD_SCHEMA_V1}:
+        raise ContractError(
+            f"{path}.schema_version must be {CERTIFICATION_RECORD_SCHEMA!r} "
+            f"(v1 is superseded)"
+        )
     if obj["schema_version"] != CERTIFICATION_RECORD_SCHEMA:
-        raise ContractError(f"{path}.schema_version must be {CERTIFICATION_RECORD_SCHEMA!r}")
-    issued_at = _parse_timestamp(obj["issued_at"], f"{path}.issued_at")
-    expires_at = _parse_timestamp(obj["expires_at"], f"{path}.expires_at")
-    if expires_at <= issued_at:
-        raise ContractError(f"{path}.expires_at must be after issued_at")
+        raise ContractError(
+            f"{path}.schema_version must be {CERTIFICATION_RECORD_SCHEMA!r}; "
+            "the v1 record is superseded by the successor TurnVector contract"
+        )
     environment = _object(obj["environment_identity"], f"{path}.environment_identity")
     if not environment:
         raise ContractError(f"{path}.environment_identity must not be empty")
@@ -571,8 +558,6 @@ def load_certification_record(path: Path) -> CertificationRecord:
             obj["subject_build_identity"], f"{path}.subject_build_identity"
         ),
         protocol_version=_identifier(obj["protocol_version"], f"{path}.protocol_version"),
-        issued_at=issued_at,
-        expires_at=expires_at,
         environment_identity=dict(environment),
         matrix_applicability=matrix_applicability,
         thresholds=thresholds,
@@ -585,19 +570,17 @@ def resolve_gate_threshold(
     gate: Gate,
     record: Optional[CertificationRecord],
     *,
-    observed_at: Optional[datetime] = None,
+    observed_at: Any = None,
 ) -> Any:
+    del observed_at
     if gate.threshold_source == "certification_record":
         if record is None:
             raise ContractError(
                 f"lane {lane_id!r} requires a candidate certification record before execution"
             )
-        if record.is_not_yet_valid(observed_at):
-            raise ContractError(
-                f"certification record {record.record_id!r} is not yet valid"
-            )
-        if record.is_expired(observed_at):
-            raise ContractError(f"certification record {record.record_id!r} is expired")
+        # Controller wall time is provenance only and never record
+        # applicability authority: TurnVector Certification Records are
+        # immutable and have no invented wall-clock expiry.
         return record.threshold(lane_id, gate)
     return gate.expected
 
@@ -609,12 +592,6 @@ def validate_certification_contract(
         raise ContractError(
             "certification record protocol does not match SubjectAdapter v1"
         )
-    if record.is_not_yet_valid():
-        raise ContractError(
-            f"certification record {record.record_id!r} is not yet valid"
-        )
-    if record.is_expired():
-        raise ContractError(f"certification record {record.record_id!r} is expired")
 
     dimension_domains: Dict[str, Dict[str, Any]] = {}
     for lane in expectation.lanes:

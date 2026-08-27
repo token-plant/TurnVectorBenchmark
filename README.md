@@ -5,7 +5,7 @@ performance-evidence repository for
 [TurnVector](https://github.com/token-plant/TurnVector). It owns the expectation,
 case matrices, fixtures, independent oracles, metric reduction, gates, and
 evidence format. TurnVector owns only adapters that invoke real production
-modules or expose the real daemon/worker system under test.
+modules or expose the real daemon/Device Executor system under test.
 
 The benchmark never treats an absent implementation as a pass. A required lane
 with no compatible adapter is `unsupported`, and a complete implementation
@@ -13,22 +13,25 @@ claim requires all 12 required lanes to be `passed` in one valid run.
 
 ## Qualification Contract
 
-`expectations/turnvector-implementation-v1.json` is the normative contract. Its
-ID remains `turnvector-implementation-v1`; schema v2 binds every lane to a
-versioned suite, strict case schema, and a runner in the fixed registry.
+`expectations/turnvector-implementation-v2.json` is the normative contract. Its
+ID remains `turnvector-implementation-v2`; schema v3 binds every lane to a
+versioned suite, strict case schema, and a runner in the fixed registry, and
+binds the exact hash of the source-reconciliation authority artifact.
 Readiness is derived by `inspect` from those bindings and the checked-in gate
-self-tests. There is no manually maintained harness-readiness flag.
+self-tests. There is no manually maintained harness-readiness flag. The v1
+expectation bytes remain only in Git history; they are never an active
+contract.
 
-The qualification profile expands 385 matrix combinations:
+The qualification profile expands 425 matrix combinations:
 
 - deterministic Core replay, exact scheduler policy, and in-process Release Core performance;
 - request lifecycle, cancellation, disconnect, backpressure, and at-most-once output;
 - Dense/MoE MLX output, complete-logits, and per-layer KV parity;
-- bounded Decode/Prefill and the C++ Direct/native candidate boundary;
+- bounded Decode/Prefill and the C++ Direct/in-process native boundary;
 - residency, reservations, process footprint, pressure, and Pending Reclaim;
 - cross-model timing, throughput, weighted service, progress, and output correctness;
 - telemetry off/on, CommandBuffer attribution, Instruments calibration, and overhead;
-- persistence faults, restart recovery, Worker supervision, and certification applicability.
+- persistence faults, restart recovery, daemon/Device Executor owner lifecycle, and certification applicability.
 
 Decode correctness, FFI, and observability cover context lengths 512, 2048, and
 8192. Qualification Decode uses nonzero KV produced by a real Prefill. Synthetic
@@ -96,23 +99,23 @@ python -m pip install -r requirements-dev.txt
 python3 -B -m unittest discover -s tests -v
 
 python3 -B -m turnvector_benchmark inspect \
-  --expectation expectations/turnvector-implementation-v1.json \
+  --expectation expectations/turnvector-implementation-v2.json \
   --target-repo /path/to/TurnVector
 ```
 
-Run all 385 combinations against the non-claimable judge fixture:
+Run all 425 combinations against the non-claimable judge fixture:
 
 ```bash
 artifact_root="$(mktemp -d)"
 python3 -B -m turnvector_benchmark run-all \
   --profile qualification \
-  --expectation expectations/turnvector-implementation-v1.json \
+  --expectation expectations/turnvector-implementation-v2.json \
   --subject-manifest subjects/reference-fixture-v1.json \
   --certification-record certification/reference-fixture-v1.json \
   --output "$artifact_root/reference-fixture"
 ```
 
-This must report 12 passed lanes and 385 executed cases, but its
+This must report 12 passed lanes and 425 executed cases, but its
 `full_implementation_status` is always `not_claimable_fixture`.
 
 A real qualification run also supplies the TurnVector checkout and the
@@ -121,13 +124,20 @@ pre-frozen external fixture manifest:
 ```bash
 python3 -B -m turnvector_benchmark run-all \
   --profile qualification \
-  --expectation expectations/turnvector-implementation-v1.json \
+  --expectation expectations/turnvector-implementation-v2.json \
   --subject-manifest /path/to/turnvector-subject.json \
   --certification-record /path/to/candidate-certification.json \
   --external-fixtures /path/to/external-fixtures.json \
   --target-repo /path/to/TurnVector \
   --output /outside/git/qualification-evidence
 ```
+
+Until a production owner-lifecycle implementation replaces the fixture, the
+owner-lifecycle lane is fixture-selected in real, manual, and nightly runs too,
+so those runs collect nonclaimable structural evidence rather than a product
+claim: `run_fixture_taint` is `fixture_tainted`, `fixture_ids` is exactly
+`["owner-lifecycle-device-executor-v1"]`, and `full_implementation_status` is
+`not_claimable_fixture` even when every lane passes.
 
 `run-lane` accepts the same arguments plus `--lane`. It produces a partial lane
 result and never a complete implementation claim.
@@ -136,7 +146,7 @@ The legacy scheduler command remains supported:
 
 ```bash
 python3 -B -m turnvector_benchmark run \
-  --expectation expectations/turnvector-implementation-v1.json \
+  --expectation expectations/turnvector-implementation-v2.json \
   --lane scheduler-policy \
   --suite suites/scheduler-policy-v1.json \
   --driver-command "python3 -B drivers/reference_driver.py" \
@@ -153,8 +163,10 @@ Every run writes a top-level manifest, environment, report, and `SHA256SUMS`.
 Each lane writes its own case plan, manifest, environment, subject transcript,
 raw evidence, metrics, gates, failures, report, and checksums. Failed evidence
 is retained. Thresholds from the Candidate Certification Record are resolved
-and frozen in the run manifest before case execution; a missing, expired, or
-inapplicable record is a required failure.
+and frozen in the run manifest before case execution; a missing or
+inapplicable record is a required failure. TurnVector Certification
+Records are immutable and carry no invented wall-clock expiry: controller
+wall time is provenance only and never record-applicability authority.
 
 The current expectation contains 58 independently self-tested gates. Scheduler
 performance Plan expectations, direct serving timing/output, host memory
@@ -164,7 +176,7 @@ the Benchmark rather than accepted as subject pass/fail claims.
 ## Performance Publication Profile
 
 Implementation qualification and performance publication are separate
-decisions. The required `qualification` profile remains fixed at 12 lanes, 385
+decisions. The required `qualification` profile remains fixed at 12 lanes, 425
 cases, and 58 gates. The additional
 `profiles/performance-publication-v1.json` contract defines 11 performance
 workloads, 103 planned cases, 66 metrics, and 54 evidence/promotion gates.

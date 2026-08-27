@@ -15,7 +15,7 @@ from turnvector_benchmark.runner import BenchmarkRunner
 
 ROOT = Path(__file__).resolve().parent.parent
 SUITE = ROOT / "suites" / "scheduler-policy-v1.json"
-EXPECTATION = ROOT / "expectations" / "turnvector-implementation-v1.json"
+EXPECTATION = ROOT / "expectations" / "turnvector-implementation-v2.json"
 
 
 def command_for(path: Path) -> str:
@@ -53,7 +53,7 @@ class BenchmarkRunnerTests(unittest.TestCase):
         self.assertEqual(weighted["normalized_service_spread_us"], "0/1")
 
         manifest = json.loads((result.artifact_dir / "manifest.json").read_text())
-        self.assertEqual(manifest["implementation_expectation"]["id"], "turnvector-implementation-v1")
+        self.assertEqual(manifest["implementation_expectation"]["id"], "turnvector-implementation-v2")
         self.assertEqual(manifest["lane"]["id"], "scheduler-policy")
         self.assertEqual(manifest["benchmark_scope_status"], "partial_lane")
         self.assertIn("mlx-native-correctness", manifest["unevaluated_required_lanes"])
