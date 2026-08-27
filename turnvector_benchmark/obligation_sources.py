@@ -343,3 +343,182 @@ def _hash_range_fd(
     if _identity(after) != expected:
         raise ContractError(f"{what}: source changed while reading section")
     return digest.hexdigest()
+
+
+def _revalidate_root(source_root: Path, expected: _RootIdentity, what: str) -> None:
+    """Re-open the canonical root path and require the exact bound identity.
+
+    The path must still resolve no-follow to the same device/inode/uid/gid/
+    mode captured at the start of the pass, so a rename/replacement of the
+    root (or a symlink swap in an ancestor) mid-pass is rejected.
+    """
+    try:
+        fd, identity = _open_canonical_root(source_root, what)
+    except ContractError as error:
+        raise ContractError(
+            f"{what}: source root {source_root} changed during verification: {error}"
+        ) from error
+    try:
+        if identity != expected:
+            raise ContractError(f"{what}: source root {source_root} changed during verification")
+    finally:
+        pending = sys.exc_info()[0]
+        _close_fd(fd, f"source root {source_root}", pending)
+
+
+def verify_obligation_sources(
+    catalog: ObligationCatalog,
+    source_root: Path,
+    limits: Optional[CompileLimits] = None,
+) -> SourceVerification:
+    """Verify every cited source file, byte range, and digest under *source_root*.
+
+    The root must be an absolute canonical path with no symlinked ancestors
+    and no symlinked final component. One root descriptor is held for the
+    whole pass; every cited path is opened no-follow relative to it, and the
+    root pathname/identity is revalidated at the end so rename/replacement is
+    rejected. Raises :class:`~turnvector_benchmark.core.ContractError` on
+    missing or non-regular sources, symlinks or traversal, digest mismatches,
+    invalid ranges, races, and resource-cap overflow.
+    """
+    limits = limits or CompileLimits.frozen()
+    what = "obligation catalog"
+    root_fd, root_identity = _open_canonical_root(source_root, what)
+    try:
+        by_path: Dict[str, list] = {}
+        for record in catalog.obligations:
+            by_path.setdefault(record.source_path, []).append(record)
+        distinct_paths = sorted(by_path)
+
+        if len(distinct_paths) > limits.path_count_max:
+            raise ContractError(
+                f"{what} exceeds the {limits.path_count_max}-path bound"
+            )
+        total_path_bytes = 0
+        for path in distinct_paths:
+            path_bytes = len(path.encode("utf-8"))
+            if path_bytes > limits.execution_closure_path_bytes_max:
+                raise ContractError(
+                    f"{what} source path {path!r} exceeds the "
+                    f"{limits.execution_closure_path_bytes_max}-byte path bound"
+                )
+            total_path_bytes = checked_add(
+                total_path_bytes, path_bytes, "source path bytes total"
+            )
+            if total_path_bytes > limits.execution_closure_path_bytes_total_max:
+                raise ContractError(
+                    f"{what} exceeds the "
+                    f"{limits.execution_closure_path_bytes_total_max}-byte total path bound"
+                )
+
+        identities: Dict[str, _Identity] = {}
+        source_bytes_total = 0
+        for path in distinct_paths:
+            components = tuple(path.split("/"))
+            fd = _open_source_no_follow(root_fd, components, f"source {path}")
+            try:
+                size, digest, identity = _hash_fd(
+                    fd,
+                    limits.authority_file_bytes_max,
+                    limits.authority_hash_buffer_max,
+                    f"source {path}",
+                )
+            finally:
+                pending = sys.exc_info()[0]
+                _close_fd(fd, f"source {path}", pending)
+            identities[path] = identity
+            source_bytes_total = checked_add(source_bytes_total, size, "authority source bytes")
+            if source_bytes_total > limits.authority_total_bytes_max:
+                raise ContractError(
+                    f"{what} exceeds the {limits.authority_total_bytes_max}-byte "
+                    f"total source bound"
+                )
+            if len(identities) > limits.authority_file_count_max:
+                raise ContractError(
+                    f"{what} exceeds the {limits.authority_file_count_max}-file bound"
+                )
+            for record in by_path[path]:
+                if record.source_file_sha256 != digest:
+                    raise ContractError(
+                        f"{what} record {record.id}: source {path} does not match the "
+                        f"catalog source_file_sha256"
+                    )
+
+        section_count = 0
+        section_bytes_total = 0
+        for record in catalog.obligations:
+            identity = identities[record.source_path]
+            start, end = record.section_start, record.section_end
+            if start >= end:
+                raise ContractError(
+                    f"{what} record {record.id}: section must be a nonempty half-open range"
+                )
+            if end > identity[2]:
+                raise ContractError(
+                    f"{what} record {record.id}: section_end {end} exceeds the source "
+                    f"file length {identity[2]}"
+                )
+            section_count += 1
+            if section_count > limits.authority_section_count_max:
+                raise ContractError(
+                    f"{what} exceeds the {limits.authority_section_count_max}-section bound"
+                )
+            length = end - start
+            section_bytes_total = checked_add(
+                section_bytes_total, length, "authority section bytes"
+            )
+            if section_bytes_total > limits.authority_section_bytes_total_max:
+                raise ContractError(
+                    f"{what} exceeds the "
+                    f"{limits.authority_section_bytes_total_max}-byte section bound"
+                )
+            components = tuple(record.source_path.split("/"))
+            fd = _open_source_no_follow(root_fd, components, f"source {record.source_path}")
+            try:
+                section_digest = _hash_range_fd(
+                    fd,
+                    start,
+                    end,
+                    identity,
+                    limits.authority_hash_buffer_max,
+                    f"record {record.id} section",
+                )
+            finally:
+                pending = sys.exc_info()[0]
+                _close_fd(fd, f"source {record.source_path}", pending)
+            if section_digest != record.section_sha256:
+                raise ContractError(
+                    f"{what} record {record.id}: section digest mismatch for "
+                    f"{record.source_path}"
+                )
+
+        # End-of-pass root revalidation: the path must still resolve to the
+        # exact bound identity and the held descriptor must still carry it,
+        # so a rename/replacement or attribute change mid-pass is rejected.
+        _revalidate_root(source_root, root_identity, what)
+        try:
+            held = os.fstat(root_fd)
+        except OSError as error:
+            raise ContractError(
+                f"{what}: cannot stat source root {source_root}: {error}"
+            ) from error
+        if _root_identity(held) != root_identity:
+            raise ContractError(
+                f"{what}: source root {source_root} changed during verification"
+            )
+
+        return SourceVerification(
+            path_count=len(distinct_paths),
+            source_bytes_total=source_bytes_total,
+            section_count=section_count,
+            section_bytes_total=section_bytes_total,
+            root_path=os.fspath(source_root),
+            root_device=root_identity[0],
+            root_inode=root_identity[1],
+            root_uid=root_identity[2],
+            root_gid=root_identity[3],
+            root_mode=root_identity[4],
+        )
+    finally:
+        pending = sys.exc_info()[0]
+        _close_fd(root_fd, f"source root {source_root}", pending)
