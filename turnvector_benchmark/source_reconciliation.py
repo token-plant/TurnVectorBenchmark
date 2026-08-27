@@ -2,7 +2,10 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import re
+import stat
+import sys
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict, List, Mapping, Tuple
@@ -11,6 +14,7 @@ from .core import ContractError, IDENTIFIER_RE
 
 
 SOURCE_RECONCILIATION_SCHEMA = "turnvector.benchmark.source-reconciliation.v1"
+AUTHORITY_FILE_BYTES_MAX = 4 * 1024 * 1024  # authority_file_bytes_max
 SOURCE_RECONCILIATION_ID = "source-reconciliation-v1"
 SOURCE_RECONCILIATION_V1_SHA256 = (
     "13706cdd46416d394fe3b8c9ce47203c7b77367199be31f502eb3b7122db7a1c"
@@ -279,11 +283,95 @@ def _parse_mapping(
     )
 
 
-def load_source_reconciliation(path: Path) -> SourceReconciliation:
+def _read_no_follow_regular(path: Path) -> bytes:
+    """Read a strict regular file without following or blocking on it.
+
+    The final component is lstat'ed before open and opened with O_NOFOLLOW
+    where the platform provides it (macOS does), so a symlink or any
+    non-regular type (directory, FIFO, device, socket) is rejected from the
+    pre-open lstat and the open never follows a link or blocks on a pipe.
+    The post-open fstat must agree with the pre-open lstat on device/inode
+    identity, and a second fstat after the bounded read must still agree on
+    device/inode/size/mtime, so a swap-in-place or truncation during the
+    read is detected rather than silently hashed. Every raw OSError from
+    fstat/read/close is translated into a bounded ContractError; a close
+    failure never masks an already-asserted ContractError.
+    """
     try:
-        raw_bytes = path.read_bytes()
+        before = path.lstat()
     except OSError as error:
-        raise ContractError(f"cannot read source reconciliation {path}: {error}") from error
+        raise ContractError(f"cannot stat source reconciliation {path}: {error}") from error
+    if stat.S_ISLNK(before.st_mode):
+        raise ContractError(f"source reconciliation {path} is a symlink, not a regular file")
+    if not stat.S_ISREG(before.st_mode):
+        kind = "directory" if stat.S_ISDIR(before.st_mode) else "non-regular file"
+        raise ContractError(
+            f"source reconciliation {path} is a {kind}, not a regular file"
+        )
+    flags = os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0) | getattr(os, "O_CLOEXEC", 0)
+    try:
+        fd = os.open(path, flags)
+    except OSError as error:
+        raise ContractError(f"cannot open source reconciliation {path}: {error}") from error
+    try:
+        try:
+            after = os.fstat(fd)
+        except OSError as error:
+            raise ContractError(
+                f"cannot stat source reconciliation {path}: {error}"
+            ) from error
+        if (before.st_dev, before.st_ino) != (after.st_dev, after.st_ino):
+            raise ContractError(f"source reconciliation {path} changed while opening")
+        if not stat.S_ISREG(after.st_mode):
+            raise ContractError(f"source reconciliation {path} is not a regular file")
+        size = after.st_size
+        if size > AUTHORITY_FILE_BYTES_MAX:
+            raise ContractError(
+                f"source reconciliation {path} exceeds the "
+                f"{AUTHORITY_FILE_BYTES_MAX}-byte bound"
+            )
+        chunks = []
+        remaining = size
+        while remaining > 0:
+            try:
+                chunk = os.read(fd, min(65536, remaining))
+            except OSError as error:
+                raise ContractError(
+                    f"cannot read source reconciliation {path}: {error}"
+                ) from error
+            if not chunk:
+                raise ContractError(
+                    f"source reconciliation {path} was truncated while reading"
+                )
+            chunks.append(chunk)
+            remaining -= len(chunk)
+        try:
+            final = os.fstat(fd)
+        except OSError as error:
+            raise ContractError(
+                f"cannot stat source reconciliation {path}: {error}"
+            ) from error
+        if (before.st_dev, before.st_ino, before.st_size, before.st_mtime_ns) != (
+            final.st_dev,
+            final.st_ino,
+            final.st_size,
+            final.st_mtime_ns,
+        ):
+            raise ContractError(f"source reconciliation {path} changed while reading")
+        return b"".join(chunks)
+    finally:
+        pending = sys.exc_info()[0]
+        try:
+            os.close(fd)
+        except OSError as error:
+            if pending is None:
+                raise ContractError(
+                    f"cannot close source reconciliation {path}: {error}"
+                ) from error
+
+
+def load_source_reconciliation(path: Path) -> SourceReconciliation:
+    raw_bytes = _read_no_follow_regular(path)
 
     def _pairs_hook(pairs: List[Tuple[str, Any]]) -> Dict[str, Any]:
         seen = set()
@@ -347,6 +435,10 @@ def load_source_reconciliation(path: Path) -> SourceReconciliation:
         raise ContractError(f"{path}.mappings contains duplicate ADR numbers")
     if hashlib.sha256(raw_bytes).hexdigest() != SOURCE_RECONCILIATION_V1_SHA256:
         raise ContractError(f"{path} does not match the canonical source reconciliation")
+    try:
+        source_path = path.resolve()
+    except (OSError, RuntimeError) as exc:
+        raise ContractError("cannot resolve source reconciliation") from exc
     return SourceReconciliation(
         schema_version=obj["schema_version"],
         id=reconciliation_id,
@@ -355,5 +447,5 @@ def load_source_reconciliation(path: Path) -> SourceReconciliation:
         target_source=target,
         mappings=mappings,
         design_gate_revision=_sha256(obj["design_gate_revision"], f"{path}.design_gate_revision"),
-        source_path=path.resolve(),
+        source_path=source_path,
     )
