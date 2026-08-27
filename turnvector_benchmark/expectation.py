@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import json
 import subprocess
 from dataclasses import dataclass
@@ -13,7 +14,12 @@ from .core import ContractError, IDENTIFIER_RE, Suite
 
 EXPECTATION_SCHEMA_V1 = "turnvector.benchmark.expectation.v1"
 EXPECTATION_SCHEMA_V2 = "turnvector.benchmark.expectation.v2"
-EXPECTATION_SCHEMAS = {EXPECTATION_SCHEMA_V1, EXPECTATION_SCHEMA_V2}
+EXPECTATION_SCHEMA_V3 = "turnvector.benchmark.expectation.v3"
+EXPECTATION_SCHEMAS = {
+    EXPECTATION_SCHEMA_V1,
+    EXPECTATION_SCHEMA_V2,
+    EXPECTATION_SCHEMA_V3,
+}
 HARNESS_STATUSES = {"executable", "contract_only"}
 HARNESS_KINDS = {"jsonl_suite", "adapter"}
 GATE_OPERATORS = {"eq", "gte", "lte", "present"}
@@ -94,6 +100,19 @@ class SourceContract:
 
 
 @dataclass(frozen=True)
+class ExpectationAuthority:
+    """Strict v3 authority binding: the exact source-reconciliation artifact.
+
+    The expectation names only the source-reconciliation path and its exact
+    SHA-256 digest, avoiding a cycle; the catalog and traceability digests are
+    bound by later authority artifacts, never by the expectation itself.
+    """
+
+    source_reconciliation_path: str
+    source_reconciliation_sha256: str
+
+
+@dataclass(frozen=True)
 class Harness:
     status: str
     kind: str
@@ -162,6 +181,7 @@ class ImplementationExpectation:
     expectation_id: str
     description: str
     source_contract: SourceContract
+    authority: Optional[ExpectationAuthority]
     lanes: Tuple[ExpectationLane, ...]
     source_path: Path
 
@@ -185,9 +205,75 @@ def _parse_source_contract(value: Any, where: str) -> SourceContract:
     )
 
 
+def _parse_authority(value: Any, where: str, repo_root: Path) -> ExpectationAuthority:
+    """Strict v3 authority object with a hash-bound source-reconciliation path.
+
+    The path must be a normalized repository-relative POSIX path (resolved
+    against the benchmark repository root beside ``expectations/``), must
+    resolve to a real regular file, must remain contained within the resolved
+    repository root (a repository-contained symlink component that resolves
+    outside is an escape and fails closed before any read), and its exact
+    SHA-256 must equal the bound digest; any drift fails closed before the
+    expectation can be used as authority.
+    """
+    obj = _object(value, where)
+    _strict_keys(
+        obj,
+        ["source_reconciliation_path", "source_reconciliation_sha256"],
+        [],
+        where,
+    )
+    path_text = _string(obj["source_reconciliation_path"], f"{where}.source_reconciliation_path")
+    if (
+        "\\" in path_text
+        or path_text.startswith("/")
+        or "//" in path_text
+        or any(component in ("", ".", "..") for component in path_text.split("/"))
+    ):
+        raise ContractError(
+            f"{where}.source_reconciliation_path must be a normalized "
+            "repository-relative POSIX path"
+        )
+    digest = _string(obj["source_reconciliation_sha256"], f"{where}.source_reconciliation_sha256")
+    if len(digest) != 64 or any(
+        character not in "0123456789abcdef" for character in digest
+    ):
+        raise ContractError(
+            f"{where}.source_reconciliation_sha256 must be a lowercase "
+            "64-character SHA-256 digest"
+        )
+    root = repo_root.resolve()
+    resolved = (root / path_text).resolve()
+    try:
+        resolved.relative_to(root)
+    except ValueError as error:
+        raise ContractError(
+            f"{where}.source_reconciliation_path escapes the repository root: {resolved}"
+        ) from error
+    if not resolved.is_file():
+        raise ContractError(
+            f"{where}.source_reconciliation_path does not exist: {resolved}"
+        )
+    try:
+        observed = hashlib.sha256(resolved.read_bytes()).hexdigest()
+    except OSError as error:
+        raise ContractError(
+            f"cannot read source reconciliation authority {resolved}: {error}"
+        ) from error
+    if observed != digest:
+        raise ContractError(
+            f"{where}.source_reconciliation_sha256 does not match {resolved}: "
+            f"expected {digest}, observed {observed}"
+        )
+    return ExpectationAuthority(
+        source_reconciliation_path=path_text,
+        source_reconciliation_sha256=digest,
+    )
+
+
 def _parse_harness(value: Any, where: str, schema_version: str) -> Harness:
     obj = _object(value, where)
-    if schema_version == EXPECTATION_SCHEMA_V2:
+    if schema_version in (EXPECTATION_SCHEMA_V2, EXPECTATION_SCHEMA_V3):
         _strict_keys(
             obj,
             ["protocol", "runner", "suite"],
@@ -389,19 +475,35 @@ def load_expectation(path: Path) -> ImplementationExpectation:
     except (OSError, json.JSONDecodeError) as error:
         raise ContractError(f"cannot read expectation {path}: {error}") from error
     obj = _object(raw, str(path))
-    _strict_keys(
-        obj,
-        [
-            "schema_version",
-            "id",
-            "description",
-            "source_contract",
-            "certification_policy",
-            "lanes",
-        ],
-        [],
-        str(path),
-    )
+    if obj.get("schema_version") == EXPECTATION_SCHEMA_V3:
+        _strict_keys(
+            obj,
+            [
+                "schema_version",
+                "id",
+                "description",
+                "source_contract",
+                "certification_policy",
+                "authority",
+                "lanes",
+            ],
+            [],
+            str(path),
+        )
+    else:
+        _strict_keys(
+            obj,
+            [
+                "schema_version",
+                "id",
+                "description",
+                "source_contract",
+                "certification_policy",
+                "lanes",
+            ],
+            [],
+            str(path),
+        )
     schema_version = obj["schema_version"]
     if schema_version not in EXPECTATION_SCHEMAS:
         raise ContractError(
@@ -430,6 +532,13 @@ def load_expectation(path: Path) -> ImplementationExpectation:
         raise ContractError(
             f"{path}.certification_policy must equal the fail-closed policy for {schema_version}"
         )
+    authority = (
+        None
+        if schema_version != EXPECTATION_SCHEMA_V3
+        else _parse_authority(
+            obj["authority"], f"{path}.authority", path.resolve().parent.parent
+        )
+    )
     lanes = tuple(
         _parse_lane(item, f"{path}.lanes[{index}]", path, schema_version)
         for index, item in enumerate(_array(obj["lanes"], f"{path}.lanes"))
@@ -448,6 +557,7 @@ def load_expectation(path: Path) -> ImplementationExpectation:
         source_contract=_parse_source_contract(
             obj["source_contract"], f"{path}.source_contract"
         ),
+        authority=authority,
         lanes=lanes,
         source_path=path.resolve(),
     )
@@ -457,7 +567,7 @@ def bind_suite_lane(
     expectation: ImplementationExpectation, lane_id: str, suite: Suite
 ) -> ExpectationLane:
     lane = expectation.lane(lane_id)
-    if expectation.schema_version == EXPECTATION_SCHEMA_V2:
+    if expectation.schema_version in (EXPECTATION_SCHEMA_V2, EXPECTATION_SCHEMA_V3):
         if lane.harness.legacy_entrypoint is None:
             raise ContractError(f"lane {lane_id!r} has no legacy JSONL suite")
         entrypoint = (

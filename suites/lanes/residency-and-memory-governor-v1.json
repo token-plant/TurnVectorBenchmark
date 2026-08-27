@@ -22,7 +22,7 @@
   "requirements": {
     "execution_boundary": "benchmark_orchestrated",
     "real_subject_required": true,
-    "external_inputs": ["daemon-worker-build", "memory-sampler"],
+    "external_inputs": ["turnvector-daemon-build", "memory-sampler"],
     "diagnostic_only_cases": []
   }
 }

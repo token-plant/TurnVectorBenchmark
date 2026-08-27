@@ -22,7 +22,7 @@
   "requirements": {
     "execution_boundary": "direct_data_plane",
     "real_subject_required": true,
-    "external_inputs": ["daemon-worker-build", "dense-model", "moe-model"],
+    "external_inputs": ["turnvector-daemon-build", "dense-model", "moe-model"],
     "diagnostic_only_cases": []
   }
 }

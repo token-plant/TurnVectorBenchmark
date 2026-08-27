@@ -5,8 +5,8 @@
     "applicability-drift": {
       "required": ["changed_identity", "record_state"],
       "properties": {
-        "changed_identity": {"enum": ["none", "model_revision", "phase", "batch", "shape", "worker_build", "mlx_build", "protocol_capability", "device_class", "memory_size", "os_version"]},
-        "record_state": {"enum": ["applicable", "missing", "expired", "quarantined", "superseded"]}
+        "changed_identity": {"enum": ["none", "model_revision", "phase", "batch", "shape", "execution_route_identity", "adapter_build", "mlx_build", "backend_interface_revision", "device_class", "gpu_configuration", "memory_size", "os_version", "turnvector_daemon_build", "backend_bootstrap_manifest", "backend_capability_descriptor", "generation_semantics_identity", "backend_resource_signal_contract", "backend_operation_bound_set"]},
+        "record_state": {"enum": ["applicable", "missing", "stale_evidence", "quarantined", "superseded"]}
       },
       "additional_properties": false
     }
