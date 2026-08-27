@@ -490,3 +490,100 @@ class RaceTests(unittest.TestCase):
                 _expect_reject(catalog, root, message="cannot read")
 
 
+class ResourceCapTests(unittest.TestCase):
+
+    def test_per_file_bytes_exact_and_one_past(self):
+        exact = LIMITS.authority_file_bytes_max
+        with tempfile.TemporaryDirectory() as directory:
+            root = _canonical_base(directory) / "source"
+            root.mkdir()
+            catalog = _one_file_catalog(
+                directory, root, content=b"a" * exact, section=(0, 16)
+            )
+            result = verify_obligation_sources(catalog, root)
+            self.assertEqual(result.source_bytes_total, exact)
+        with tempfile.TemporaryDirectory() as directory:
+            root = _canonical_base(directory) / "source"
+            root.mkdir()
+            catalog = _one_file_catalog(
+                directory, root, content=b"a" * (exact + 1), section=(0, 16)
+            )
+            _expect_reject(catalog, root, message="exceeds")
+
+    def test_total_source_bytes_exact_and_one_past(self):
+        per_file = LIMITS.authority_file_bytes_max
+        total = LIMITS.authority_total_bytes_max
+        self.assertEqual(16 * per_file, total)
+        files = {"f%02d.md" % index: b"a" * per_file for index in range(16)}
+        plan = [("f%02d.md" % (index % 16), 0, 16) for index in range(47)]
+        with tempfile.TemporaryDirectory() as directory:
+            root = _canonical_base(directory) / "source"
+            root.mkdir()
+            catalog = _rebuild_catalog(directory, root, files, plan)
+            result = verify_obligation_sources(catalog, root)
+            self.assertEqual(result.source_bytes_total, total)
+        files["tiny.md"] = b"x"
+        plan = [("f%02d.md" % (index % 16), 0, 16) for index in range(46)]
+        plan.append(("tiny.md", 0, 1))
+        with tempfile.TemporaryDirectory() as directory:
+            root = _canonical_base(directory) / "source"
+            root.mkdir()
+            catalog = _rebuild_catalog(directory, root, files, plan)
+            _expect_reject(catalog, root, message="total source bound")
+
+    def test_section_bytes_total_exact_and_one_past(self):
+        cap = LIMITS.authority_section_bytes_total_max
+        content = b"a" * LIMITS.authority_file_bytes_max
+        lengths = [713924] * 43 + [713925] * 4
+        self.assertEqual(sum(lengths), cap)
+        with tempfile.TemporaryDirectory() as directory:
+            root = _canonical_base(directory) / "source"
+            root.mkdir()
+            plan = [("sec.md", 0, length) for length in lengths]
+            catalog = _rebuild_catalog(directory, root, {"sec.md": content}, plan)
+            result = verify_obligation_sources(catalog, root)
+            self.assertEqual(result.section_bytes_total, cap)
+        with tempfile.TemporaryDirectory() as directory:
+            root = _canonical_base(directory) / "source"
+            root.mkdir()
+            lengths[0] += 1
+            plan = [("sec.md", 0, length) for length in lengths]
+            catalog = _rebuild_catalog(directory, root, {"sec.md": content}, plan)
+            _expect_reject(catalog, root, message="section bound")
+
+    def test_per_path_bytes_one_past_rejected_before_open(self):
+        # The per-path cap check runs before any file access, so the file
+        # itself is never created (APFS also limits component length).
+        with tempfile.TemporaryDirectory() as directory:
+            root = _canonical_base(directory) / "source"
+            root.mkdir()
+            long_name = "a" * (LIMITS.execution_closure_path_bytes_max + 1)
+            objects = fixture_objects()
+            for obj in objects[1:]:
+                obj["source_path"] = long_name
+                obj["section_start"] = 0
+                obj["section_end"] = 2
+                obj["section_sha256"] = "0" * 64
+                obj["source_file_sha256"] = "0" * 64
+            catalog = _write_catalog(directory, objects)
+            _expect_reject(catalog, root, message="path bound")
+
+    def test_long_but_legal_path_accepted(self):
+        # A multi-component path well under the per-path cap. APFS limits each
+        # component to 255 bytes and the full path to ~1024 bytes, so the exact
+        # 4096-byte boundary is not creatable; the cap check is strict (>).
+        content = b"0123456789abcdef"
+        component = "d" * 60
+        rel = "/".join(["%s%02d" % (component, index) for index in range(10)]) + "/f.md"
+        self.assertLess(len(rel), LIMITS.execution_closure_path_bytes_max)
+        with tempfile.TemporaryDirectory() as directory:
+            root = _canonical_base(directory) / "source"
+            root.mkdir()
+            plan = [(rel, 0, 8)] * 47
+            catalog = _rebuild_catalog(directory, root, {rel: content}, plan)
+            result = verify_obligation_sources(catalog, root)
+            self.assertEqual(result.path_count, 1)
+
+
+if __name__ == "__main__":
+    unittest.main()
