@@ -1,0 +1,136 @@
+{
+  "design_gate_revision": "3aa2b1911970c86e1cce6d7a3d55f26279b6e76b5fa17aa74aa704beaf01d28a",
+  "id": "source-reconciliation-v1",
+  "mappings": [
+    {
+      "adr_number": "0001",
+      "affected_lane_ids": [
+        "cross-model-serving",
+        "mlx-native-correctness"
+      ],
+      "classification": "material",
+      "current_path": "docs/adr/0001-interleave-bounded-device-turns-for-the-mvp.md",
+      "current_revision": "eedad5faf881da329844463eeaf54d9970350abd",
+      "current_sha256": "74f5b7bfa17cbf8be51e4757e5d02c743ab4313402e42fbb99395e00aff53424",
+      "disposition": "replace_topology_obligations",
+      "old_path": "docs/adr/0001-use-exclusive-device-turns-for-the-mvp.md",
+      "old_revision": "7cbfe2caef3f2f9f95a03e17eb8741ed1acf98a2",
+      "old_sha256": "68f227a43a2367c76e46a088a3a426ed089119454c66c3f24ff9c2321d152512",
+      "summary": "Exclusive single-Model turns become cooperative bounded interleaving under one lifecycle owner thread."
+    },
+    {
+      "adr_number": "0018",
+      "affected_lane_ids": [
+        "bounded-turn-and-ffi",
+        "mlx-native-correctness",
+        "certification-envelopes"
+      ],
+      "classification": "material",
+      "current_path": "docs/adr/0018-default-the-experimental-mlx-backend-to-an-in-process-cpp-interface.md",
+      "current_revision": "eedad5faf881da329844463eeaf54d9970350abd",
+      "current_sha256": "da1ebbe8357bec01e51dd7c99c7c0bdbc93cc79b9fa9a9867f1afbec9c7320dc",
+      "disposition": "replace_topology_obligations",
+      "old_path": "docs/adr/0018-default-the-experimental-mlx-backend-to-a-cpp-interface.md",
+      "old_revision": "7cbfe2caef3f2f9f95a03e17eb8741ed1acf98a2",
+      "old_sha256": "52b8e6f2585287ee0250951634ba8c790cae44b24584d7daade889ca2d9b5a02",
+      "summary": "A Worker/private-IPC backend becomes a statically linked in-process C++ Backend Interface."
+    },
+    {
+      "adr_number": "0019",
+      "affected_lane_ids": [
+        "observability-qualification",
+        "bounded-turn-and-ffi",
+        "mlx-native-correctness",
+        "protocol-and-owner-lifecycle",
+        "certification-envelopes"
+      ],
+      "classification": "material",
+      "current_path": "docs/adr/0019-run-a-rust-daemon-with-an-in-process-cpp-device-runtime.md",
+      "current_revision": "eedad5faf881da329844463eeaf54d9970350abd",
+      "current_sha256": "66c9a8de94cf86c970ca1057b36b61019f555b64082a08314558b3012e556a4c",
+      "disposition": "replace_topology_obligations",
+      "old_path": "docs/adr/0019-run-a-rust-daemon-with-a-cpp-device-worker.md",
+      "old_revision": "7cbfe2caef3f2f9f95a03e17eb8741ed1acf98a2",
+      "old_sha256": "2444704a780031f34453c318f7b0d84efac0f5b6b2f09b25e9823fc61e6ba492",
+      "summary": "A separate C++ Worker becomes the same-process Rust daemon, Device Executor, and C++/MLX runtime."
+    },
+    {
+      "adr_number": "0020",
+      "affected_lane_ids": [
+        "mlx-native-correctness",
+        "protocol-and-owner-lifecycle",
+        "certification-envelopes"
+      ],
+      "classification": "material",
+      "current_path": "docs/adr/0020-use-a-narrow-in-process-backend-interface.md",
+      "current_revision": "eedad5faf881da329844463eeaf54d9970350abd",
+      "current_sha256": "f9aa39bfc5d54e82b42a57f9eb0fd2fa65d4d30adcb5ac0ef7c8fa168fceda29",
+      "disposition": "replace_topology_obligations",
+      "old_path": "docs/adr/0020-version-and-serialize-the-private-backend-protocol.md",
+      "old_revision": "7cbfe2caef3f2f9f95a03e17eb8741ed1acf98a2",
+      "old_sha256": "8d92c4de54fecbb8e698095a633678cb71f89669b337f5cedf86400a033c0f1e",
+      "summary": "A framed private Backend Protocol becomes a narrow direct in-process operation family."
+    },
+    {
+      "adr_number": "0029",
+      "affected_lane_ids": [
+        "protocol-and-owner-lifecycle"
+      ],
+      "classification": "material",
+      "current_path": "docs/adr/0029-recover-one-device-owner-after-daemon-failure.md",
+      "current_revision": "eedad5faf881da329844463eeaf54d9970350abd",
+      "current_sha256": "11b85af974aeb68504f49a7250fd145c724e8e18c67acda83894b04761fb48d6",
+      "disposition": "replace_topology_obligations",
+      "old_path": "docs/adr/0029-supervise-one-device-owner-across-process-failure.md",
+      "old_revision": "7cbfe2caef3f2f9f95a03e17eb8741ed1acf98a2",
+      "old_sha256": "864ddfeadc1e0e27c01ea91528b344b53033104bd9acc17fa2f1be3abbed6c1c",
+      "summary": "Worker lease/reclaim becomes process-wide daemon failure and next-daemon recovery with no distinct MLX process or device lease."
+    },
+    {
+      "adr_number": "0030",
+      "affected_lane_ids": [
+        "request-serving-lifecycle",
+        "protocol-and-owner-lifecycle"
+      ],
+      "classification": "scope_clarification",
+      "current_path": "docs/adr/0030-bound-ingress-and-keep-external-io-off-the-device-loop.md",
+      "current_revision": "eedad5faf881da329844463eeaf54d9970350abd",
+      "current_sha256": "b6851205213fda7a544034672ee5f3c0a3e08938cfe2b2b887413b4b38f481ca",
+      "disposition": "retain_with_scope_update",
+      "old_path": "docs/adr/0030-bound-ingress-and-keep-the-core-loop-nonblocking.md",
+      "old_revision": "7cbfe2caef3f2f9f95a03e17eb8741ed1acf98a2",
+      "old_sha256": "2665f574f100f9fb3202ed36bc88442d5bf7d7cd1fbf79b285ed5b5a358eaddc",
+      "summary": "Synchronous bounded Backend work may occupy the Device Executor, while socket, storage, audit, and all other external I/O remain off the Device Loop under scheduling-cut interference bounds."
+    },
+    {
+      "adr_number": "0035",
+      "affected_lane_ids": [
+        "protocol-and-owner-lifecycle"
+      ],
+      "classification": "material",
+      "current_path": "docs/adr/0035-use-protobuf-for-versioned-local-client-protocols.md",
+      "current_revision": "eedad5faf881da329844463eeaf54d9970350abd",
+      "current_sha256": "dbded0932873dcf601b835a668ac0ba76dded03a04c2a095406f8f532f97c1ff",
+      "disposition": "replace_topology_obligations",
+      "old_path": "docs/adr/0035-use-protobuf-with-independent-protocol-versions.md",
+      "old_revision": "7cbfe2caef3f2f9f95a03e17eb8741ed1acf98a2",
+      "old_sha256": "4b236ac1b5080144729452b4e2f0b9f7f9df1e43cfba0a62cff0eb408cd8e117",
+      "summary": "Protobuf versioning remains for local Data and Control clients and is explicitly decoupled from the in-process Backend Interface."
+    }
+  ],
+  "predecessor_expectation": {
+    "exact_file_sha256": "81d5739e2bd667207e2706b8371db6827f313779a99253b3ed79222c6db9a0a7",
+    "id": "turnvector-implementation-v1",
+    "source_revision": "7cbfe2caef3f2f9f95a03e17eb8741ed1acf98a2"
+  },
+  "schema_version": "turnvector.benchmark.source-reconciliation.v1",
+  "successor_expectation": {
+    "id": "turnvector-implementation-v2",
+    "schema_version": "turnvector.benchmark.expectation.v3"
+  },
+  "target_source": {
+    "clean_required": true,
+    "repository": "TurnVector",
+    "revision": "eedad5faf881da329844463eeaf54d9970350abd"
+  }
+}
