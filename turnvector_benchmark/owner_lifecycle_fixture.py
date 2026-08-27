@@ -9,8 +9,10 @@ production evidence.
 
 The successor owner-lifecycle lane preserves 24 CasePlans through the six
 ``daemon_outcome`` values by four ``client_protocol_relation`` values below.
-PR 3 installs this fixture and its inactive selection seam; PR 4 activates the
-lane through the fixture-taint interlock.
+PR 3 installed this fixture and its selection seam; PR 4 activates the lane
+through the absorbing fixture-taint interlock, so selecting the fixture always
+publishes ``benchmark_fixture`` provenance and makes the run
+``not_claimable_fixture``.
 """
 
 from __future__ import annotations
@@ -129,11 +131,14 @@ FIXTURE_DESCRIPTORS: Mapping[str, Mapping[str, Any]] = {
     OWNER_LIFECYCLE_FIXTURE_ID: OWNER_LIFECYCLE_FIXTURE_DESCRIPTOR,
 }
 
-#: Inactive in PR 3: maps a selected lane to a benchmark fixture ID. The active
-#: runner registry never consults it today; PR 4 activates the owner-lifecycle
-#: lane through this seam under the already-active absorbing fixture-taint
-#: interlock. Tests patch this mapping to prove the interlock end to end.
-FIXTURE_SELECTION_SEAM: Dict[str, str] = {}
+#: Active fixture selection seam: maps a selected lane to a benchmark fixture
+#: ID. PR 4 activates the owner-lifecycle lane through this seam under the
+#: already-active absorbing fixture-taint interlock; selecting the fixture
+#: taints the run before any case START and makes it not_claimable_fixture.
+#: Tests patch this mapping to prove the interlock end to end.
+FIXTURE_SELECTION_SEAM: Dict[str, str] = {
+    "protocol-and-owner-lifecycle": OWNER_LIFECYCLE_FIXTURE_ID,
+}
 
 
 def known_fixture_ids() -> Tuple[str, ...]:

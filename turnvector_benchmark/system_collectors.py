@@ -69,7 +69,7 @@ def system_pressure_snapshot() -> Mapping[str, Any]:
 
 
 class ProcessMemorySampler:
-    """Benchmark-owned RSS sampler that never relies on Worker allocator totals."""
+    """Benchmark-owned RSS sampler that never relies on allocator-reported totals."""
 
     def __init__(self, process_ids: Sequence[int], interval_seconds: float = 0.05) -> None:
         if not process_ids or any(isinstance(pid, bool) or not isinstance(pid, int) or pid <= 0 for pid in process_ids):

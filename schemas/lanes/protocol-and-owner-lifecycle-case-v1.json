@@ -1,0 +1,14 @@
+{
+  "schema_version": "turnvector.benchmark.case-schema.v1",
+  "lane_id": "protocol-and-owner-lifecycle",
+  "matrices": {
+    "daemon-outcome": {
+      "required": ["daemon_outcome", "client_protocol_relation"],
+      "properties": {
+        "daemon_outcome": {"enum": ["normal", "failure_before_backend_initialization", "failure_during_turn", "safe_point_timeout", "malformed_client_frame", "duplicate_client_command"]},
+        "client_protocol_relation": {"enum": ["exact", "compatible", "incompatible", "unknown_capability"]}
+      },
+      "additional_properties": false
+    }
+  }
+}
