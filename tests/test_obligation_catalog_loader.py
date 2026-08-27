@@ -447,3 +447,147 @@ class ObligationContractViolationTests(unittest.TestCase):
         )
 
 
+class ReadinessBlockerAlgebraTests(unittest.TestCase):
+
+    def _mutate_status(self, index, required, status, blockers):
+        def mutator(objects):
+            record = objects[index]
+            record["required"] = required
+            record["readiness_status"] = status
+            record["blocker_ids"] = blockers
+
+        expect_contract_error(mutator)
+
+    def test_required_out_of_scope_rejected(self):
+        self._mutate_status(1, True, "intentionally_out_of_scope", [])
+
+    def test_optional_design_ready_rejected(self):
+        self._mutate_status(1, False, "design_ready", [])
+
+    def test_optional_blocked_rejected(self):
+        self._mutate_status(1, False, "adapter_blocked", ["b1"])
+
+    def test_optional_with_blockers_rejected(self):
+        self._mutate_status(1, False, "intentionally_out_of_scope", ["b1"])
+
+    def test_design_ready_with_blockers_rejected(self):
+        self._mutate_status(1, True, "design_ready", ["b1"])
+
+    def test_blocked_without_blockers_rejected(self):
+        self._mutate_status(1, True, "adapter_blocked", [])
+        self._mutate_status(1, True, "environment_blocked", [])
+
+    def test_unknown_status_rejected(self):
+        self._mutate_status(1, True, "ready_soon", [])
+
+    def test_optional_out_of_scope_is_accepted(self):
+        # The committed fixture already carries one required=false record; a
+        # mutated optional record with a fresh lane/behavior identity still
+        # loads because optional records are outside O_p.
+        catalog = load_variant(
+            lambda objects: objects[-1].update(
+                {
+                    "lane_id": "core-event-replay",
+                    "behavior_case_id": "synthetic-case-0099",
+                }
+            )
+        )
+        optional = [record for record in catalog.obligations if not record.required]
+        self.assertEqual(len(optional), 1)
+        self.assertEqual(optional[0].readiness_status, "intentionally_out_of_scope")
+        self.assertEqual(optional[0].lane_id, "core-event-replay")
+
+    def test_all_16_readiness_combinations_exactly_four_accepted(self):
+        # The abstract product state has 2*4*2 = 16 combinations; the exact
+        # four-state truth table admits exactly four and rejects the other 12.
+        accepted = set()
+        for required in (True, False):
+            for status in (
+                READY_STATUS,
+                ADAPTER_BLOCKED_STATUS,
+                ENVIRONMENT_BLOCKED_STATUS,
+                OUT_OF_SCOPE_STATUS,
+            ):
+                for blockers in ((), ("b1",)):
+                    try:
+                        _check_readiness_algebra(required, status, blockers, "x")
+                    except ContractError:
+                        continue
+                    accepted.add((required, status, bool(blockers)))
+        self.assertEqual(
+            accepted,
+            {
+                (True, READY_STATUS, False),
+                (True, ADAPTER_BLOCKED_STATUS, True),
+                (True, ENVIRONMENT_BLOCKED_STATUS, True),
+                (False, OUT_OF_SCOPE_STATUS, False),
+            },
+        )
+
+    def test_required_valid_combinations_load(self):
+        for status, blockers in (
+            (READY_STATUS, []),
+            (ADAPTER_BLOCKED_STATUS, ["b1"]),
+            (ENVIRONMENT_BLOCKED_STATUS, ["b1"]),
+        ):
+            with self.subTest(status=status):
+                catalog = load_variant(
+                    lambda objects, status=status, blockers=blockers: objects[1].update(
+                        {
+                            "required": True,
+                            "readiness_status": status,
+                            "blocker_ids": blockers,
+                        }
+                    )
+                )
+                self.assertEqual(catalog.obligations[0].readiness_status, status)
+
+
+class DesignGateRevisionTests(unittest.TestCase):
+    """Every obligation design_gate_revision must equal the header's."""
+
+    def test_mixed_obligation_revision_rejected(self):
+        expect_contract_error(
+            lambda objects: objects[1].update({"design_gate_revision": "99" * 32}),
+            message="design_gate_revision",
+        )
+
+    def test_header_revision_change_rejected(self):
+        expect_contract_error(
+            lambda objects: objects[0].update({"design_gate_revision": "99" * 32}),
+            message="design_gate_revision",
+        )
+
+
+class OptionalPairUniquenessTests(unittest.TestCase):
+    """(lane_id, behavior_case_id) is unique across required and optional."""
+
+    def _append_second_optional(self, objects):
+        second = copy.deepcopy(objects[-1])
+        second["id"] = "obligation-0048"
+        second["behavior_case_id"] = "synthetic-case-0048"
+        objects.append(second)
+        objects[0]["record_count"] = len(objects)
+        return second
+
+    def test_duplicate_optional_pair_rejected(self):
+        def mutator(objects):
+            second = self._append_second_optional(objects)
+            second["behavior_case_id"] = objects[-2]["behavior_case_id"]
+
+        expect_contract_error(mutator, message="unique")
+
+    def test_required_optional_duplicate_pair_rejected(self):
+        expect_contract_error(
+            lambda objects: objects[-1].update(
+                {
+                    "lane_id": objects[1]["lane_id"],
+                    "behavior_case_id": objects[1]["behavior_case_id"],
+                }
+            ),
+            message="unique",
+        )
+
+
+if __name__ == "__main__":
+    unittest.main()
