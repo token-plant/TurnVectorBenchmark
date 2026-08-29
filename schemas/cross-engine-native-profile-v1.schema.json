@@ -1,0 +1,90 @@
+{
+  "$defs": {
+    "digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "type": "string"
+    },
+    "id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]*$",
+      "type": "string"
+    },
+    "nonnegative_integer": {
+      "minimum": 0,
+      "type": "integer"
+    },
+    "positive_integer": {
+      "minimum": 1,
+      "type": "integer"
+    }
+  },
+  "$id": "https://token-plant.github.io/TurnVectorBenchmark/schemas/cross-engine-native-profile-v1.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "cooldown_seconds": {
+      "minimum": 0,
+      "type": "number"
+    },
+    "measurement_surface": {
+      "const": "native_inference"
+    },
+    "model_sha256": {
+      "$ref": "#/$defs/digest"
+    },
+    "output_tokens": {
+      "$ref": "#/$defs/positive_integer"
+    },
+    "plan_id": {
+      "$ref": "#/$defs/id"
+    },
+    "prompt_tokens": {
+      "items": {
+        "$ref": "#/$defs/positive_integer"
+      },
+      "minItems": 1,
+      "type": "array",
+      "uniqueItems": true
+    },
+    "repetitions": {
+      "$ref": "#/$defs/positive_integer"
+    },
+    "sampling_policy": {
+      "enum": [
+        "greedy",
+        "sampled"
+      ]
+    },
+    "schema_version": {
+      "const": "turnvector.benchmark.cross-engine-native-inference.v1"
+    },
+    "tokenizer_sha256": {
+      "$ref": "#/$defs/digest"
+    },
+    "tool_id": {
+      "enum": [
+        "mlx-lm-benchmark",
+        "ax-engine-native",
+        "llama-cpp-bench",
+        "turnvector-native"
+      ]
+    },
+    "warmups": {
+      "$ref": "#/$defs/nonnegative_integer"
+    }
+  },
+  "required": [
+    "schema_version",
+    "plan_id",
+    "tool_id",
+    "model_sha256",
+    "tokenizer_sha256",
+    "prompt_tokens",
+    "output_tokens",
+    "warmups",
+    "repetitions",
+    "cooldown_seconds",
+    "sampling_policy",
+    "measurement_surface"
+  ],
+  "type": "object"
+}

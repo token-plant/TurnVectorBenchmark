@@ -1,0 +1,4 @@
+fixture source residency-and-memory-governor shared-pending-load
+fixture source residency-and-memory-governor lease-safe-unload
+fixture source residency-and-memory-governor pending-reclaim
+fixture source residency-and-memory-governor pressure-order

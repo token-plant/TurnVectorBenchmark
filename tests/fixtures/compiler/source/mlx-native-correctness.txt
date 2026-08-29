@@ -1,0 +1,4 @@
+fixture source mlx-native-correctness owner-thread-stream
+fixture source mlx-native-correctness cross-thread-rejection
+fixture source mlx-native-correctness complete-output-parity
+fixture source mlx-native-correctness native-error-cleanup

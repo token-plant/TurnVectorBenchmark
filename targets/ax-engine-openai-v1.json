@@ -1,0 +1,205 @@
+{
+  "adapter": {
+    "arguments": [
+      "serve",
+      "{model_root}",
+      "--host",
+      "127.0.0.1",
+      "--port",
+      "{port}"
+    ],
+    "environment_names": [],
+    "id": "ax-engine-openai-server-adapter-v1",
+    "protocol_version": "turnvector.benchmark.cross-engine-lifecycle.v1",
+    "registered_command": "ax-engine-openai-server",
+    "stderr_limit_bytes": 1048576,
+    "version": "v1",
+    "working_directory": "{target_checkout}"
+  },
+  "capabilities": {
+    "cancellation": {
+      "reason_code": null,
+      "status": "supported"
+    },
+    "mtp": {
+      "reason_code": null,
+      "status": "supported"
+    },
+    "multi_model": {
+      "reason_code": null,
+      "status": "supported"
+    },
+    "native_output_identity": {
+      "reason_code": null,
+      "status": "supported"
+    },
+    "openai_chat_completions": {
+      "reason_code": null,
+      "status": "supported"
+    },
+    "prefix_cache_disk": {
+      "reason_code": null,
+      "status": "supported"
+    },
+    "prefix_cache_memory": {
+      "reason_code": null,
+      "status": "supported"
+    },
+    "process_memory_attribution": {
+      "reason_code": null,
+      "status": "supported"
+    },
+    "restartable_state": {
+      "reason_code": null,
+      "status": "supported"
+    },
+    "route_reporting": {
+      "reason_code": null,
+      "status": "supported"
+    },
+    "seed": {
+      "reason_code": null,
+      "status": "supported"
+    },
+    "server_queue_metrics": {
+      "reason_code": null,
+      "status": "supported"
+    },
+    "stream_usage": {
+      "reason_code": null,
+      "status": "supported"
+    },
+    "streaming_sse": {
+      "reason_code": null,
+      "status": "supported"
+    },
+    "usage_accounting_or_benchmark_tokenizer": {
+      "reason_code": null,
+      "status": "supported"
+    }
+  },
+  "dependencies": [
+    {
+      "id": "http-stack",
+      "sha256": "00b7ee4fb6bff63e66cfa4860338c49b0fad42ebd963090e70349dd74b561320",
+      "version": "example-pinned-v1"
+    }
+  ],
+  "enabled": false,
+  "endpoint": {
+    "api_flavor": "chat_completions",
+    "authentication_env_var": null,
+    "output_bound_field": "max_completion_tokens",
+    "protocol_family": "openai-compatible",
+    "protocol_version": "turnvector.benchmark.openai-serving.v1",
+    "stream_format": "sse-data-json",
+    "transport": "http"
+  },
+  "engine_family": "ax-engine",
+  "executables": [
+    {
+      "id": "ax-engine",
+      "path": "{target_checkout}/bin/ax-engine",
+      "sha256": "8c1a619b7134f0f93433cdcbb24e38e931343e1fba6db2d15c9568432fb6c59d"
+    }
+  ],
+  "id": "ax-engine-openai-v1",
+  "manifest_purpose": "example",
+  "model": {
+    "architecture_sha256": "aaea2c9580c10e154d11b5948d9cd8cf29f778d86a3e245c2d070e05b8b1caf3",
+    "chat_template_sha256": "3e6ef517813627186d9b5a57f46f1744abaa1e58c61ebb04948a3eae642cf7a6",
+    "id": "qwen3-27b-example",
+    "mtp_sidecar_sha256": "56c81b35b5505022978c9dff04e49dac3c55adcf5b8a57d7f64283ab1b673a38",
+    "quantization": {
+      "algorithm": "int4-groupwise",
+      "bit_width": 4,
+      "group_size": 64,
+      "tensor_coverage_sha256": "478a7e4ebec4aaee8cb42852e02b2aaa25bbdd414ee075ec55308d0f398da8f4"
+    },
+    "revision": "934b918259e7648be511ecf168a0ff593e6cf34a",
+    "runtime_config_sha256": "1450de54d6087ba8302c4e8e832b64a54250e8df3c0cf13004627515eb7887bb",
+    "snapshot_sha256": "09d1f4e1b2dd9c33fd06494c5aef0ab2e021988fa3684996b6d3d66c46b199f8",
+    "tokenizer_id": "qwen-tokenizer-v1",
+    "tokenizer_sha256": "f516d211540d04bc44da37c4b6a1f8ee1d636320cef51e75f42e2061052bd5ec",
+    "upstream_repository": "https://huggingface.co/Qwen/Qwen3-30B-A3B"
+  },
+  "process_topology": {
+    "deployment": "controller_with_workers",
+    "expected_processes": 1,
+    "listener_process": "leader"
+  },
+  "route_mapper_version": "ax-engine-route-v1",
+  "scenario_support": [
+    {
+      "reason_code": null,
+      "scenario_id": "cancellation-and-disconnect",
+      "status": "supported"
+    },
+    {
+      "reason_code": null,
+      "scenario_id": "closed-loop-concurrency",
+      "status": "supported"
+    },
+    {
+      "reason_code": null,
+      "scenario_id": "deterministic-repeat",
+      "status": "supported"
+    },
+    {
+      "reason_code": null,
+      "scenario_id": "long-context-serving",
+      "status": "supported"
+    },
+    {
+      "reason_code": null,
+      "scenario_id": "mtp-acceleration",
+      "status": "supported"
+    },
+    {
+      "reason_code": null,
+      "scenario_id": "multi-model-coexistence",
+      "status": "supported"
+    },
+    {
+      "reason_code": null,
+      "scenario_id": "open-loop-load-sweep",
+      "status": "supported"
+    },
+    {
+      "reason_code": null,
+      "scenario_id": "prefill-vs-decode-interference",
+      "status": "supported"
+    },
+    {
+      "reason_code": null,
+      "scenario_id": "prefix-churn-pressure",
+      "status": "supported"
+    },
+    {
+      "reason_code": null,
+      "scenario_id": "prefix-restart-restore",
+      "status": "supported"
+    },
+    {
+      "reason_code": null,
+      "scenario_id": "route-fallback",
+      "status": "supported"
+    },
+    {
+      "reason_code": null,
+      "scenario_id": "shared-prefix-fanout",
+      "status": "supported"
+    },
+    {
+      "reason_code": null,
+      "scenario_id": "single-client-streaming",
+      "status": "supported"
+    }
+  ],
+  "schema_version": "turnvector.benchmark.cross-engine-target.v1",
+  "source": {
+    "dirty": false,
+    "repository": "https://github.com/defai-digital/ax-engine",
+    "revision": "7a515436a29a30872e21217ee58cd17573aa4243"
+  }
+}

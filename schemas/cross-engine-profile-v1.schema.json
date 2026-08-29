@@ -1,0 +1,657 @@
+{
+  "$defs": {
+    "artifact_limits": {
+      "additionalProperties": false,
+      "properties": {
+        "diagnostic_count_max": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "max_artifacts": {
+          "minimum": 1,
+          "type": "integer"
+        },
+        "max_file_bytes": {
+          "minimum": 1,
+          "type": "integer"
+        },
+        "max_total_bytes": {
+          "minimum": 1,
+          "type": "integer"
+        },
+        "stderr_bytes_max": {
+          "minimum": 0,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "max_file_bytes",
+        "max_total_bytes",
+        "max_artifacts",
+        "diagnostic_count_max",
+        "stderr_bytes_max"
+      ],
+      "type": "object"
+    },
+    "comparison_policy": {
+      "additionalProperties": false,
+      "properties": {
+        "allowed_forms": {
+          "oneOf": [
+            {
+              "const": [
+                "absolute"
+              ]
+            },
+            {
+              "const": [
+                "absolute",
+                "paired_delta",
+                "regression"
+              ]
+            }
+          ]
+        },
+        "coverage_disclosure_required": {
+          "const": true
+        },
+        "intersection_only": {
+          "const": true
+        },
+        "model_equivalence_classes": {
+          "const": [
+            "exact_artifact",
+            "same_source_model",
+            "shape_matched",
+            "capability_demo"
+          ]
+        },
+        "paired_order": {
+          "const": "balanced_or_alternating"
+        },
+        "ratio_aggregation": {
+          "const": "mean_of_paired_ratios"
+        },
+        "workload_contracts": {
+          "const": [
+            "same_api_workload",
+            "same_resolved_model_work"
+          ]
+        },
+        "zero_common_cells": {
+          "const": "no_comparison_row"
+        }
+      },
+      "required": [
+        "allowed_forms",
+        "workload_contracts",
+        "model_equivalence_classes",
+        "intersection_only",
+        "zero_common_cells",
+        "paired_order",
+        "ratio_aggregation",
+        "coverage_disclosure_required"
+      ],
+      "type": "object"
+    },
+    "digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "type": "string"
+    },
+    "execution_policy": {
+      "additionalProperties": false,
+      "properties": {
+        "cache_isolation": {
+          "const": "scenario_declared_and_proved"
+        },
+        "connection_policy": {
+          "const": "scenario_frozen"
+        },
+        "cooldown_policy": {
+          "const": "scenario_frozen"
+        },
+        "outlier_policy": {
+          "const": "no_deletion"
+        },
+        "primary_attempt_policy": {
+          "const": "first_eligible_attempt"
+        },
+        "process_isolation": {
+          "const": "scenario_declared_and_proved"
+        },
+        "repetition_order": {
+          "const": "ascending_zero_based"
+        },
+        "retry_policy": {
+          "const": "contract_or_environment_invalid_only"
+        },
+        "target_order": {
+          "const": "balanced_or_alternating"
+        },
+        "warmup_order": {
+          "const": "before_measured_repetitions"
+        }
+      },
+      "required": [
+        "process_isolation",
+        "cache_isolation",
+        "target_order",
+        "warmup_order",
+        "repetition_order",
+        "cooldown_policy",
+        "retry_policy",
+        "outlier_policy",
+        "primary_attempt_policy",
+        "connection_policy"
+      ],
+      "type": "object"
+    },
+    "gate": {
+      "additionalProperties": false,
+      "properties": {
+        "decision": {
+          "enum": [
+            "evidence",
+            "promotion"
+          ]
+        },
+        "expected": {
+          "type": "number"
+        },
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "metric": {
+          "$ref": "#/$defs/id"
+        },
+        "operator": {
+          "enum": [
+            "eq",
+            "gte",
+            "lte"
+          ]
+        }
+      },
+      "required": [
+        "id",
+        "metric",
+        "operator",
+        "expected",
+        "decision"
+      ],
+      "type": "object"
+    },
+    "git_sha": {
+      "pattern": "^[0-9a-f]{40}$",
+      "type": "string"
+    },
+    "host_admission": {
+      "additionalProperties": false,
+      "properties": {
+        "allowed_memory_pressure": {
+          "items": {
+            "enum": [
+              "normal"
+            ]
+          },
+          "minItems": 1,
+          "type": "array",
+          "uniqueItems": true
+        },
+        "allowed_thermal_states": {
+          "items": {
+            "enum": [
+              "nominal",
+              "fair"
+            ]
+          },
+          "minItems": 1,
+          "type": "array",
+          "uniqueItems": true
+        },
+        "competing_process_policy": {
+          "const": "record_and_reject_above_limits"
+        },
+        "external_power_required": {
+          "const": true
+        },
+        "low_power_mode": {
+          "const": "forbidden"
+        },
+        "max_load_average_1m": {
+          "minimum": 0,
+          "type": "number"
+        },
+        "max_swap_bytes": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "max_top_process_cpu_percent": {
+          "maximum": 100,
+          "minimum": 0,
+          "type": "number"
+        }
+      },
+      "required": [
+        "external_power_required",
+        "low_power_mode",
+        "allowed_thermal_states",
+        "max_load_average_1m",
+        "max_top_process_cpu_percent",
+        "allowed_memory_pressure",
+        "max_swap_bytes",
+        "competing_process_policy"
+      ],
+      "type": "object"
+    },
+    "id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]*$",
+      "type": "string"
+    },
+    "ids": {
+      "items": {
+        "$ref": "#/$defs/id"
+      },
+      "type": "array",
+      "uniqueItems": true
+    },
+    "lifecycle_timeouts": {
+      "additionalProperties": false,
+      "properties": {
+        "describe_endpoint": {
+          "exclusiveMinimum": 0,
+          "maximum": 3600,
+          "type": "number"
+        },
+        "hello": {
+          "exclusiveMinimum": 0,
+          "maximum": 3600,
+          "type": "number"
+        },
+        "prepare_session": {
+          "exclusiveMinimum": 0,
+          "maximum": 3600,
+          "type": "number"
+        },
+        "reset_state": {
+          "exclusiveMinimum": 0,
+          "maximum": 3600,
+          "type": "number"
+        },
+        "shutdown": {
+          "exclusiveMinimum": 0,
+          "maximum": 3600,
+          "type": "number"
+        },
+        "start_target": {
+          "exclusiveMinimum": 0,
+          "maximum": 3600,
+          "type": "number"
+        },
+        "stop_target": {
+          "exclusiveMinimum": 0,
+          "maximum": 3600,
+          "type": "number"
+        }
+      },
+      "required": [
+        "hello",
+        "prepare_session",
+        "start_target",
+        "describe_endpoint",
+        "reset_state",
+        "stop_target",
+        "shutdown"
+      ],
+      "type": "object"
+    },
+    "metric_group": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "enum": [
+            "route_reporting",
+            "prefix_cache_memory",
+            "prefix_cache_disk",
+            "mtp",
+            "multi_model",
+            "cancellation",
+            "server_queue_metrics",
+            "process_memory_attribution",
+            "restartable_state",
+            "native_output_identity"
+          ]
+        },
+        "metrics": {
+          "items": {
+            "$ref": "#/$defs/id"
+          },
+          "minItems": 1,
+          "type": "array",
+          "uniqueItems": true
+        },
+        "required_capabilities": {
+          "items": {
+            "$ref": "#/$defs/id"
+          },
+          "minItems": 1,
+          "type": "array",
+          "uniqueItems": true
+        }
+      },
+      "required": [
+        "id",
+        "required_capabilities",
+        "metrics"
+      ],
+      "type": "object"
+    },
+    "nonempty": {
+      "maxLength": 4096,
+      "minLength": 1,
+      "type": "string"
+    },
+    "nonnegative_integer": {
+      "minimum": 0,
+      "type": "integer"
+    },
+    "plan_policy": {
+      "additionalProperties": false,
+      "properties": {
+        "case_id_format": {
+          "const": "openai-serving.{scenario_id}.{matrix_id}.c{cell_ordinal:04d}.r{repetition:02d}"
+        },
+        "dimension_order": {
+          "const": "declared"
+        },
+        "dimension_value_order": {
+          "const": "declared"
+        },
+        "matrix_order": {
+          "const": "declared"
+        },
+        "pairing_id_format": {
+          "const": "openai-serving.{scenario_id}.{matrix_id}.c{cell_ordinal:04d}"
+        },
+        "repetition_order": {
+          "const": "ascending_zero_based"
+        },
+        "scenario_order": {
+          "const": "lexical_by_id"
+        }
+      },
+      "required": [
+        "scenario_order",
+        "matrix_order",
+        "dimension_order",
+        "dimension_value_order",
+        "repetition_order",
+        "case_id_format",
+        "pairing_id_format"
+      ],
+      "type": "object"
+    },
+    "positive_integer": {
+      "minimum": 1,
+      "type": "integer"
+    },
+    "publication_policy": {
+      "additionalProperties": false,
+      "properties": {
+        "client_amortization_favorable_claims": {
+          "const": "forbidden"
+        },
+        "composite_winner_score": {
+          "const": "forbidden"
+        },
+        "cross_target_favorable_claims": {
+          "const": "forbidden"
+        },
+        "diagnostic_imports_satisfy_gates": {
+          "const": false
+        },
+        "negative_performance_publishable": {
+          "const": true
+        },
+        "qualification_claims": {
+          "const": "forbidden"
+        },
+        "raw_trials_required": {
+          "const": true
+        },
+        "summary_recomputed": {
+          "const": true
+        }
+      },
+      "required": [
+        "raw_trials_required",
+        "summary_recomputed",
+        "diagnostic_imports_satisfy_gates",
+        "composite_winner_score",
+        "qualification_claims",
+        "client_amortization_favorable_claims",
+        "negative_performance_publishable"
+      ],
+      "type": "object"
+    },
+    "reducers": {
+      "additionalProperties": false,
+      "properties": {
+        "aggregates": {
+          "const": [
+            "count",
+            "sum",
+            "min",
+            "max",
+            "mean"
+          ]
+        },
+        "percentile_method": {
+          "const": "nearest_rank"
+        },
+        "percentiles": {
+          "const": [
+            50,
+            95,
+            99
+          ]
+        },
+        "unavailable_policy": {
+          "const": "count_and_exclude_only_when_predeclared"
+        }
+      },
+      "required": [
+        "percentile_method",
+        "percentiles",
+        "aggregates",
+        "unavailable_policy"
+      ],
+      "type": "object"
+    },
+    "scenario_ref": {
+      "additionalProperties": false,
+      "properties": {
+        "activation": {
+          "enum": [
+            "required_common",
+            "capability_conditioned"
+          ]
+        },
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "path": {
+          "pattern": "^scenarios/openai-serving-[a-z0-9._-]+\\.json$",
+          "type": "string"
+        },
+        "sha256": {
+          "$ref": "#/$defs/digest"
+        }
+      },
+      "required": [
+        "id",
+        "path",
+        "sha256",
+        "activation"
+      ],
+      "type": "object"
+    }
+  },
+  "$id": "https://token-plant.github.io/TurnVectorBenchmark/schemas/cross-engine-profile-v1.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "id": {
+            "const": "mlx-lm-openai-serving-publication-v1"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      },
+      "then": {
+        "properties": {
+          "claim_scope": {
+            "const": "absolute_single_target"
+          },
+          "comparison_policy": {
+            "properties": {
+              "allowed_forms": {
+                "const": [
+                  "absolute"
+                ]
+              }
+            }
+          },
+          "publication_policy": {
+            "required": [
+              "cross_target_favorable_claims"
+            ]
+          },
+          "response_dialect": {
+            "const": "mlx_lm_0_31"
+          }
+        },
+        "required": [
+          "claim_scope",
+          "response_dialect"
+        ]
+      }
+    }
+  ],
+  "properties": {
+    "artifact_limits": {
+      "$ref": "#/$defs/artifact_limits"
+    },
+    "capability_conditioned_metric_groups": {
+      "items": {
+        "$ref": "#/$defs/metric_group"
+      },
+      "minItems": 1,
+      "type": "array"
+    },
+    "claim_scope": {
+      "enum": [
+        "absolute_single_target",
+        "cross_engine_comparison"
+      ]
+    },
+    "comparison_policy": {
+      "$ref": "#/$defs/comparison_policy"
+    },
+    "description": {
+      "maxLength": 1024,
+      "minLength": 1,
+      "type": "string"
+    },
+    "evidence_gates": {
+      "items": {
+        "$ref": "#/$defs/gate"
+      },
+      "minItems": 1,
+      "type": "array"
+    },
+    "execution_policy": {
+      "$ref": "#/$defs/execution_policy"
+    },
+    "host_admission": {
+      "$ref": "#/$defs/host_admission"
+    },
+    "id": {
+      "enum": [
+        "cross-engine-openai-serving-v1",
+        "mlx-lm-openai-serving-publication-v1"
+      ]
+    },
+    "lifecycle_timeouts_seconds": {
+      "$ref": "#/$defs/lifecycle_timeouts"
+    },
+    "measurement_surface": {
+      "const": "openai_serving"
+    },
+    "plan_policy": {
+      "$ref": "#/$defs/plan_policy"
+    },
+    "promotion_gates": {
+      "items": {
+        "$ref": "#/$defs/gate"
+      },
+      "minItems": 1,
+      "type": "array"
+    },
+    "publication_policy": {
+      "$ref": "#/$defs/publication_policy"
+    },
+    "reducers": {
+      "$ref": "#/$defs/reducers"
+    },
+    "required_conventional_metrics": {
+      "items": {
+        "$ref": "#/$defs/id"
+      },
+      "minItems": 1,
+      "type": "array",
+      "uniqueItems": true
+    },
+    "response_dialect": {
+      "enum": [
+        "strict_v1",
+        "mlx_lm_0_31"
+      ]
+    },
+    "scenario_sets": {
+      "items": {
+        "$ref": "#/$defs/scenario_ref"
+      },
+      "maxItems": 16,
+      "minItems": 1,
+      "type": "array"
+    },
+    "schema_version": {
+      "const": "turnvector.benchmark.cross-engine-profile.v1"
+    }
+  },
+  "required": [
+    "schema_version",
+    "id",
+    "description",
+    "measurement_surface",
+    "scenario_sets",
+    "plan_policy",
+    "required_conventional_metrics",
+    "capability_conditioned_metric_groups",
+    "execution_policy",
+    "lifecycle_timeouts_seconds",
+    "host_admission",
+    "reducers",
+    "evidence_gates",
+    "promotion_gates",
+    "comparison_policy",
+    "publication_policy",
+    "artifact_limits"
+  ],
+  "type": "object"
+}

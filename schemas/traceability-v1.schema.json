@@ -1,0 +1,752 @@
+{
+  "$defs": {
+    "binds": {
+      "additionalProperties": false,
+      "properties": {
+        "aggregate_negative_sha256": {
+          "additionalProperties": {
+            "$ref": "#/$defs/sha256"
+          },
+          "maxProperties": 58,
+          "minProperties": 58,
+          "propertyNames": {
+            "$ref": "#/$defs/identifier"
+          },
+          "type": "object"
+        },
+        "case_schema_sha256": {
+          "additionalProperties": {
+            "$ref": "#/$defs/sha256"
+          },
+          "maxProperties": 12,
+          "minProperties": 12,
+          "propertyNames": {
+            "$ref": "#/$defs/identifier"
+          },
+          "type": "object"
+        },
+        "catalog_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "compile_custody_policy_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "custody_domain_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "evidence_bundle_contract_sha256": {
+          "additionalProperties": {
+            "$ref": "#/$defs/sha256"
+          },
+          "maxProperties": 12,
+          "minProperties": 12,
+          "propertyNames": {
+            "$ref": "#/$defs/identifier"
+          },
+          "type": "object"
+        },
+        "expectation_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "gate_sha256": {
+          "additionalProperties": {
+            "$ref": "#/$defs/sha256"
+          },
+          "maxProperties": 58,
+          "minProperties": 58,
+          "propertyNames": {
+            "$ref": "#/$defs/identifier"
+          },
+          "type": "object"
+        },
+        "judge_contract_sha256": {
+          "additionalProperties": {
+            "$ref": "#/$defs/sha256"
+          },
+          "maxProperties": 46,
+          "minProperties": 46,
+          "propertyNames": {
+            "$ref": "#/$defs/identifier"
+          },
+          "type": "object"
+        },
+        "judge_negative_sha256": {
+          "additionalProperties": {
+            "$ref": "#/$defs/sha256"
+          },
+          "maxProperties": 46,
+          "minProperties": 46,
+          "propertyNames": {
+            "$ref": "#/$defs/identifier"
+          },
+          "type": "object"
+        },
+        "lane_context_contract_sha256": {
+          "additionalProperties": false,
+          "properties": {
+            "environment": {
+              "$ref": "#/$defs/sha256"
+            },
+            "manifest": {
+              "$ref": "#/$defs/sha256"
+            }
+          },
+          "required": [
+            "manifest",
+            "environment"
+          ],
+          "type": "object"
+        },
+        "lane_suite_sha256": {
+          "additionalProperties": {
+            "$ref": "#/$defs/sha256"
+          },
+          "maxProperties": 12,
+          "minProperties": 12,
+          "propertyNames": {
+            "$ref": "#/$defs/identifier"
+          },
+          "type": "object"
+        },
+        "plumbing_negative_sha256": {
+          "additionalProperties": {
+            "$ref": "#/$defs/sha256"
+          },
+          "maxProperties": 58,
+          "minProperties": 58,
+          "propertyNames": {
+            "$ref": "#/$defs/identifier"
+          },
+          "type": "object"
+        },
+        "post_gate_output_contract_sha256": {
+          "additionalProperties": false,
+          "properties": {
+            "checksums": {
+              "$ref": "#/$defs/sha256"
+            },
+            "report": {
+              "$ref": "#/$defs/sha256"
+            }
+          },
+          "required": [
+            "report",
+            "checksums"
+          ],
+          "type": "object"
+        },
+        "raw_evidence_source_sha256": {
+          "additionalProperties": {
+            "$ref": "#/$defs/sha256"
+          },
+          "maxProperties": 41,
+          "minProperties": 41,
+          "propertyNames": {
+            "$ref": "#/$defs/identifier"
+          },
+          "type": "object"
+        },
+        "source_reconciliation_sha256": {
+          "$ref": "#/$defs/sha256"
+        }
+      },
+      "required": [
+        "source_reconciliation_sha256",
+        "expectation_sha256",
+        "catalog_sha256",
+        "compile_custody_policy_sha256",
+        "custody_domain_sha256",
+        "lane_suite_sha256",
+        "case_schema_sha256",
+        "judge_contract_sha256",
+        "evidence_bundle_contract_sha256",
+        "raw_evidence_source_sha256",
+        "lane_context_contract_sha256",
+        "post_gate_output_contract_sha256",
+        "gate_sha256",
+        "judge_negative_sha256",
+        "aggregate_negative_sha256",
+        "plumbing_negative_sha256"
+      ],
+      "type": "object"
+    },
+    "cardinalities": {
+      "additionalProperties": false,
+      "properties": {
+        "aggregate_negative_template_count": {
+          "const": 58,
+          "maximum": 18446744073709551615,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "artifact_membership_total": {
+          "const": 95,
+          "maximum": 18446744073709551615,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "case_plan_count": {
+          "const": 425,
+          "maximum": 18446744073709551615,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "endpoint_reference_count": {
+          "maximum": 182735,
+          "minimum": 47291,
+          "type": "integer"
+        },
+        "enforcement_path_count": {
+          "maximum": 8899,
+          "minimum": 2287,
+          "type": "integer"
+        },
+        "entity_record_count": {
+          "maximum": 9751,
+          "minimum": 3139,
+          "type": "integer"
+        },
+        "evidence_bundle_count": {
+          "const": 12,
+          "maximum": 18446744073709551615,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "evidence_membership_record_count": {
+          "const": 52,
+          "maximum": 18446744073709551615,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "evidence_source_count": {
+          "const": 41,
+          "maximum": 18446744073709551615,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "gate_count": {
+          "const": 58,
+          "maximum": 18446744073709551615,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "judge_count": {
+          "const": 46,
+          "maximum": 18446744073709551615,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "judge_negative_template_count": {
+          "const": 46,
+          "maximum": 18446744073709551615,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "key_count_exec": {
+          "maximum": 69280,
+          "minimum": 18254,
+          "type": "integer"
+        },
+        "lane_case_counts": {
+          "const": [
+            20,
+            3,
+            40,
+            15,
+            18,
+            36,
+            80,
+            36,
+            36,
+            22,
+            24,
+            95
+          ]
+        },
+        "lane_context_counts": {
+          "const": [
+            1,
+            2,
+            2,
+            1,
+            2,
+            2,
+            2,
+            2,
+            2,
+            1,
+            2,
+            2
+          ]
+        },
+        "lane_context_membership_count": {
+          "const": 21,
+          "maximum": 18446744073709551615,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "lane_count": {
+          "const": 12,
+          "maximum": 18446744073709551615,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "lane_gate_counts": {
+          "const": [
+            3,
+            3,
+            4,
+            5,
+            4,
+            4,
+            7,
+            7,
+            7,
+            4,
+            5,
+            5
+          ]
+        },
+        "lane_obligation_counts": {
+          "const": [
+            4,
+            3,
+            3,
+            4,
+            4,
+            4,
+            4,
+            4,
+            4,
+            4,
+            4,
+            4
+          ]
+        },
+        "lane_output_counts": {
+          "const": [
+            1,
+            2,
+            2,
+            1,
+            2,
+            2,
+            2,
+            2,
+            2,
+            2,
+            2,
+            2
+          ]
+        },
+        "lane_raw_membership_counts": {
+          "const": [
+            3,
+            1,
+            4,
+            4,
+            5,
+            4,
+            5,
+            5,
+            6,
+            7,
+            4,
+            4
+          ]
+        },
+        "obligation_count": {
+          "const": 46,
+          "maximum": 18446744073709551615,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "obligation_gate_pair_count": {
+          "maximum": 225,
+          "minimum": 59,
+          "type": "integer"
+        },
+        "path_evidence_record_count": {
+          "maximum": 18446744073709551615,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "plumbing_negative_template_count": {
+          "const": 58,
+          "maximum": 18446744073709551615,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "post_gate_output_membership_count": {
+          "const": 22,
+          "maximum": 18446744073709551615,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "relation_record_count": {
+          "maximum": 78019,
+          "minimum": 20215,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "lane_count",
+        "case_plan_count",
+        "gate_count",
+        "obligation_count",
+        "judge_count",
+        "evidence_bundle_count",
+        "evidence_source_count",
+        "lane_context_membership_count",
+        "post_gate_output_membership_count",
+        "artifact_membership_total",
+        "judge_negative_template_count",
+        "aggregate_negative_template_count",
+        "plumbing_negative_template_count",
+        "lane_obligation_counts",
+        "lane_case_counts",
+        "lane_gate_counts",
+        "lane_raw_membership_counts",
+        "lane_context_counts",
+        "lane_output_counts",
+        "obligation_gate_pair_count",
+        "enforcement_path_count",
+        "evidence_membership_record_count",
+        "path_evidence_record_count",
+        "endpoint_reference_count",
+        "relation_record_count",
+        "entity_record_count",
+        "key_count_exec"
+      ],
+      "type": "object"
+    },
+    "entities": {
+      "additionalProperties": false,
+      "properties": {
+        "aggregate_negative_tests": {
+          "items": {
+            "$ref": "#/$defs/negative_binding"
+          },
+          "maxItems": 58,
+          "minItems": 58,
+          "type": "array"
+        },
+        "evidence_bundle_memberships": {
+          "items": {
+            "$ref": "#/$defs/evidence_membership"
+          },
+          "maxItems": 52,
+          "minItems": 52,
+          "type": "array"
+        },
+        "evidence_bundles": {
+          "items": {
+            "$ref": "#/$defs/evidence_bundle"
+          },
+          "maxItems": 12,
+          "minItems": 12,
+          "type": "array"
+        },
+        "evidence_source_ids": {
+          "items": {
+            "$ref": "#/$defs/identifier"
+          },
+          "maxItems": 41,
+          "minItems": 41,
+          "type": "array",
+          "uniqueItems": true
+        },
+        "gates": {
+          "items": {
+            "$ref": "#/$defs/gate_record"
+          },
+          "maxItems": 58,
+          "minItems": 58,
+          "type": "array"
+        },
+        "judge_ids": {
+          "items": {
+            "$ref": "#/$defs/identifier"
+          },
+          "maxItems": 46,
+          "minItems": 46,
+          "type": "array",
+          "uniqueItems": true
+        },
+        "judge_negative_tests": {
+          "items": {
+            "$ref": "#/$defs/negative_binding"
+          },
+          "maxItems": 46,
+          "minItems": 46,
+          "type": "array"
+        },
+        "lane_contexts": {
+          "items": {
+            "$ref": "#/$defs/lane_context"
+          },
+          "maxItems": 21,
+          "minItems": 21,
+          "type": "array"
+        },
+        "obligation_gate_pairs": {
+          "items": {
+            "$ref": "#/$defs/obligation_gate_pair"
+          },
+          "maxItems": 225,
+          "minItems": 59,
+          "type": "array"
+        },
+        "obligation_to_judge": {
+          "items": {
+            "$ref": "#/$defs/judge_binding"
+          },
+          "maxItems": 46,
+          "minItems": 46,
+          "type": "array"
+        },
+        "plumbing_negative_tests": {
+          "items": {
+            "$ref": "#/$defs/negative_binding"
+          },
+          "maxItems": 58,
+          "minItems": 58,
+          "type": "array"
+        },
+        "post_gate_outputs": {
+          "items": {
+            "$ref": "#/$defs/lane_output"
+          },
+          "maxItems": 22,
+          "minItems": 22,
+          "type": "array"
+        }
+      },
+      "required": [
+        "judge_ids",
+        "obligation_to_judge",
+        "evidence_bundles",
+        "evidence_source_ids",
+        "evidence_bundle_memberships",
+        "lane_contexts",
+        "post_gate_outputs",
+        "gates",
+        "obligation_gate_pairs",
+        "judge_negative_tests",
+        "aggregate_negative_tests",
+        "plumbing_negative_tests"
+      ],
+      "type": "object"
+    },
+    "evidence_bundle": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/identifier"
+        },
+        "lane_id": {
+          "$ref": "#/$defs/identifier"
+        }
+      },
+      "required": [
+        "id",
+        "lane_id"
+      ],
+      "type": "object"
+    },
+    "evidence_membership": {
+      "additionalProperties": false,
+      "properties": {
+        "bundle_id": {
+          "$ref": "#/$defs/identifier"
+        },
+        "evidence_source_id": {
+          "$ref": "#/$defs/identifier"
+        }
+      },
+      "required": [
+        "bundle_id",
+        "evidence_source_id"
+      ],
+      "type": "object"
+    },
+    "gate_record": {
+      "additionalProperties": false,
+      "properties": {
+        "gate_id": {
+          "$ref": "#/$defs/identifier"
+        },
+        "lane_id": {
+          "$ref": "#/$defs/identifier"
+        }
+      },
+      "required": [
+        "lane_id",
+        "gate_id"
+      ],
+      "type": "object"
+    },
+    "identifier": {
+      "pattern": "^[a-z0-9][a-z0-9._-]*$",
+      "type": "string"
+    },
+    "judge_binding": {
+      "additionalProperties": false,
+      "properties": {
+        "judge_id": {
+          "$ref": "#/$defs/identifier"
+        },
+        "obligation_id": {
+          "$ref": "#/$defs/identifier"
+        }
+      },
+      "required": [
+        "obligation_id",
+        "judge_id"
+      ],
+      "type": "object"
+    },
+    "lane_context": {
+      "additionalProperties": false,
+      "properties": {
+        "artifact_type": {
+          "enum": [
+            "manifest",
+            "environment"
+          ]
+        },
+        "lane_id": {
+          "$ref": "#/$defs/identifier"
+        }
+      },
+      "required": [
+        "lane_id",
+        "artifact_type"
+      ],
+      "type": "object"
+    },
+    "lane_output": {
+      "additionalProperties": false,
+      "properties": {
+        "artifact_type": {
+          "enum": [
+            "report",
+            "checksums"
+          ]
+        },
+        "lane_id": {
+          "$ref": "#/$defs/identifier"
+        }
+      },
+      "required": [
+        "lane_id",
+        "artifact_type"
+      ],
+      "type": "object"
+    },
+    "negative_binding": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/identifier"
+        },
+        "owner_id": {
+          "$ref": "#/$defs/identifier"
+        }
+      },
+      "required": [
+        "owner_id",
+        "id"
+      ],
+      "type": "object"
+    },
+    "obligation_gate_pair": {
+      "additionalProperties": false,
+      "properties": {
+        "gate_id": {
+          "$ref": "#/$defs/identifier"
+        },
+        "lane_id": {
+          "$ref": "#/$defs/identifier"
+        },
+        "obligation_id": {
+          "$ref": "#/$defs/identifier"
+        }
+      },
+      "required": [
+        "lane_id",
+        "obligation_id",
+        "gate_id"
+      ],
+      "type": "object"
+    },
+    "predecessor": {
+      "additionalProperties": false,
+      "properties": {
+        "chronology_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "compile_custody_lineage_id": {
+          "$ref": "#/$defs/identifier"
+        }
+      },
+      "required": [
+        "compile_custody_lineage_id",
+        "chronology_sha256"
+      ],
+      "type": "object"
+    },
+    "sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "type": "string"
+    }
+  },
+  "$id": "https://token-plant.github.io/TurnVectorBenchmark/schemas/traceability-v1.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "binds": {
+      "$ref": "#/$defs/binds"
+    },
+    "cardinalities": {
+      "$ref": "#/$defs/cardinalities"
+    },
+    "design_gate_revision": {
+      "$ref": "#/$defs/sha256"
+    },
+    "entities": {
+      "$ref": "#/$defs/entities"
+    },
+    "id": {
+      "$ref": "#/$defs/identifier"
+    },
+    "predecessor": {
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "$ref": "#/$defs/predecessor"
+        }
+      ]
+    },
+    "profile_id": {
+      "const": "turnvector-implementation-v2"
+    },
+    "schema_version": {
+      "const": "turnvector.benchmark.traceability.v1"
+    }
+  },
+  "required": [
+    "schema_version",
+    "id",
+    "profile_id",
+    "design_gate_revision",
+    "predecessor",
+    "cardinalities",
+    "binds",
+    "entities"
+  ],
+  "title": "traceability-v1",
+  "type": "object"
+}

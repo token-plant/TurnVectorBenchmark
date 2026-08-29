@@ -1,0 +1,72 @@
+{
+  "$defs": {
+    "digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "type": "string"
+    },
+    "nonempty": {
+      "maxLength": 4096,
+      "minLength": 1,
+      "type": "string"
+    },
+    "timestamp": {
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(?:\\.[0-9]+)?(?:Z|[+-][0-9]{2}:[0-9]{2})$",
+      "type": "string"
+    }
+  },
+  "$id": "https://token-plant.github.io/TurnVectorBenchmark/schemas/cross-engine-baseline-receipt-v1.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "authority_id": {
+      "$ref": "#/$defs/nonempty"
+    },
+    "evidence_root_sha256": {
+      "$ref": "#/$defs/digest"
+    },
+    "model_sha256": {
+      "$ref": "#/$defs/digest"
+    },
+    "physical_host_sha256": {
+      "$ref": "#/$defs/digest"
+    },
+    "profile_sha256": {
+      "$ref": "#/$defs/digest"
+    },
+    "promoted_at": {
+      "$ref": "#/$defs/timestamp"
+    },
+    "scenario_set_sha256": {
+      "$ref": "#/$defs/digest"
+    },
+    "schema_version": {
+      "const": "turnvector.benchmark.cross-engine-baseline-receipt.v1"
+    },
+    "superseded_baseline_sha256": {
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "$ref": "#/$defs/digest"
+        }
+      ]
+    },
+    "target_sha256": {
+      "$ref": "#/$defs/digest"
+    }
+  },
+  "required": [
+    "schema_version",
+    "authority_id",
+    "promoted_at",
+    "evidence_root_sha256",
+    "profile_sha256",
+    "scenario_set_sha256",
+    "target_sha256",
+    "model_sha256",
+    "physical_host_sha256",
+    "superseded_baseline_sha256"
+  ],
+  "type": "object"
+}

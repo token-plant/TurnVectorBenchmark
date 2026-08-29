@@ -1,0 +1,4 @@
+fixture source persistence-and-recovery strong-snapshot-identity
+fixture source persistence-and-recovery atomic-publication
+fixture source persistence-and-recovery safe-invalidation
+fixture source persistence-and-recovery restart-reconciliation

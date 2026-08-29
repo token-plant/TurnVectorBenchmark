@@ -1,0 +1,3 @@
+fixture source scheduler-performance release-core-only
+fixture source scheduler-performance shape-scaling
+fixture source scheduler-performance distribution-retention

@@ -1,0 +1,121 @@
+{
+  "$defs": {
+    "digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "type": "string"
+    },
+    "error": {
+      "additionalProperties": false,
+      "properties": {
+        "code": {
+          "maxLength": 256,
+          "minLength": 1,
+          "type": "string"
+        },
+        "message": {
+          "maxLength": 4096,
+          "minLength": 1,
+          "type": "string"
+        },
+        "param": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "maxLength": 256,
+              "minLength": 1,
+              "type": "string"
+            }
+          ]
+        },
+        "type": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "maxLength": 256,
+              "minLength": 1,
+              "type": "string"
+            }
+          ]
+        }
+      },
+      "required": [
+        "code",
+        "message",
+        "type",
+        "param"
+      ],
+      "type": "object"
+    },
+    "git_sha": {
+      "pattern": "^[0-9a-f]{40}$",
+      "type": "string"
+    },
+    "id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]*$",
+      "type": "string"
+    },
+    "ids": {
+      "items": {
+        "$ref": "#/$defs/id"
+      },
+      "type": "array",
+      "uniqueItems": true
+    },
+    "nonempty": {
+      "maxLength": 4096,
+      "minLength": 1,
+      "type": "string"
+    },
+    "nonnegative_integer": {
+      "minimum": 0,
+      "type": "integer"
+    },
+    "positive_integer": {
+      "minimum": 1,
+      "type": "integer"
+    }
+  },
+  "$id": "https://token-plant.github.io/TurnVectorBenchmark/schemas/openai-serving-error-v1.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "body_sha256": {
+      "$ref": "#/$defs/digest"
+    },
+    "body_truncated": {
+      "type": "boolean"
+    },
+    "error": {
+      "$ref": "#/$defs/error"
+    },
+    "http_status": {
+      "maximum": 599,
+      "minimum": 100,
+      "type": "integer"
+    },
+    "receipt_ns": {
+      "minimum": 0,
+      "type": "integer"
+    },
+    "request_id": {
+      "$ref": "#/$defs/id"
+    },
+    "schema_version": {
+      "const": "turnvector.benchmark.openai-serving-error.v1"
+    }
+  },
+  "required": [
+    "schema_version",
+    "request_id",
+    "receipt_ns",
+    "http_status",
+    "error",
+    "body_sha256",
+    "body_truncated"
+  ],
+  "type": "object"
+}

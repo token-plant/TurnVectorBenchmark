@@ -1,0 +1,18 @@
+{
+  "cooldown_seconds": 1.0,
+  "measurement_surface": "native_inference",
+  "model_sha256": "eac85417a0cdbbadb260e4fa440e04fc2ac2f099b324b98650481f916da8a2ed",
+  "output_tokens": 128,
+  "plan_id": "cross-engine-native-inference-v1",
+  "prompt_tokens": [
+    128,
+    512,
+    2048
+  ],
+  "repetitions": 5,
+  "sampling_policy": "greedy",
+  "schema_version": "turnvector.benchmark.cross-engine-native-inference.v1",
+  "tokenizer_sha256": "f516d211540d04bc44da37c4b6a1f8ee1d636320cef51e75f42e2061052bd5ec",
+  "tool_id": "mlx-lm-benchmark",
+  "warmups": 1
+}

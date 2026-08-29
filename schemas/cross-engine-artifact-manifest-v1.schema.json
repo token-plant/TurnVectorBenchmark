@@ -1,0 +1,109 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://token-plant.github.io/TurnVectorBenchmark/schemas/cross-engine-artifact-manifest-v1.schema.json",
+  "$defs": {
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9._-]*$",
+      "maxLength": 128
+    },
+    "digest": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "path": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 1024,
+      "pattern": "^(?!/)(?!.*(?:^|/)\\.{1,2}(?:/|$))(?!.*//)[A-Za-z0-9._-]+(?:/[A-Za-z0-9._-]+)*$"
+    },
+    "artifact": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "id": {"$ref": "#/$defs/id"},
+        "path": {"$ref": "#/$defs/path"},
+        "media_type": {"type": "string", "minLength": 1, "maxLength": 128},
+        "schema_type": {
+          "oneOf": [
+            {"type": "null"},
+            {"type": "string", "minLength": 1, "maxLength": 256}
+          ]
+        },
+        "custody": {"enum": ["benchmark_measurement", "diagnostic_import"]},
+        "required": {"type": "boolean"},
+        "ordinal": {"type": "integer", "minimum": 1},
+        "present": {"type": "boolean"},
+        "size_bytes": {
+          "oneOf": [
+            {"type": "null"},
+            {"type": "integer", "minimum": 0}
+          ]
+        },
+        "sha256": {
+          "oneOf": [
+            {"type": "null"},
+            {"$ref": "#/$defs/digest"}
+          ]
+        }
+      },
+      "required": [
+        "id",
+        "path",
+        "media_type",
+        "schema_type",
+        "custody",
+        "required",
+        "ordinal",
+        "present",
+        "size_bytes",
+        "sha256"
+      ],
+      "allOf": [
+        {
+          "if": {"properties": {"present": {"const": true}}, "required": ["present"]},
+          "then": {
+            "properties": {
+              "size_bytes": {"type": "integer", "minimum": 0},
+              "sha256": {"$ref": "#/$defs/digest"}
+            }
+          },
+          "else": {
+            "properties": {
+              "size_bytes": {"type": "null"},
+              "sha256": {"type": "null"},
+              "required": {"const": false}
+            }
+          }
+        }
+      ]
+    }
+  },
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {"const": "turnvector.benchmark.cross-engine-artifact-manifest.v1"},
+    "campaign_id": {"$ref": "#/$defs/id"},
+    "per_file_byte_limit": {"type": "integer", "minimum": 1},
+    "total_byte_limit": {"type": "integer", "minimum": 1},
+    "artifact_count": {"type": "integer", "minimum": 1, "maximum": 4096},
+    "present_artifact_count": {"type": "integer", "minimum": 0, "maximum": 4096},
+    "total_size_bytes": {"type": "integer", "minimum": 0},
+    "artifacts": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 4096,
+      "items": {"$ref": "#/$defs/artifact"}
+    }
+  },
+  "required": [
+    "schema_version",
+    "campaign_id",
+    "per_file_byte_limit",
+    "total_byte_limit",
+    "artifact_count",
+    "present_artifact_count",
+    "total_size_bytes",
+    "artifacts"
+  ]
+}

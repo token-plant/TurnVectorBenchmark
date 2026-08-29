@@ -1,0 +1,1749 @@
+{
+  "$defs": {
+    "error": {
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "properties": {
+            "diagnostics": {
+              "items": {
+                "maxLength": 1024,
+                "minLength": 1,
+                "pattern": "^authority_invalid_canonical_json\\|/.*\\|authority_invalid_canonical_json$",
+                "type": "string"
+              },
+              "maxItems": 64,
+              "type": "array"
+            },
+            "discarded_diagnostic_count": {
+              "$ref": "#/$defs/u64"
+            },
+            "message": {
+              "const": "authority input is not strict canonical JSON",
+              "maxLength": 1024
+            },
+            "variant": {
+              "const": "authority_invalid_canonical_json"
+            }
+          },
+          "required": [
+            "variant",
+            "message",
+            "diagnostics",
+            "discarded_diagnostic_count"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "diagnostics": {
+              "items": {
+                "maxLength": 1024,
+                "minLength": 1,
+                "pattern": "^authority_unknown_field\\|/.*\\|authority_unknown_field$",
+                "type": "string"
+              },
+              "maxItems": 64,
+              "type": "array"
+            },
+            "discarded_diagnostic_count": {
+              "$ref": "#/$defs/u64"
+            },
+            "message": {
+              "const": "authority input contains an unknown, missing, or mistyped field",
+              "maxLength": 1024
+            },
+            "variant": {
+              "const": "authority_unknown_field"
+            }
+          },
+          "required": [
+            "variant",
+            "message",
+            "diagnostics",
+            "discarded_diagnostic_count"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "diagnostics": {
+              "items": {
+                "maxLength": 1024,
+                "minLength": 1,
+                "pattern": "^authority_duplicate_key\\|/.*\\|authority_duplicate_key$",
+                "type": "string"
+              },
+              "maxItems": 64,
+              "type": "array"
+            },
+            "discarded_diagnostic_count": {
+              "$ref": "#/$defs/u64"
+            },
+            "message": {
+              "const": "authority input contains a duplicate object key",
+              "maxLength": 1024
+            },
+            "variant": {
+              "const": "authority_duplicate_key"
+            }
+          },
+          "required": [
+            "variant",
+            "message",
+            "diagnostics",
+            "discarded_diagnostic_count"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "diagnostics": {
+              "items": {
+                "maxLength": 1024,
+                "minLength": 1,
+                "pattern": "^authority_invalid_identifier\\|/.*\\|authority_invalid_identifier$",
+                "type": "string"
+              },
+              "maxItems": 64,
+              "type": "array"
+            },
+            "discarded_diagnostic_count": {
+              "$ref": "#/$defs/u64"
+            },
+            "message": {
+              "const": "authority input contains an invalid identifier, enum, or typed scalar",
+              "maxLength": 1024
+            },
+            "variant": {
+              "const": "authority_invalid_identifier"
+            }
+          },
+          "required": [
+            "variant",
+            "message",
+            "diagnostics",
+            "discarded_diagnostic_count"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "diagnostics": {
+              "items": {
+                "maxLength": 1024,
+                "minLength": 1,
+                "pattern": "^authority_duplicate_identifier\\|/.*\\|authority_duplicate_identifier$",
+                "type": "string"
+              },
+              "maxItems": 64,
+              "type": "array"
+            },
+            "discarded_diagnostic_count": {
+              "$ref": "#/$defs/u64"
+            },
+            "message": {
+              "const": "authority input declares a duplicate scalar identifier",
+              "maxLength": 1024
+            },
+            "variant": {
+              "const": "authority_duplicate_identifier"
+            }
+          },
+          "required": [
+            "variant",
+            "message",
+            "diagnostics",
+            "discarded_diagnostic_count"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "diagnostics": {
+              "items": {
+                "maxLength": 1024,
+                "minLength": 1,
+                "pattern": "^authority_order_violation\\|/.*\\|authority_order_violation$",
+                "type": "string"
+              },
+              "maxItems": 64,
+              "type": "array"
+            },
+            "discarded_diagnostic_count": {
+              "$ref": "#/$defs/u64"
+            },
+            "message": {
+              "const": "authority input violates canonical order or byte re-encoding",
+              "maxLength": 1024
+            },
+            "variant": {
+              "const": "authority_order_violation"
+            }
+          },
+          "required": [
+            "variant",
+            "message",
+            "diagnostics",
+            "discarded_diagnostic_count"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "diagnostics": {
+              "items": {
+                "maxLength": 1024,
+                "minLength": 1,
+                "pattern": "^authority_absolute_path\\|/.*\\|authority_absolute_path$",
+                "type": "string"
+              },
+              "maxItems": 64,
+              "type": "array"
+            },
+            "discarded_diagnostic_count": {
+              "$ref": "#/$defs/u64"
+            },
+            "message": {
+              "const": "authority input contains an absolute path",
+              "maxLength": 1024
+            },
+            "variant": {
+              "const": "authority_absolute_path"
+            }
+          },
+          "required": [
+            "variant",
+            "message",
+            "diagnostics",
+            "discarded_diagnostic_count"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "diagnostics": {
+              "items": {
+                "maxLength": 1024,
+                "minLength": 1,
+                "pattern": "^authority_path_traversal\\|/.*\\|authority_path_traversal$",
+                "type": "string"
+              },
+              "maxItems": 64,
+              "type": "array"
+            },
+            "discarded_diagnostic_count": {
+              "$ref": "#/$defs/u64"
+            },
+            "message": {
+              "const": "authority input contains a path traversal",
+              "maxLength": 1024
+            },
+            "variant": {
+              "const": "authority_path_traversal"
+            }
+          },
+          "required": [
+            "variant",
+            "message",
+            "diagnostics",
+            "discarded_diagnostic_count"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "diagnostics": {
+              "items": {
+                "maxLength": 1024,
+                "minLength": 1,
+                "pattern": "^authority_symlink\\|/.*\\|authority_symlink$",
+                "type": "string"
+              },
+              "maxItems": 64,
+              "type": "array"
+            },
+            "discarded_diagnostic_count": {
+              "$ref": "#/$defs/u64"
+            },
+            "message": {
+              "const": "authority snapshot claims a symlink",
+              "maxLength": 1024
+            },
+            "variant": {
+              "const": "authority_symlink"
+            }
+          },
+          "required": [
+            "variant",
+            "message",
+            "diagnostics",
+            "discarded_diagnostic_count"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "diagnostics": {
+              "items": {
+                "maxLength": 1024,
+                "minLength": 1,
+                "pattern": "^authority_non_regular_file\\|/.*\\|authority_non_regular_file$",
+                "type": "string"
+              },
+              "maxItems": 64,
+              "type": "array"
+            },
+            "discarded_diagnostic_count": {
+              "$ref": "#/$defs/u64"
+            },
+            "message": {
+              "const": "authority snapshot claims a non-regular file",
+              "maxLength": 1024
+            },
+            "variant": {
+              "const": "authority_non_regular_file"
+            }
+          },
+          "required": [
+            "variant",
+            "message",
+            "diagnostics",
+            "discarded_diagnostic_count"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "diagnostics": {
+              "items": {
+                "maxLength": 1024,
+                "minLength": 1,
+                "pattern": "^authority_missing_source\\|/.*\\|authority_missing_source$",
+                "type": "string"
+              },
+              "maxItems": 64,
+              "type": "array"
+            },
+            "discarded_diagnostic_count": {
+              "$ref": "#/$defs/u64"
+            },
+            "message": {
+              "const": "catalog source has no snapshot file record",
+              "maxLength": 1024
+            },
+            "variant": {
+              "const": "authority_missing_source"
+            }
+          },
+          "required": [
+            "variant",
+            "message",
+            "diagnostics",
+            "discarded_diagnostic_count"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "diagnostics": {
+              "items": {
+                "maxLength": 1024,
+                "minLength": 1,
+                "pattern": "^authority_missing_historical_object\\|/.*\\|authority_missing_historical_object$",
+                "type": "string"
+              },
+              "maxItems": 64,
+              "type": "array"
+            },
+            "discarded_diagnostic_count": {
+              "$ref": "#/$defs/u64"
+            },
+            "message": {
+              "const": "historical object set disagrees with the reconciliation mappings",
+              "maxLength": 1024
+            },
+            "variant": {
+              "const": "authority_missing_historical_object"
+            }
+          },
+          "required": [
+            "variant",
+            "message",
+            "diagnostics",
+            "discarded_diagnostic_count"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "diagnostics": {
+              "items": {
+                "maxLength": 1024,
+                "minLength": 1,
+                "pattern": "^authority_repository_mismatch\\|/.*\\|authority_repository_mismatch$",
+                "type": "string"
+              },
+              "maxItems": 64,
+              "type": "array"
+            },
+            "discarded_diagnostic_count": {
+              "$ref": "#/$defs/u64"
+            },
+            "message": {
+              "const": "repository identity or clean-required status disagrees across authority inputs",
+              "maxLength": 1024
+            },
+            "variant": {
+              "const": "authority_repository_mismatch"
+            }
+          },
+          "required": [
+            "variant",
+            "message",
+            "diagnostics",
+            "discarded_diagnostic_count"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "diagnostics": {
+              "items": {
+                "maxLength": 1024,
+                "minLength": 1,
+                "pattern": "^authority_revision_mismatch\\|/.*\\|authority_revision_mismatch$",
+                "type": "string"
+              },
+              "maxItems": 64,
+              "type": "array"
+            },
+            "discarded_diagnostic_count": {
+              "$ref": "#/$defs/u64"
+            },
+            "message": {
+              "const": "revision identity disagrees within or across authority inputs",
+              "maxLength": 1024
+            },
+            "variant": {
+              "const": "authority_revision_mismatch"
+            }
+          },
+          "required": [
+            "variant",
+            "message",
+            "diagnostics",
+            "discarded_diagnostic_count"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "diagnostics": {
+              "items": {
+                "maxLength": 1024,
+                "minLength": 1,
+                "pattern": "^authority_dirty_repository\\|/.*\\|authority_dirty_repository$",
+                "type": "string"
+              },
+              "maxItems": 64,
+              "type": "array"
+            },
+            "discarded_diagnostic_count": {
+              "$ref": "#/$defs/u64"
+            },
+            "message": {
+              "const": "required clean repository is dirty",
+              "maxLength": 1024
+            },
+            "variant": {
+              "const": "authority_dirty_repository"
+            }
+          },
+          "required": [
+            "variant",
+            "message",
+            "diagnostics",
+            "discarded_diagnostic_count"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "diagnostics": {
+              "items": {
+                "maxLength": 1024,
+                "minLength": 1,
+                "pattern": "^authority_file_digest_mismatch\\|/.*\\|authority_file_digest_mismatch$",
+                "type": "string"
+              },
+              "maxItems": 64,
+              "type": "array"
+            },
+            "discarded_diagnostic_count": {
+              "$ref": "#/$defs/u64"
+            },
+            "message": {
+              "const": "authority file or historical-object digest disagrees with the catalog or reconciliation",
+              "maxLength": 1024
+            },
+            "variant": {
+              "const": "authority_file_digest_mismatch"
+            }
+          },
+          "required": [
+            "variant",
+            "message",
+            "diagnostics",
+            "discarded_diagnostic_count"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "diagnostics": {
+              "items": {
+                "maxLength": 1024,
+                "minLength": 1,
+                "pattern": "^authority_invalid_section_range\\|/.*\\|authority_invalid_section_range$",
+                "type": "string"
+              },
+              "maxItems": 64,
+              "type": "array"
+            },
+            "discarded_diagnostic_count": {
+              "$ref": "#/$defs/u64"
+            },
+            "message": {
+              "const": "section range is invalid or the section set mismatches",
+              "maxLength": 1024
+            },
+            "variant": {
+              "const": "authority_invalid_section_range"
+            }
+          },
+          "required": [
+            "variant",
+            "message",
+            "diagnostics",
+            "discarded_diagnostic_count"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "diagnostics": {
+              "items": {
+                "maxLength": 1024,
+                "minLength": 1,
+                "pattern": "^authority_section_digest_mismatch\\|/.*\\|authority_section_digest_mismatch$",
+                "type": "string"
+              },
+              "maxItems": 64,
+              "type": "array"
+            },
+            "discarded_diagnostic_count": {
+              "$ref": "#/$defs/u64"
+            },
+            "message": {
+              "const": "section digest disagrees with the catalog",
+              "maxLength": 1024
+            },
+            "variant": {
+              "const": "authority_section_digest_mismatch"
+            }
+          },
+          "required": [
+            "variant",
+            "message",
+            "diagnostics",
+            "discarded_diagnostic_count"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "diagnostics": {
+              "items": {
+                "maxLength": 1024,
+                "minLength": 1,
+                "pattern": "^authority_repository_control_unsupported\\|/.*\\|authority_repository_control_unsupported$",
+                "type": "string"
+              },
+              "maxItems": 64,
+              "type": "array"
+            },
+            "discarded_diagnostic_count": {
+              "$ref": "#/$defs/u64"
+            },
+            "message": {
+              "const": "repository-control descriptor is unsupported",
+              "maxLength": 1024
+            },
+            "variant": {
+              "const": "authority_repository_control_unsupported"
+            }
+          },
+          "required": [
+            "variant",
+            "message",
+            "diagnostics",
+            "discarded_diagnostic_count"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "diagnostics": {
+              "items": {
+                "maxLength": 1024,
+                "minLength": 1,
+                "pattern": "^catalog_digest_mismatch\\|/.*\\|catalog_digest_mismatch$",
+                "type": "string"
+              },
+              "maxItems": 64,
+              "type": "array"
+            },
+            "discarded_diagnostic_count": {
+              "$ref": "#/$defs/u64"
+            },
+            "message": {
+              "const": "ledger catalog digest disagrees with the catalog input",
+              "maxLength": 1024
+            },
+            "variant": {
+              "const": "catalog_digest_mismatch"
+            }
+          },
+          "required": [
+            "variant",
+            "message",
+            "diagnostics",
+            "discarded_diagnostic_count"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "diagnostics": {
+              "items": {
+                "maxLength": 1024,
+                "minLength": 1,
+                "pattern": "^catalog_gate_revision_mismatch\\|/.*\\|catalog_gate_revision_mismatch$",
+                "type": "string"
+              },
+              "maxItems": 64,
+              "type": "array"
+            },
+            "discarded_diagnostic_count": {
+              "$ref": "#/$defs/u64"
+            },
+            "message": {
+              "const": "catalog design-gate revision disagrees with the header or ledger",
+              "maxLength": 1024
+            },
+            "variant": {
+              "const": "catalog_gate_revision_mismatch"
+            }
+          },
+          "required": [
+            "variant",
+            "message",
+            "diagnostics",
+            "discarded_diagnostic_count"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "diagnostics": {
+              "items": {
+                "maxLength": 1024,
+                "minLength": 1,
+                "pattern": "^catalog_lineage_mismatch\\|/.*\\|catalog_lineage_mismatch$",
+                "type": "string"
+              },
+              "maxItems": 64,
+              "type": "array"
+            },
+            "discarded_diagnostic_count": {
+              "$ref": "#/$defs/u64"
+            },
+            "message": {
+              "const": "custody lineage binding disagrees with the permit",
+              "maxLength": 1024
+            },
+            "variant": {
+              "const": "catalog_lineage_mismatch"
+            }
+          },
+          "required": [
+            "variant",
+            "message",
+            "diagnostics",
+            "discarded_diagnostic_count"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "diagnostics": {
+              "items": {
+                "maxLength": 1024,
+                "minLength": 1,
+                "pattern": "^catalog_predecessor_mismatch\\|/.*\\|catalog_predecessor_mismatch$",
+                "type": "string"
+              },
+              "maxItems": 64,
+              "type": "array"
+            },
+            "discarded_diagnostic_count": {
+              "$ref": "#/$defs/u64"
+            },
+            "message": {
+              "const": "catalog predecessor disagrees with the ledger or the current lineage",
+              "maxLength": 1024
+            },
+            "variant": {
+              "const": "catalog_predecessor_mismatch"
+            }
+          },
+          "required": [
+            "variant",
+            "message",
+            "diagnostics",
+            "discarded_diagnostic_count"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "diagnostics": {
+              "items": {
+                "maxLength": 1024,
+                "minLength": 1,
+                "pattern": "^catalog_record_limit_exceeded\\|/.*\\|catalog_record_limit_exceeded$",
+                "type": "string"
+              },
+              "maxItems": 64,
+              "type": "array"
+            },
+            "discarded_diagnostic_count": {
+              "$ref": "#/$defs/u64"
+            },
+            "message": {
+              "const": "catalog record count exceeds the limit or mismatches",
+              "maxLength": 1024
+            },
+            "variant": {
+              "const": "catalog_record_limit_exceeded"
+            }
+          },
+          "required": [
+            "variant",
+            "message",
+            "diagnostics",
+            "discarded_diagnostic_count"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "diagnostics": {
+              "items": {
+                "maxLength": 1024,
+                "minLength": 1,
+                "pattern": "^catalog_orphan_source\\|/.*\\|catalog_orphan_source$",
+                "type": "string"
+              },
+              "maxItems": 64,
+              "type": "array"
+            },
+            "discarded_diagnostic_count": {
+              "$ref": "#/$defs/u64"
+            },
+            "message": {
+              "const": "snapshot source file is not cited by any obligation",
+              "maxLength": 1024
+            },
+            "variant": {
+              "const": "catalog_orphan_source"
+            }
+          },
+          "required": [
+            "variant",
+            "message",
+            "diagnostics",
+            "discarded_diagnostic_count"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "diagnostics": {
+              "items": {
+                "maxLength": 1024,
+                "minLength": 1,
+                "pattern": "^catalog_invalid_status\\|/.*\\|catalog_invalid_status$",
+                "type": "string"
+              },
+              "maxItems": 64,
+              "type": "array"
+            },
+            "discarded_diagnostic_count": {
+              "$ref": "#/$defs/u64"
+            },
+            "message": {
+              "const": "catalog readiness and blocker algebra is invalid",
+              "maxLength": 1024
+            },
+            "variant": {
+              "const": "catalog_invalid_status"
+            }
+          },
+          "required": [
+            "variant",
+            "message",
+            "diagnostics",
+            "discarded_diagnostic_count"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "diagnostics": {
+              "items": {
+                "maxLength": 1024,
+                "minLength": 1,
+                "pattern": "^expectation_digest_mismatch\\|/.*\\|expectation_digest_mismatch$",
+                "type": "string"
+              },
+              "maxItems": 64,
+              "type": "array"
+            },
+            "discarded_diagnostic_count": {
+              "$ref": "#/$defs/u64"
+            },
+            "message": {
+              "const": "expectation digest disagrees with the catalog or ledger",
+              "maxLength": 1024
+            },
+            "variant": {
+              "const": "expectation_digest_mismatch"
+            }
+          },
+          "required": [
+            "variant",
+            "message",
+            "diagnostics",
+            "discarded_diagnostic_count"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "diagnostics": {
+              "items": {
+                "maxLength": 1024,
+                "minLength": 1,
+                "pattern": "^traceability_digest_mismatch\\|/.*\\|traceability_digest_mismatch$",
+                "type": "string"
+              },
+              "maxItems": 64,
+              "type": "array"
+            },
+            "discarded_diagnostic_count": {
+              "$ref": "#/$defs/u64"
+            },
+            "message": {
+              "const": "traceability bind digest disagrees with an input",
+              "maxLength": 1024
+            },
+            "variant": {
+              "const": "traceability_digest_mismatch"
+            }
+          },
+          "required": [
+            "variant",
+            "message",
+            "diagnostics",
+            "discarded_diagnostic_count"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "diagnostics": {
+              "items": {
+                "maxLength": 1024,
+                "minLength": 1,
+                "pattern": "^traceability_unknown_entity\\|/.*\\|traceability_unknown_entity$",
+                "type": "string"
+              },
+              "maxItems": 64,
+              "type": "array"
+            },
+            "discarded_diagnostic_count": {
+              "$ref": "#/$defs/u64"
+            },
+            "message": {
+              "const": "traceability references an unknown entity",
+              "maxLength": 1024
+            },
+            "variant": {
+              "const": "traceability_unknown_entity"
+            }
+          },
+          "required": [
+            "variant",
+            "message",
+            "diagnostics",
+            "discarded_diagnostic_count"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "diagnostics": {
+              "items": {
+                "maxLength": 1024,
+                "minLength": 1,
+                "pattern": "^traceability_duplicate_entity\\|/.*\\|traceability_duplicate_entity$",
+                "type": "string"
+              },
+              "maxItems": 64,
+              "type": "array"
+            },
+            "discarded_diagnostic_count": {
+              "$ref": "#/$defs/u64"
+            },
+            "message": {
+              "const": "traceability contains a duplicate entity or relation record",
+              "maxLength": 1024
+            },
+            "variant": {
+              "const": "traceability_duplicate_entity"
+            }
+          },
+          "required": [
+            "variant",
+            "message",
+            "diagnostics",
+            "discarded_diagnostic_count"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "diagnostics": {
+              "items": {
+                "maxLength": 1024,
+                "minLength": 1,
+                "pattern": "^traceability_orphan_obligation\\|/.*\\|traceability_orphan_obligation$",
+                "type": "string"
+              },
+              "maxItems": 64,
+              "type": "array"
+            },
+            "discarded_diagnostic_count": {
+              "$ref": "#/$defs/u64"
+            },
+            "message": {
+              "const": "required obligation is orphaned",
+              "maxLength": 1024
+            },
+            "variant": {
+              "const": "traceability_orphan_obligation"
+            }
+          },
+          "required": [
+            "variant",
+            "message",
+            "diagnostics",
+            "discarded_diagnostic_count"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "diagnostics": {
+              "items": {
+                "maxLength": 1024,
+                "minLength": 1,
+                "pattern": "^traceability_orphan_case\\|/.*\\|traceability_orphan_case$",
+                "type": "string"
+              },
+              "maxItems": 64,
+              "type": "array"
+            },
+            "discarded_diagnostic_count": {
+              "$ref": "#/$defs/u64"
+            },
+            "message": {
+              "const": "expectation behavior case is orphaned",
+              "maxLength": 1024
+            },
+            "variant": {
+              "const": "traceability_orphan_case"
+            }
+          },
+          "required": [
+            "variant",
+            "message",
+            "diagnostics",
+            "discarded_diagnostic_count"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "diagnostics": {
+              "items": {
+                "maxLength": 1024,
+                "minLength": 1,
+                "pattern": "^traceability_orphan_judge\\|/.*\\|traceability_orphan_judge$",
+                "type": "string"
+              },
+              "maxItems": 64,
+              "type": "array"
+            },
+            "discarded_diagnostic_count": {
+              "$ref": "#/$defs/u64"
+            },
+            "message": {
+              "const": "judge is orphaned",
+              "maxLength": 1024
+            },
+            "variant": {
+              "const": "traceability_orphan_judge"
+            }
+          },
+          "required": [
+            "variant",
+            "message",
+            "diagnostics",
+            "discarded_diagnostic_count"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "diagnostics": {
+              "items": {
+                "maxLength": 1024,
+                "minLength": 1,
+                "pattern": "^traceability_orphan_bundle\\|/.*\\|traceability_orphan_bundle$",
+                "type": "string"
+              },
+              "maxItems": 64,
+              "type": "array"
+            },
+            "discarded_diagnostic_count": {
+              "$ref": "#/$defs/u64"
+            },
+            "message": {
+              "const": "evidence bundle is orphaned",
+              "maxLength": 1024
+            },
+            "variant": {
+              "const": "traceability_orphan_bundle"
+            }
+          },
+          "required": [
+            "variant",
+            "message",
+            "diagnostics",
+            "discarded_diagnostic_count"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "diagnostics": {
+              "items": {
+                "maxLength": 1024,
+                "minLength": 1,
+                "pattern": "^traceability_orphan_gate\\|/.*\\|traceability_orphan_gate$",
+                "type": "string"
+              },
+              "maxItems": 64,
+              "type": "array"
+            },
+            "discarded_diagnostic_count": {
+              "$ref": "#/$defs/u64"
+            },
+            "message": {
+              "const": "gate is orphaned",
+              "maxLength": 1024
+            },
+            "variant": {
+              "const": "traceability_orphan_gate"
+            }
+          },
+          "required": [
+            "variant",
+            "message",
+            "diagnostics",
+            "discarded_diagnostic_count"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "diagnostics": {
+              "items": {
+                "maxLength": 1024,
+                "minLength": 1,
+                "pattern": "^traceability_orphan_evidence\\|/.*\\|traceability_orphan_evidence$",
+                "type": "string"
+              },
+              "maxItems": 64,
+              "type": "array"
+            },
+            "discarded_diagnostic_count": {
+              "$ref": "#/$defs/u64"
+            },
+            "message": {
+              "const": "evidence source is orphaned",
+              "maxLength": 1024
+            },
+            "variant": {
+              "const": "traceability_orphan_evidence"
+            }
+          },
+          "required": [
+            "variant",
+            "message",
+            "diagnostics",
+            "discarded_diagnostic_count"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "diagnostics": {
+              "items": {
+                "maxLength": 1024,
+                "minLength": 1,
+                "pattern": "^traceability_relation_mismatch\\|/.*\\|traceability_relation_mismatch$",
+                "type": "string"
+              },
+              "maxItems": 64,
+              "type": "array"
+            },
+            "discarded_diagnostic_count": {
+              "$ref": "#/$defs/u64"
+            },
+            "message": {
+              "const": "traceability relation or count mismatches",
+              "maxLength": 1024
+            },
+            "variant": {
+              "const": "traceability_relation_mismatch"
+            }
+          },
+          "required": [
+            "variant",
+            "message",
+            "diagnostics",
+            "discarded_diagnostic_count"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "diagnostics": {
+              "items": {
+                "maxLength": 1024,
+                "minLength": 1,
+                "pattern": "^traceability_degree_cap_exceeded\\|/.*\\|traceability_degree_cap_exceeded$",
+                "type": "string"
+              },
+              "maxItems": 64,
+              "type": "array"
+            },
+            "discarded_diagnostic_count": {
+              "$ref": "#/$defs/u64"
+            },
+            "message": {
+              "const": "traceability degree cap is exceeded",
+              "maxLength": 1024
+            },
+            "variant": {
+              "const": "traceability_degree_cap_exceeded"
+            }
+          },
+          "required": [
+            "variant",
+            "message",
+            "diagnostics",
+            "discarded_diagnostic_count"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "diagnostics": {
+              "items": {
+                "maxLength": 1024,
+                "minLength": 1,
+                "pattern": "^traceability_empty_required_set\\|/.*\\|traceability_empty_required_set$",
+                "type": "string"
+              },
+              "maxItems": 64,
+              "type": "array"
+            },
+            "discarded_diagnostic_count": {
+              "$ref": "#/$defs/u64"
+            },
+            "message": {
+              "const": "a required traceability set is empty",
+              "maxLength": 1024
+            },
+            "variant": {
+              "const": "traceability_empty_required_set"
+            }
+          },
+          "required": [
+            "variant",
+            "message",
+            "diagnostics",
+            "discarded_diagnostic_count"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "diagnostics": {
+              "items": {
+                "maxLength": 1024,
+                "minLength": 1,
+                "pattern": "^traceability_negative_test_coverage_missing\\|/.*\\|traceability_negative_test_coverage_missing$",
+                "type": "string"
+              },
+              "maxItems": 64,
+              "type": "array"
+            },
+            "discarded_diagnostic_count": {
+              "$ref": "#/$defs/u64"
+            },
+            "message": {
+              "const": "negative-test coverage is missing",
+              "maxLength": 1024
+            },
+            "variant": {
+              "const": "traceability_negative_test_coverage_missing"
+            }
+          },
+          "required": [
+            "variant",
+            "message",
+            "diagnostics",
+            "discarded_diagnostic_count"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "diagnostics": {
+              "items": {
+                "maxLength": 1024,
+                "minLength": 1,
+                "pattern": "^resource_checked_arithmetic_overflow\\|/.*\\|resource_checked_arithmetic_overflow$",
+                "type": "string"
+              },
+              "maxItems": 64,
+              "type": "array"
+            },
+            "discarded_diagnostic_count": {
+              "$ref": "#/$defs/u64"
+            },
+            "message": {
+              "const": "checked u64 arithmetic overflow",
+              "maxLength": 1024
+            },
+            "variant": {
+              "const": "resource_checked_arithmetic_overflow"
+            }
+          },
+          "required": [
+            "variant",
+            "message",
+            "diagnostics",
+            "discarded_diagnostic_count"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "diagnostics": {
+              "items": {
+                "maxLength": 1024,
+                "minLength": 1,
+                "pattern": "^resource_platform_size_overflow\\|/.*\\|resource_platform_size_overflow$",
+                "type": "string"
+              },
+              "maxItems": 64,
+              "type": "array"
+            },
+            "discarded_diagnostic_count": {
+              "$ref": "#/$defs/u64"
+            },
+            "message": {
+              "const": "checked platform-size conversion overflow",
+              "maxLength": 1024
+            },
+            "variant": {
+              "const": "resource_platform_size_overflow"
+            }
+          },
+          "required": [
+            "variant",
+            "message",
+            "diagnostics",
+            "discarded_diagnostic_count"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "diagnostics": {
+              "items": {
+                "maxLength": 1024,
+                "minLength": 1,
+                "pattern": "^resource_source_cap_exceeded\\|/.*\\|resource_source_cap_exceeded$",
+                "type": "string"
+              },
+              "maxItems": 64,
+              "type": "array"
+            },
+            "discarded_diagnostic_count": {
+              "$ref": "#/$defs/u64"
+            },
+            "message": {
+              "const": "authority source cap exceeded",
+              "maxLength": 1024
+            },
+            "variant": {
+              "const": "resource_source_cap_exceeded"
+            }
+          },
+          "required": [
+            "variant",
+            "message",
+            "diagnostics",
+            "discarded_diagnostic_count"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "diagnostics": {
+              "items": {
+                "maxLength": 1024,
+                "minLength": 1,
+                "pattern": "^resource_section_cap_exceeded\\|/.*\\|resource_section_cap_exceeded$",
+                "type": "string"
+              },
+              "maxItems": 64,
+              "type": "array"
+            },
+            "discarded_diagnostic_count": {
+              "$ref": "#/$defs/u64"
+            },
+            "message": {
+              "const": "authority section cap exceeded",
+              "maxLength": 1024
+            },
+            "variant": {
+              "const": "resource_section_cap_exceeded"
+            }
+          },
+          "required": [
+            "variant",
+            "message",
+            "diagnostics",
+            "discarded_diagnostic_count"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "diagnostics": {
+              "items": {
+                "maxLength": 1024,
+                "minLength": 1,
+                "pattern": "^resource_input_cap_exceeded\\|/.*\\|resource_input_cap_exceeded$",
+                "type": "string"
+              },
+              "maxItems": 64,
+              "type": "array"
+            },
+            "discarded_diagnostic_count": {
+              "$ref": "#/$defs/u64"
+            },
+            "message": {
+              "const": "serialized input cap exceeded",
+              "maxLength": 1024
+            },
+            "variant": {
+              "const": "resource_input_cap_exceeded"
+            }
+          },
+          "required": [
+            "variant",
+            "message",
+            "diagnostics",
+            "discarded_diagnostic_count"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "diagnostics": {
+              "items": {
+                "maxLength": 1024,
+                "minLength": 1,
+                "pattern": "^resource_index_cap_exceeded\\|/.*\\|resource_index_cap_exceeded$",
+                "type": "string"
+              },
+              "maxItems": 64,
+              "type": "array"
+            },
+            "discarded_diagnostic_count": {
+              "$ref": "#/$defs/u64"
+            },
+            "message": {
+              "const": "retained index arena cap exceeded",
+              "maxLength": 1024
+            },
+            "variant": {
+              "const": "resource_index_cap_exceeded"
+            }
+          },
+          "required": [
+            "variant",
+            "message",
+            "diagnostics",
+            "discarded_diagnostic_count"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "diagnostics": {
+              "items": {
+                "maxLength": 1024,
+                "minLength": 1,
+                "pattern": "^resource_output_cap_exceeded\\|/.*\\|resource_output_cap_exceeded$",
+                "type": "string"
+              },
+              "maxItems": 64,
+              "type": "array"
+            },
+            "discarded_diagnostic_count": {
+              "$ref": "#/$defs/u64"
+            },
+            "message": {
+              "const": "output cap exceeded",
+              "maxLength": 1024
+            },
+            "variant": {
+              "const": "resource_output_cap_exceeded"
+            }
+          },
+          "required": [
+            "variant",
+            "message",
+            "diagnostics",
+            "discarded_diagnostic_count"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "diagnostics": {
+              "items": {
+                "maxLength": 1024,
+                "minLength": 1,
+                "pattern": "^resource_allocation_failed\\|/.*\\|resource_allocation_failed$",
+                "type": "string"
+              },
+              "maxItems": 64,
+              "type": "array"
+            },
+            "discarded_diagnostic_count": {
+              "$ref": "#/$defs/u64"
+            },
+            "message": {
+              "const": "bounded allocation failed",
+              "maxLength": 1024
+            },
+            "variant": {
+              "const": "resource_allocation_failed"
+            }
+          },
+          "required": [
+            "variant",
+            "message",
+            "diagnostics",
+            "discarded_diagnostic_count"
+          ],
+          "type": "object"
+        }
+      ]
+    },
+    "identifier": {
+      "pattern": "^[a-z0-9][a-z0-9._-]*$",
+      "type": "string"
+    },
+    "inputs": {
+      "additionalProperties": false,
+      "properties": {
+        "authority_snapshot_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "catalog_path": {
+          "const": "authority/obligation-catalog-v1.jsonl"
+        },
+        "catalog_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "compile_limits_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "expectation_path": {
+          "const": "expectations/turnvector-implementation-v2.json"
+        },
+        "expectation_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "input_set_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "source_reconciliation_path": {
+          "const": "authority/source-reconciliation-v1.json"
+        },
+        "source_reconciliation_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "traceability_path": {
+          "const": "authority/traceability-v1.json"
+        },
+        "traceability_sha256": {
+          "$ref": "#/$defs/sha256"
+        }
+      },
+      "required": [
+        "source_reconciliation_path",
+        "source_reconciliation_sha256",
+        "expectation_path",
+        "expectation_sha256",
+        "catalog_path",
+        "catalog_sha256",
+        "traceability_path",
+        "traceability_sha256",
+        "authority_snapshot_sha256",
+        "compile_limits_sha256",
+        "input_set_sha256"
+      ],
+      "type": "object"
+    },
+    "observed": {
+      "additionalProperties": false,
+      "properties": {
+        "authority_byte_count": {
+          "$ref": "#/$defs/u64"
+        },
+        "authority_file_count": {
+          "$ref": "#/$defs/u64"
+        },
+        "catalog_record_count": {
+          "$ref": "#/$defs/u64"
+        },
+        "endpoint_reference_count": {
+          "$ref": "#/$defs/u64"
+        },
+        "entity_count": {
+          "$ref": "#/$defs/u64"
+        },
+        "logical_arena_byte_count": {
+          "$ref": "#/$defs/u64"
+        },
+        "output_byte_count_attempted": {
+          "$ref": "#/$defs/u64"
+        },
+        "path_count": {
+          "$ref": "#/$defs/u64"
+        },
+        "relation_record_count": {
+          "$ref": "#/$defs/u64"
+        },
+        "section_byte_count": {
+          "$ref": "#/$defs/u64"
+        },
+        "section_count": {
+          "$ref": "#/$defs/u64"
+        },
+        "serialized_input_byte_count": {
+          "$ref": "#/$defs/u64"
+        }
+      },
+      "required": [
+        "authority_file_count",
+        "authority_byte_count",
+        "section_count",
+        "section_byte_count",
+        "serialized_input_byte_count",
+        "catalog_record_count",
+        "entity_count",
+        "relation_record_count",
+        "endpoint_reference_count",
+        "path_count",
+        "logical_arena_byte_count",
+        "output_byte_count_attempted"
+      ],
+      "type": "object"
+    },
+    "sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "type": "string"
+    },
+    "u64": {
+      "maximum": 18446744073709551615,
+      "minimum": 0,
+      "type": "integer"
+    }
+  },
+  "$id": "https://token-plant.github.io/TurnVectorBenchmark/schemas/contract-failure-v1.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "attempt": {
+      "maximum": 8,
+      "minimum": 1,
+      "type": "integer"
+    },
+    "chronology_prefix_byte_count": {
+      "$ref": "#/$defs/u64"
+    },
+    "chronology_prefix_sha256": {
+      "$ref": "#/$defs/sha256"
+    },
+    "compile_custody_policy_sha256": {
+      "$ref": "#/$defs/sha256"
+    },
+    "compiler_build_sha256": {
+      "$ref": "#/$defs/sha256"
+    },
+    "custody_domain_id": {
+      "$ref": "#/$defs/identifier"
+    },
+    "custody_domain_sha256": {
+      "$ref": "#/$defs/sha256"
+    },
+    "custody_lineage_id": {
+      "$ref": "#/$defs/identifier"
+    },
+    "error": {
+      "$ref": "#/$defs/error"
+    },
+    "execution_closure_sha256": {
+      "$ref": "#/$defs/sha256"
+    },
+    "input_set_sha256": {
+      "$ref": "#/$defs/sha256"
+    },
+    "inputs": {
+      "$ref": "#/$defs/inputs"
+    },
+    "observed": {
+      "$ref": "#/$defs/observed"
+    },
+    "outcome": {
+      "const": "contract_failure"
+    },
+    "profile_id": {
+      "const": "turnvector-implementation-v2"
+    },
+    "schema_version": {
+      "const": "turnvector.benchmark.contract-failure.v1"
+    },
+    "start_event_sha256": {
+      "$ref": "#/$defs/sha256"
+    },
+    "t_max": {
+      "const": 8,
+      "type": "integer"
+    }
+  },
+  "required": [
+    "schema_version",
+    "profile_id",
+    "outcome",
+    "custody_domain_id",
+    "custody_domain_sha256",
+    "custody_lineage_id",
+    "attempt",
+    "t_max",
+    "start_event_sha256",
+    "chronology_prefix_sha256",
+    "chronology_prefix_byte_count",
+    "compiler_build_sha256",
+    "execution_closure_sha256",
+    "compile_custody_policy_sha256",
+    "input_set_sha256",
+    "inputs",
+    "error",
+    "observed"
+  ],
+  "title": "contract-failure-v1",
+  "type": "object"
+}
