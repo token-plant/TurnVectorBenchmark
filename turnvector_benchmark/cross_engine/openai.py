@@ -6,6 +6,7 @@ import http.client
 import ipaddress
 import math
 import os
+import re
 import time
 from dataclasses import dataclass
 from typing import Any, Callable, Dict, List, Mapping, Optional, Sequence, Tuple
@@ -42,6 +43,23 @@ MAX_REQUEST_BYTES = 256 * 1024
 DEFAULT_MAX_RESPONSE_BYTES = 16 * 1024 * 1024
 DEFAULT_MAX_EVENT_BYTES = 256 * 1024
 DEFAULT_MAX_ERROR_BYTES = 64 * 1024
+RESPONSE_DIALECTS = frozenset({"strict_v1", "mlx_lm_0_31"})
+_MLX_KEEPALIVE_RE = re.compile(r"^: keepalive ([0-9]+)/([0-9]+)$")
+_MLX_PROMPT_TOKEN_DETAIL_FIELDS = ("cached_tokens", "audio_tokens")
+_MLX_COMPLETION_TOKEN_DETAIL_FIELDS = (
+    "reasoning_tokens",
+    "audio_tokens",
+    "accepted_prediction_tokens",
+    "rejected_prediction_tokens",
+)
+
+
+def _response_dialect(value: Any) -> str:
+    if not isinstance(value, str) or value not in RESPONSE_DIALECTS:
+        raise ContractError(
+            "response_dialect must be exactly 'strict_v1' or 'mlx_lm_0_31'"
+        )
+    return value
 
 
 class OpenAIProtocolError(ContractError):
@@ -68,13 +86,20 @@ class Usage:
     prompt_tokens: int
     completion_tokens: int
     total_tokens: int
+    prompt_tokens_details: Tuple[Tuple[str, int], ...] = ()
+    completion_tokens_details: Tuple[Tuple[str, int], ...] = ()
 
-    def as_dict(self) -> Dict[str, int]:
-        return {
+    def as_dict(self) -> Dict[str, Any]:
+        result: Dict[str, Any] = {
             "prompt_tokens": self.prompt_tokens,
             "completion_tokens": self.completion_tokens,
             "total_tokens": self.total_tokens,
         }
+        if self.prompt_tokens_details:
+            result["prompt_tokens_details"] = dict(self.prompt_tokens_details)
+        if self.completion_tokens_details:
+            result["completion_tokens_details"] = dict(self.completion_tokens_details)
+        return result
 
 
 @dataclass(frozen=True)
@@ -94,6 +119,22 @@ class RawSSEEvent:
 
 
 @dataclass(frozen=True)
+class RawSSEComment:
+    ordinal: int
+    line: str
+    received_ns: int
+    size_bytes: int
+
+    def as_dict(self) -> Dict[str, Any]:
+        return {
+            "ordinal": self.ordinal,
+            "line": self.line,
+            "received_ns": self.received_ns,
+            "size_bytes": self.size_bytes,
+        }
+
+
+@dataclass(frozen=True)
 class ParsedChatCompletion:
     visible_output: bytes
     reasoning_output: bytes
@@ -103,6 +144,9 @@ class ParsedChatCompletion:
     content_event_ns: Tuple[int, ...]
     raw_events: Tuple[RawSSEEvent, ...]
     response_bytes: int
+    response_dialect: str = "strict_v1"
+    http_version: Optional[str] = None
+    raw_comments: Tuple[RawSSEComment, ...] = ()
 
     @property
     def visible_text(self) -> str:
@@ -124,10 +168,16 @@ class OpenAIStreamResult:
     completion: ParsedChatCompletion
     http_status: int
     content_type: str
+    response_dialect: str = "strict_v1"
+    http_version: str = "HTTP/1.1"
 
     @property
     def request_sha256(self) -> str:
         return hashlib.sha256(self.request_bytes).hexdigest()
+
+    @property
+    def raw_comments(self) -> Tuple[RawSSEComment, ...]:
+        return self.completion.raw_comments
 
 
 @dataclass(frozen=True)
@@ -363,9 +413,20 @@ class SSEParser:
         require_usage: bool = True,
         max_response_bytes: int = DEFAULT_MAX_RESPONSE_BYTES,
         max_event_bytes: int = DEFAULT_MAX_EVENT_BYTES,
+        response_dialect: str = "strict_v1",
+        http_version: Optional[str] = None,
     ) -> None:
         integer(max_response_bytes, "max_response_bytes", minimum=1)
         integer(max_event_bytes, "max_event_bytes", minimum=1)
+        self.response_dialect = _response_dialect(response_dialect)
+        expected_http_version = (
+            "HTTP/1.0" if self.response_dialect == "mlx_lm_0_31" else "HTTP/1.1"
+        )
+        if http_version is not None and http_version != expected_http_version:
+            raise ContractError(
+                f"http_version must be {expected_http_version} for {self.response_dialect}"
+            )
+        self.http_version = http_version
         self.clock = clock
         self.require_usage = require_usage
         self.max_response_bytes = max_response_bytes
@@ -373,8 +434,10 @@ class SSEParser:
         self._decoder = codecs.getincrementaldecoder("utf-8")("strict")
         self._text = ""
         self._pending_data: Optional[str] = None
+        self._pending_comment: Optional[str] = None
         self._response_bytes = 0
         self._events: List[RawSSEEvent] = []
+        self._comments: List[RawSSEComment] = []
         self._visible: List[bytes] = []
         self._reasoning: List[bytes] = []
         self._content_event_ns: List[int] = []
@@ -411,10 +474,31 @@ class SSEParser:
             self._accept_line(line)
         return tuple(self._events[before:])
 
+    def _timestamp(self) -> int:
+        timestamp = self.clock()
+        if isinstance(timestamp, bool) or not isinstance(timestamp, int) or timestamp < 0:
+            raise OpenAIProtocolError(
+                "Benchmark clock must return non-negative integer nanoseconds"
+            )
+        if timestamp < self._last_timestamp:
+            raise OpenAIProtocolError("Benchmark clock moved backwards")
+        self._last_timestamp = timestamp
+        return timestamp
+
     def _accept_line(self, line: str) -> None:
         if self._done:
             raise OpenAIProtocolError("SSE data appeared after [DONE]")
         if line == "":
+            if self._pending_comment is not None:
+                raw = self._pending_comment
+                self._pending_comment = None
+                encoded = raw.encode("utf-8")
+                self._comments.append(
+                    RawSSEComment(
+                        len(self._comments) + 1, raw, self._timestamp(), len(encoded)
+                    )
+                )
+                return
             if self._pending_data is None:
                 raise OpenAIProtocolError("SSE contains an empty event separator")
             data = self._pending_data
@@ -424,20 +508,39 @@ class SSEParser:
                 raise OpenAIProtocolError(
                     f"SSE event exceeds the {self.max_event_bytes}-byte bound"
                 )
-            timestamp = self.clock()
-            if isinstance(timestamp, bool) or not isinstance(timestamp, int) or timestamp < 0:
-                raise OpenAIProtocolError("Benchmark clock must return non-negative integer nanoseconds")
-            if timestamp < self._last_timestamp:
-                raise OpenAIProtocolError("Benchmark clock moved backwards")
-            self._last_timestamp = timestamp
-            event = RawSSEEvent(len(self._events) + 1, data, timestamp, len(encoded))
+            event = RawSSEEvent(
+                len(self._events) + 1, data, self._timestamp(), len(encoded)
+            )
             self._events.append(event)
             self._accept_event(event)
             return
+        if self._pending_data is not None or self._pending_comment is not None:
+            raise OpenAIProtocolError("SSE event must contain exactly one field")
+        if line.startswith(":"):
+            if self.response_dialect != "mlx_lm_0_31":
+                raise OpenAIProtocolError(
+                    "SSE admits only data: fields and blank separators"
+                )
+            if self._terminal_ns is not None:
+                raise OpenAIProtocolError("SSE keepalive comment appeared after terminal")
+            encoded = line.encode("utf-8")
+            if len(encoded) > self.max_event_bytes:
+                raise OpenAIProtocolError(
+                    f"SSE comment exceeds the {self.max_event_bytes}-byte bound"
+                )
+            match = _MLX_KEEPALIVE_RE.fullmatch(line)
+            if match is None:
+                raise OpenAIProtocolError("mlx_lm SSE comment is not a bounded keepalive")
+            if len(match.group(1)) > 19 or len(match.group(2)) > 19:
+                raise OpenAIProtocolError("mlx_lm SSE keepalive progress exceeds its bound")
+            processed = integer(int(match.group(1)), "SSE keepalive processed")
+            total = integer(int(match.group(2)), "SSE keepalive total")
+            if total == 0 or processed > total:
+                raise OpenAIProtocolError("mlx_lm SSE keepalive progress is invalid")
+            self._pending_comment = line
+            return
         if not line.startswith("data:"):
             raise OpenAIProtocolError("SSE admits only data: fields and blank separators")
-        if self._pending_data is not None:
-            raise OpenAIProtocolError("SSE event must contain exactly one data: field")
         data = line[5:]
         if data.startswith(" "):
             data = data[1:]
@@ -464,9 +567,9 @@ class SSEParser:
             ("id", "object", "created", "model", "system_fingerprint", "usage"),
             "SSE chunk",
         )
-        self._validate_chunk_identity(chunk)
         choices = bounded_array(chunk["choices"], "SSE chunk.choices", maximum_items=1)
         usage_value = chunk.get("usage")
+        self._validate_chunk_identity(chunk, usage_chunk=not choices)
         if not choices:
             if self._terminal_ns is None:
                 raise OpenAIProtocolError("usage chunk appeared before the terminal chunk")
@@ -485,13 +588,22 @@ class SSEParser:
         )
         if integer(choice["index"], "SSE choice.index", maximum=0) != 0:
             raise OpenAIProtocolError("SSE choice index drifted from zero")
-        delta = strict_object(
-            choice["delta"], (), ("role", "reasoning_content", "content"), "SSE choice.delta"
+        delta_fields = (
+            ("role", "reasoning", "content")
+            if self.response_dialect == "mlx_lm_0_31"
+            else ("role", "reasoning_content", "content")
         )
+        delta = strict_object(choice["delta"], (), delta_fields, "SSE choice.delta")
         finish_reason = choice["finish_reason"]
         if finish_reason is not None:
             bounded_string(finish_reason, "SSE choice.finish_reason", maximum_bytes=128)
-            if any(value not in (None, "") for value in delta.values()):
+            if self.response_dialect == "mlx_lm_0_31":
+                terminal_fields = {key: value for key, value in delta.items() if value not in (None, "")}
+                if terminal_fields not in ({}, {"role": "assistant"}):
+                    raise OpenAIProtocolError(
+                        "mlx_lm terminal delta may contain only role assistant"
+                    )
+            elif any(value not in (None, "") for value in delta.values()):
                 raise OpenAIProtocolError("terminal chunk must not contain output content")
             self._finish_reason = finish_reason
             self._terminal_ns = event.received_ns
@@ -499,11 +611,17 @@ class SSEParser:
         if "role" in delta:
             if delta["role"] != "assistant":
                 raise OpenAIProtocolError("SSE delta role must be assistant")
-            if self._role_seen or self._visible or self._reasoning:
-                raise OpenAIProtocolError("SSE assistant role must appear at most once before output")
-            self._role_seen = True
+            if self.response_dialect == "strict_v1":
+                if self._role_seen or self._visible or self._reasoning:
+                    raise OpenAIProtocolError(
+                        "SSE assistant role must appear at most once before output"
+                    )
+                self._role_seen = True
+        reasoning_field = (
+            "reasoning" if self.response_dialect == "mlx_lm_0_31" else "reasoning_content"
+        )
         for field, target in (
-            ("reasoning_content", self._reasoning),
+            (reasoning_field, self._reasoning),
             ("content", self._visible),
         ):
             if field not in delta:
@@ -518,9 +636,19 @@ class SSEParser:
                 if field == "content":
                     self._content_event_ns.append(event.received_ns)
 
-    def _validate_chunk_identity(self, chunk: Mapping[str, Any]) -> None:
-        if "object" in chunk and chunk["object"] != "chat.completion.chunk":
-            raise OpenAIProtocolError("SSE chunk.object must be chat.completion.chunk")
+    def _validate_chunk_identity(
+        self, chunk: Mapping[str, Any], *, usage_chunk: bool
+    ) -> None:
+        if "object" in chunk:
+            expected_object = (
+                "chat.completion"
+                if self.response_dialect == "mlx_lm_0_31" and usage_chunk
+                else "chat.completion.chunk"
+            )
+            if chunk["object"] != expected_object:
+                raise OpenAIProtocolError(
+                    f"SSE chunk.object must be {expected_object}"
+                )
         if "created" in chunk:
             integer(chunk["created"], "SSE chunk.created")
         for field in ("id", "model"):
@@ -544,10 +672,24 @@ class SSEParser:
             self._identity["system_fingerprint"] = chunk["system_fingerprint"]
 
     @staticmethod
-    def _parse_usage(value: Any) -> Usage:
+    def _parse_token_details(
+        value: Any, *, where: str, allowed_fields: Sequence[str]
+    ) -> Tuple[Tuple[str, int], ...]:
+        obj = strict_object(value, (), allowed_fields, where)
+        if not obj:
+            raise OpenAIProtocolError(f"{where} must not be empty")
+        return tuple(
+            (field, integer(obj[field], f"{where}.{field}")) for field in sorted(obj)
+        )
+
+    def _parse_usage(self, value: Any) -> Usage:
+        extensions: Sequence[str] = ()
+        if self.response_dialect == "mlx_lm_0_31":
+            extensions = ("prompt_tokens_details", "completion_tokens_details")
         obj = strict_object(
             value,
             ("prompt_tokens", "completion_tokens", "total_tokens"),
+            extensions,
             where="SSE usage",
         )
         prompt = integer(obj["prompt_tokens"], "SSE usage.prompt_tokens")
@@ -555,7 +697,21 @@ class SSEParser:
         total = integer(obj["total_tokens"], "SSE usage.total_tokens")
         if prompt + completion != total:
             raise OpenAIProtocolError("SSE usage total_tokens does not reconcile")
-        return Usage(prompt, completion, total)
+        prompt_details: Tuple[Tuple[str, int], ...] = ()
+        completion_details: Tuple[Tuple[str, int], ...] = ()
+        if "prompt_tokens_details" in obj:
+            prompt_details = self._parse_token_details(
+                obj["prompt_tokens_details"],
+                where="SSE usage.prompt_tokens_details",
+                allowed_fields=_MLX_PROMPT_TOKEN_DETAIL_FIELDS,
+            )
+        if "completion_tokens_details" in obj:
+            completion_details = self._parse_token_details(
+                obj["completion_tokens_details"],
+                where="SSE usage.completion_tokens_details",
+                allowed_fields=_MLX_COMPLETION_TOKEN_DETAIL_FIELDS,
+            )
+        return Usage(prompt, completion, total, prompt_details, completion_details)
 
     def finish(self) -> ParsedChatCompletion:
         try:
@@ -563,7 +719,7 @@ class SSEParser:
         except UnicodeDecodeError as error:
             raise OpenAIProtocolError("SSE response ended inside a UTF-8 sequence") from error
         self._text += remainder
-        if self._text or self._pending_data is not None:
+        if self._text or self._pending_data is not None or self._pending_comment is not None:
             raise OpenAIProtocolError("SSE response ended inside an event")
         if self._terminal_ns is None or self._finish_reason is None:
             raise OpenAIProtocolError("SSE response is missing a terminal chunk")
@@ -580,6 +736,9 @@ class SSEParser:
             content_event_ns=tuple(self._content_event_ns),
             raw_events=tuple(self._events),
             response_bytes=self._response_bytes,
+            response_dialect=self.response_dialect,
+            http_version=self.http_version,
+            raw_comments=tuple(self._comments),
         )
 
 
@@ -722,8 +881,10 @@ class OpenAIHTTPClient:
         max_event_bytes: int = DEFAULT_MAX_EVENT_BYTES,
         max_error_bytes: int = DEFAULT_MAX_ERROR_BYTES,
         environment: Optional[Mapping[str, str]] = None,
+        response_dialect: str = "strict_v1",
     ) -> None:
         self.endpoint = parse_endpoint_descriptor(endpoint)
+        self.response_dialect = _response_dialect(response_dialect)
         if (
             isinstance(timeout_seconds, bool)
             or not isinstance(timeout_seconds, (int, float))
@@ -772,8 +933,13 @@ class OpenAIHTTPClient:
                 encode_chunked=False,
             )
             response = connection.getresponse()
-            if response.version != 11:
-                raise OpenAIProtocolError("OpenAI endpoint must respond with HTTP/1.1")
+            expected_version = 10 if self.response_dialect == "mlx_lm_0_31" else 11
+            http_version = {10: "HTTP/1.0", 11: "HTTP/1.1"}.get(response.version)
+            if response.version != expected_version:
+                expected_text = "HTTP/1.0" if expected_version == 10 else "HTTP/1.1"
+                raise OpenAIProtocolError(
+                    f"OpenAI endpoint must respond with {expected_text} for {self.response_dialect}"
+                )
             if response.status != 200:
                 body = response.read(self.max_error_bytes + 1)
                 if len(body) > self.max_error_bytes:
@@ -799,6 +965,8 @@ class OpenAIHTTPClient:
                 require_usage=require_usage,
                 max_response_bytes=self.max_response_bytes,
                 max_event_bytes=self.max_event_bytes,
+                response_dialect=self.response_dialect,
+                http_version=http_version,
             )
             while True:
                 chunk = response.read(16 * 1024)
@@ -812,6 +980,8 @@ class OpenAIHTTPClient:
                 completion=completion,
                 http_status=response.status,
                 content_type=content_type,
+                response_dialect=self.response_dialect,
+                http_version=http_version,
             )
         except OpenAIHTTPError:
             raise

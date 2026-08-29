@@ -1,10 +1,12 @@
 from __future__ import annotations
 
 import json
+import math
 import os
 import re
 from dataclasses import dataclass, field
 from pathlib import Path
+from types import MappingProxyType
 from typing import Any, Dict, Iterable, List, Mapping, Optional, Sequence, Tuple
 
 from ..core import ContractError
@@ -77,6 +79,23 @@ def balanced_target_order(
     return balanced_target_orders(target_ids, repetition_count)
 
 
+def _frozen_parameters(value: Any, where: str) -> Mapping[str, Any]:
+    if not isinstance(value, Mapping):
+        raise ContractError(f"{where} must be an object")
+    if len(value) > 32:
+        raise ContractError(f"{where} exceeds the 32-field bound")
+    parsed: Dict[str, Any] = {}
+    for raw_name, raw_value in value.items():
+        name = _identifier(raw_name, f"{where}.<key>")
+        if isinstance(raw_value, (str, bool, int)):
+            parsed[name] = raw_value
+        elif isinstance(raw_value, float) and math.isfinite(raw_value):
+            parsed[name] = raw_value
+        else:
+            raise ContractError(f"{where}.{name} must be a finite JSON scalar")
+    return MappingProxyType(dict(sorted(parsed.items())))
+
+
 @dataclass(frozen=True)
 class CampaignCell:
     ordinal: int
@@ -88,6 +107,9 @@ class CampaignCell:
     repetition: int
     required_capabilities: Tuple[str, ...] = ()
     isolation_policy: str = "fresh_process_fresh_state_root"
+    matrix_id: str = "default"
+    pairing_id: Optional[str] = None
+    parameters: Mapping[str, Any] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
         _nonnegative_integer(self.ordinal, "CampaignCell.ordinal")
@@ -96,6 +118,14 @@ class CampaignCell:
         _identifier(self.target_id, "CampaignCell.target_id")
         _identifier(self.scenario_id, "CampaignCell.scenario_id")
         _identifier(self.case_id, "CampaignCell.case_id")
+        _identifier(self.matrix_id, "CampaignCell.matrix_id")
+        pairing_id = self.case_id if self.pairing_id is None else self.pairing_id
+        object.__setattr__(self, "pairing_id", _identifier(pairing_id, "CampaignCell.pairing_id"))
+        object.__setattr__(
+            self,
+            "parameters",
+            _frozen_parameters(self.parameters, "CampaignCell.parameters"),
+        )
         _nonnegative_integer(self.repetition, "CampaignCell.repetition")
         capabilities = tuple(
             _identifier(item, "CampaignCell.required_capabilities[]")
@@ -123,6 +153,9 @@ class CampaignCell:
             "target_id": self.target_id,
             "scenario_id": self.scenario_id,
             "case_id": self.case_id,
+            "matrix_id": self.matrix_id,
+            "pairing_id": self.pairing_id,
+            "parameters": dict(self.parameters),
             "repetition": self.repetition,
             "required_capabilities": list(self.required_capabilities),
             "isolation_policy": self.isolation_policy,
@@ -183,21 +216,32 @@ def freeze_campaign(
 ) -> CampaignPlan:
     """Freeze scenario cases into target-balanced, stable campaign cells.
 
-    ``cases`` may be Slice-A case objects or mappings.  Only their public
-    ``case_id``, ``scenario_id``, ``required_capabilities`` and optional
-    ``isolation_policy`` projections are consumed; target manifests cannot
-    alter the scenario plan.
+    ``cases`` may be Slice-A case objects or mappings. Their public ``case_id``,
+    ``pairing_id``, ``scenario_id``, ``matrix_id``, scalar ``parameters``,
+    ``required_capabilities`` and optional ``isolation_policy`` projections are
+    consumed; target manifests cannot alter the scenario plan.
     """
 
     if isinstance(cases, (str, bytes)) or not isinstance(cases, Sequence) or not cases:
         raise ContractError("cases must be a non-empty sequence")
     orders = balanced_target_orders(target_ids, repetition_count)
-    parsed_cases: List[Tuple[str, str, Tuple[str, ...], str]] = []
+    parsed_cases: List[
+        Tuple[str, str, str, str, Mapping[str, Any], Tuple[str, ...], str]
+    ] = []
     for index, case in enumerate(cases):
         case_id = _identifier(_field(case, "case_id"), f"cases[{index}].case_id")
         scenario_id = _identifier(
             _field(case, "scenario_id", _field(case, "family")),
             f"cases[{index}].scenario_id",
+        )
+        matrix_id = _identifier(
+            _field(case, "matrix_id", "default"), f"cases[{index}].matrix_id"
+        )
+        pairing_id = _identifier(
+            _field(case, "pairing_id", case_id), f"cases[{index}].pairing_id"
+        )
+        parameters = _frozen_parameters(
+            _field(case, "parameters", {}), f"cases[{index}].parameters"
         )
         raw_capabilities = _field(case, "required_capabilities", ())
         if isinstance(raw_capabilities, (str, bytes)) or not isinstance(
@@ -219,13 +263,31 @@ def freeze_campaign(
         isolation = _field(
             case, "isolation_policy", "fresh_process_fresh_state_root"
         )
-        parsed_cases.append((case_id, scenario_id, capabilities, isolation))
+        parsed_cases.append(
+            (
+                case_id,
+                scenario_id,
+                matrix_id,
+                pairing_id,
+                parameters,
+                capabilities,
+                isolation,
+            )
+        )
 
     # Slice A already supplies lexical scenario/matrix order.  Repetition is
     # outside that order, then each repetition uses the frozen target rotation.
     cells: List[CampaignCell] = []
     for repetition, target_order in enumerate(orders):
-        for case_id, scenario_id, capabilities, isolation in parsed_cases:
+        for (
+            case_id,
+            scenario_id,
+            matrix_id,
+            pairing_id,
+            parameters,
+            capabilities,
+            isolation,
+        ) in parsed_cases:
             pairing_key = f"{scenario_id}.{case_id}.r{repetition:04d}"
             for target_id in target_order:
                 ordinal = len(cells)
@@ -240,6 +302,9 @@ def freeze_campaign(
                         repetition=repetition,
                         required_capabilities=capabilities,
                         isolation_policy=isolation,
+                        matrix_id=matrix_id,
+                        pairing_id=pairing_id,
+                        parameters=parameters,
                     )
                 )
     return CampaignPlan(

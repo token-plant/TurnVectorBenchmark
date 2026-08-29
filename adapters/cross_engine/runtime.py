@@ -5,6 +5,7 @@ import hashlib
 import json
 import os
 import signal
+import socket
 import subprocess
 import sys
 import time
@@ -148,6 +149,22 @@ class LifecycleRuntime:
                 stderr_handle.close()
             self.argv = argv
             self.config = config
+            try:
+                host = argv[argv.index("--host") + 1]
+                port = int(argv[argv.index("--port") + 1])
+            except (ValueError, IndexError) as error:
+                raise RuntimeError("registered argv lacks loopback host/port") from error
+            deadline = time.monotonic() + payload["readiness_deadline_ms"] / 1000.0
+            while True:
+                if self.process.poll() is not None:
+                    raise RuntimeError("target exited before readiness")
+                try:
+                    with socket.create_connection((host, port), timeout=0.25):
+                        break
+                except OSError:
+                    if time.monotonic() >= deadline:
+                        raise RuntimeError("target readiness deadline expired")
+                    time.sleep(0.05)
             result = {
                 "process_group_leader_pid": self.process.pid,
                 "child_processes": [_process_record(self.process.pid, argv[0])],

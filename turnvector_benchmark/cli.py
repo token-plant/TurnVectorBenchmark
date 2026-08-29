@@ -6,17 +6,25 @@ import itertools
 import json
 import math
 import os
+import platform
 import re
 import stat
+import subprocess
 import sys
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Mapping, Optional, Sequence, Tuple
 
 from .controller import LaneController
 from .core import ContractError, load_suite
-from .cross_engine.adapters import resolve_target_adapter
+from .cross_engine.artifacts import (
+    ArtifactSpec,
+    build_artifact_manifest,
+    write_artifact_manifest,
+    write_sha256s_from_manifest,
+)
 from .cross_engine.baseline import promote_baseline
 from .cross_engine.campaign import freeze_campaign
+from .cross_engine.controller import CrossEngineController
 from .cross_engine.comparison import (
     comparison_summary,
     coverage_intersection,
@@ -28,7 +36,9 @@ from .cross_engine.native import (
     parse_native_trials,
     summarize_native_trials,
 )
+from .cross_engine.metrics import summarize_observations
 from .cross_engine.reporting import StatusAxes, cross_engine_exit_code
+from .cross_engine.serving import CommonServingExecutor, HuggingFaceWorkload
 from .expectation import (
     bind_suite_lane,
     expectation_summary,
@@ -308,13 +318,21 @@ def _campaign_cases(scenario_sets: Iterable[Mapping[str, Any]]) -> Tuple[List[Ma
             products = itertools.product(
                 *(dimension["values"] for dimension in matrix["dimensions"])
             )
-            for cell_ordinal, _values in enumerate(products):
+            for cell_ordinal, values in enumerate(products):
+                parameters = {
+                    dimension["id"]: value
+                    for dimension, value in zip(matrix["dimensions"], values)
+                }
+                pairing_id = "openai-serving.{}.{}.c{:04d}".format(
+                    scenario["id"], matrix["id"], cell_ordinal
+                )
                 cases.append(
                     {
-                        "case_id": "openai-serving.{}.{}.c{:04d}".format(
-                            scenario["id"], matrix["id"], cell_ordinal
-                        ),
+                        "case_id": pairing_id,
+                        "pairing_id": pairing_id,
                         "scenario_id": scenario["id"],
+                        "matrix_id": matrix["id"],
+                        "parameters": parameters,
                         "required_capabilities": scenario["required_capabilities"],
                         "isolation_policy": scenario["isolation"]["process"],
                     }
@@ -388,7 +406,357 @@ def _write_create_only_json(path: Path, value: Mapping[str, Any]) -> None:
         raise ContractError(f"cannot write create-only output {path}: {error}") from error
 
 
-def _run_cross_engine(profile_path: Path, target_paths: Sequence[Path], output_path: Path) -> Tuple[Mapping[str, Any], int]:
+def _runtime_snapshot_sha256(model_root: Path) -> str:
+    if not model_root.is_absolute() or not model_root.is_dir():
+        raise ContractError("--model-root must be an absolute local model directory")
+    rows = []
+    for path in sorted(model_root.iterdir(), key=lambda item: item.name):
+        if path.name in {"model-manifest.json", ".cache"}:
+            continue
+        if path.is_symlink() or not path.is_file():
+            raise ContractError("publication model snapshot must contain regular top-level files only")
+        raw = path.read_bytes()
+        rows.append({"path": path.name, "sha256": hashlib.sha256(raw).hexdigest(), "size": len(raw)})
+    if not rows:
+        raise ContractError("publication model snapshot is empty")
+    return hashlib.sha256(
+        (json.dumps(rows, sort_keys=True, separators=(",", ":")) + "\n").encode("utf-8")
+    ).hexdigest()
+
+
+def _write_jsonl(path: Path, rows: Sequence[Mapping[str, Any]]) -> None:
+    raw = b"".join(canonical_json_bytes(dict(row)) + b"\n" for row in rows)
+    try:
+        with path.open("xb") as stream:
+            stream.write(raw)
+            stream.flush()
+            os.fsync(stream.fileno())
+    except OSError as error:
+        raise ContractError(f"cannot write publication artifact {path}: {error}") from error
+
+
+def _bounded_host_command(argv: Sequence[str], *, max_bytes: int = 64 * 1024) -> str:
+    try:
+        completed = subprocess.run(
+            list(argv),
+            stdin=subprocess.DEVNULL,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            timeout=5,
+            check=False,
+            text=True,
+        )
+    except (OSError, subprocess.SubprocessError) as error:
+        raise ContractError(f"host admission command {argv[0]!r} failed: {error}") from error
+    output = completed.stdout
+    if completed.returncode != 0 or len(output.encode("utf-8")) > max_bytes:
+        raise ContractError(f"host admission command {argv[0]!r} was unavailable")
+    return output
+
+
+def _probe_host_admission(policy: Mapping[str, Any]) -> Mapping[str, Any]:
+    if platform.system() != "Darwin":
+        raise ContractError("mlx-lm publication host admission currently requires macOS")
+    power = _bounded_host_command(("pmset", "-g", "batt"))
+    custom = _bounded_host_command(("pmset", "-g", "custom"))
+    thermal = _bounded_host_command(("pmset", "-g", "therm"))
+    pressure = _bounded_host_command(("memory_pressure", "-Q"))
+    swap = _bounded_host_command(("sysctl", "-n", "vm.swapusage"))
+    processes = _bounded_host_command(
+        ("ps", "-Ao", "%cpu=,pid=,comm="), max_bytes=256 * 1024
+    )
+    low_power_values = [int(value) for value in re.findall(r"lowpowermode\s+(\d+)", custom)]
+    swap_match = re.search(r"used\s*=\s*([0-9.]+)([KMG])", swap)
+    if not low_power_values or swap_match is None:
+        raise ContractError("macOS host admission output did not match its bounded grammar")
+    scale = {"K": 1024, "M": 1024**2, "G": 1024**3}[swap_match.group(2)]
+    swap_bytes = int(float(swap_match.group(1)) * scale)
+    process_rows = []
+    for line in processes.splitlines():
+        parts = line.strip().split(None, 2)
+        if len(parts) != 3:
+            continue
+        try:
+            cpu = float(parts[0])
+            pid = int(parts[1])
+        except ValueError:
+            continue
+        if pid == os.getpid():
+            continue
+        process_rows.append((cpu, pid, parts[2]))
+    top_cpu, top_pid, top_command = max(process_rows, default=(0.0, 0, "none"))
+    load_1m = os.getloadavg()[0]
+    thermal_state = "nominal" if "No thermal warning level has been recorded" in thermal else "unknown"
+    memory_pressure = "normal" if "System-wide memory free percentage:" in pressure else "unknown"
+    observations = {
+        "external_power": "AC Power" in power,
+        "low_power_mode": any(low_power_values),
+        "thermal_state": thermal_state,
+        "memory_pressure": memory_pressure,
+        "load_average_1m": load_1m,
+        "swap_bytes": swap_bytes,
+        "top_process_cpu_percent": top_cpu,
+        "top_process_pid": top_pid,
+        "top_process_command": top_command[:1024],
+    }
+    failures = []
+    if policy["external_power_required"] and not observations["external_power"]:
+        failures.append("external_power_required")
+    if policy["low_power_mode"] == "forbidden" and observations["low_power_mode"]:
+        failures.append("low_power_mode_forbidden")
+    if thermal_state not in policy["allowed_thermal_states"]:
+        failures.append("thermal_state_not_admitted")
+    if memory_pressure not in policy["allowed_memory_pressure"]:
+        failures.append("memory_pressure_not_admitted")
+    if load_1m > policy["max_load_average_1m"]:
+        failures.append("load_average_above_limit")
+    if swap_bytes > policy["max_swap_bytes"]:
+        failures.append("swap_above_limit")
+    if top_cpu > policy["max_top_process_cpu_percent"]:
+        failures.append("competing_process_cpu_above_limit")
+    return {
+        "schema_version": "turnvector.benchmark.host-admission.v1",
+        "observations": observations,
+        "failures": failures,
+        "admitted": not failures,
+    }
+
+
+def _execute_serving_publication(
+    *,
+    profile: Mapping[str, Any],
+    campaign: Any,
+    targets: Sequence[Tuple[Mapping[str, Any], bytes]],
+    scenario_sets: Sequence[Mapping[str, Any]],
+    root: Path,
+    target_checkout: Optional[Path],
+    model_root: Optional[Path],
+    port: Optional[int],
+) -> Tuple[Mapping[str, Any], int]:
+    if profile.get("claim_scope") != "absolute_single_target":
+        raise ContractError("enabled execution requires an explicit absolute_single_target profile")
+    if len(targets) != 1:
+        raise ContractError("absolute publication execution requires exactly one enabled target")
+    if target_checkout is None or model_root is None or port is None:
+        raise ContractError("enabled publication requires --target-checkout, --model-root and --port")
+    target_checkout = target_checkout.absolute()
+    model_root = model_root.absolute()
+    if not target_checkout.is_dir():
+        raise ContractError("--target-checkout must be an existing absolute directory")
+    if isinstance(port, bool) or not 1 <= port <= 65535:
+        raise ContractError("--port must be between 1 and 65535")
+    target, _target_raw = targets[0]
+    if target.get("manifest_purpose") != "publication":
+        raise ContractError("enabled execution requires a publication target manifest")
+    if target.get("endpoint", {}).get("response_dialect") != profile.get("response_dialect"):
+        raise ContractError("target response dialect does not match publication profile")
+    if _runtime_snapshot_sha256(model_root) != target["model"]["snapshot_sha256"]:
+        raise ContractError("runtime model snapshot digest does not match publication target")
+    for relative, expected in (
+        ("config.json", target["model"]["runtime_config_sha256"]),
+        ("tokenizer.json", target["model"]["tokenizer_sha256"]),
+    ):
+        path = model_root / relative
+        if not path.is_file() or hashlib.sha256(path.read_bytes()).hexdigest() != expected:
+            raise ContractError(f"runtime model {relative} digest does not match publication target")
+    executable = target_checkout / "bin" / "mlx_lm.server"
+    if not executable.is_file() or hashlib.sha256(executable.read_bytes()).hexdigest() != target["executables"][0]["sha256"]:
+        raise ContractError("runtime mlx_lm.server digest does not match publication target")
+    host_admission = _probe_host_admission(profile["host_admission"])
+    _write_create_only_json(root / "host-admission.json", host_admission)
+    if not host_admission["admitted"]:
+        return {
+            "status": "preflight_only",
+            "contract_status": "valid",
+            "capability_status": "environment_unavailable",
+            "execution_status": "not_started",
+            "evidence_status": "not_evaluated",
+            "reason_code": host_admission["failures"][0],
+            "host_admission": str(root / "host-admission.json"),
+            "campaign": str(root / "campaign.json"),
+            "planned_cell_count": len(campaign.cells),
+        }, 4
+
+    scenarios = {
+        scenario["id"]: scenario
+        for scenario_set in scenario_sets
+        for scenario in scenario_set["scenarios"]
+    }
+    workload = HuggingFaceWorkload(str(model_root))
+    executor = CommonServingExecutor(
+        scenarios=scenarios,
+        prompt_factory=workload.prompt,
+        token_counter=workload.count,
+        response_dialects={target["id"]: profile["response_dialect"]},
+    )
+    declared_capabilities = {
+        name: disposition["status"] == "supported"
+        for name, disposition in target["capabilities"].items()
+    }
+
+    def capability_probe(_target: Any, _cell: Any) -> Mapping[str, Any]:
+        return {
+            "capabilities": declared_capabilities,
+            "profile_compatible": True,
+            "environment_available": True,
+            "applicable": True,
+        }
+
+    execution_root = root / "execution"
+    result = CrossEngineController(
+        campaign=campaign,
+        targets={target["id"]: target},
+        output_root=execution_root,
+        scenario_executor=executor,
+        capability_probe=capability_probe,
+        runtime_bindings={
+            target["id"]: {
+                "target_checkout": str(target_checkout),
+                "model_root": str(model_root),
+                "port": port,
+            }
+        },
+    ).run()
+
+    publication_root = root / "publication"
+    publication_root.mkdir(exist_ok=False)
+    _write_create_only_json(publication_root / "host-admission.json", host_admission)
+    cells = [cell.as_dict() for cell in result.cells]
+    artifact_rows: Dict[str, List[Mapping[str, Any]]] = {
+        "request_trace": [],
+        "stream_events": [],
+        "raw_trials": [],
+        "request_metrics": [],
+        "output_hashes": [],
+        "host_samples": [],
+        "process_audit": [],
+    }
+    for cell in cells:
+        observations = cell["observations"]
+        for name in ("request_trace", "stream_events", "raw_trials", "request_metrics", "output_hashes"):
+            artifact_rows[name].extend(observations.get(name, []))
+        if "host_process_evidence" in observations:
+            artifact_rows["host_samples"].append(
+                {"cell_id": cell["cell_id"], "evidence": observations["host_process_evidence"]}
+            )
+        if "listener_owner" in observations:
+            artifact_rows["process_audit"].append(
+                {"cell_id": cell["cell_id"], "listener_owner": observations["listener_owner"]}
+            )
+    for name, rows in artifact_rows.items():
+        _write_jsonl(publication_root / f"{name}.jsonl", rows)
+    (publication_root / "attempts.jsonl").write_bytes(result.attempts_path.read_bytes())
+
+    completed = [cell for cell in cells if cell["execution_status"] == "completed"]
+    trials = [row for cell in completed for row in cell["observations"].get("raw_trials", [])]
+    failed_requests = sum(row["trial_metrics"]["failed_request_count"] for row in trials)
+    goodput_ok = bool(trials) and all(row["trial_metrics"]["slo_goodput_ratio"] >= 0.95 for row in trials)
+    execution_status = "completed" if len(completed) == len(cells) else "partial"
+    evidence_status = "publishable" if execution_status == "completed" and failed_requests == 0 else "not_publishable"
+    promotion_status = "passed" if evidence_status == "publishable" and goodput_ok else (
+        "failed" if evidence_status == "publishable" else "not_evaluated"
+    )
+    requests = artifact_rows["request_metrics"]
+    trial_metrics = [row["trial_metrics"] for row in trials]
+
+    def summary(values: Iterable[Any]) -> Mapping[str, Optional[float]]:
+        raw_values = list(values)
+        present = [float(value) for value in raw_values if value is not None]
+        return summarize_observations(
+            present, unavailable_count=len(raw_values) - len(present)
+        )
+
+    metric_summary = {
+        "successful_request_count": sum(row["valid_completed_request_count"] for row in trial_metrics),
+        "failed_request_count": failed_requests,
+        "input_token_count": sum(row["canonical_input_tokens"] or 0 for row in requests),
+        "output_token_count": sum(row["canonical_output_tokens"] or 0 for row in requests),
+        "e2e_ms": summary(row["e2e_ms"] for row in requests),
+        "ttft_ms": summary(row["ttft_ms"] for row in requests),
+        "stream_event_interval_ms": summary(
+            value for row in requests for value in row["stream_event_interval_ms"]
+        ),
+        "client_post_first_output_ms_per_token": summary(
+            row["client_post_first_output_ms_per_token"] for row in requests
+        ),
+        "request_throughput": summary(row["request_throughput"] for row in trial_metrics),
+        "output_throughput": summary(row["output_throughput"] for row in trial_metrics),
+        "offered_request_rate": summary(row["offered_request_rate"] for row in trial_metrics),
+        "completion_rate": summary(row["completion_rate"] for row in trial_metrics),
+        "output_mismatch_count": 0,
+        "output_contract_violation_count": sum(
+            "output_contract" in row["error_classes"] for row in requests
+        ),
+        "token_count_disagreement_count": sum(
+            "token_count_disagreement" in row["error_classes"] for row in requests
+        ),
+        "slo_goodput_ratio": summary(row["slo_goodput_ratio"] for row in trial_metrics),
+    }
+    report = {
+        "schema_version": "turnvector.benchmark.mlx-lm-serving-publication.v1",
+        "campaign_id": campaign.campaign_id,
+        "profile_id": profile["id"],
+        "target_id": target["id"],
+        "claim_scope": "absolute_single_target",
+        "response_dialect": profile["response_dialect"],
+        "qualification_claim": None,
+        "cross_target_favorable_claim": None,
+        "statuses": {
+            "contract_status": "valid",
+            "capability_status": "supported",
+            "execution_status": execution_status,
+            "evidence_status": evidence_status,
+            "promotion_status": promotion_status,
+            "coverage_status": "complete" if len(completed) == len(cells) else "partial",
+        },
+        "planned_cell_count": len(cells),
+        "completed_cell_count": len(completed),
+        "failed_request_count": failed_requests,
+        "trial_count": len(trials),
+        "metric_summary": metric_summary,
+        "trial_metrics": trial_metrics,
+    }
+    _write_create_only_json(publication_root / "report.json", report)
+    specs = [
+        ArtifactSpec(name.replace("_", "-"), f"{name}.jsonl", "application/jsonl", None)
+        for name in artifact_rows
+    ] + [
+        ArtifactSpec("attempts", "attempts.jsonl", "application/jsonl", None),
+        ArtifactSpec("host-admission", "host-admission.json", "application/json", None),
+        ArtifactSpec("report", "report.json", "application/json", None),
+    ]
+    manifest = build_artifact_manifest(publication_root, specs, campaign_id=campaign.campaign_id)
+    write_artifact_manifest(publication_root, manifest)
+    write_sha256s_from_manifest(publication_root, manifest)
+    rendered = {
+        "status": "completed" if execution_status == "completed" else "partial",
+        **report["statuses"],
+        "campaign": str(root / "campaign.json"),
+        "publication": str(publication_root / "report.json"),
+        "artifact_manifest": str(publication_root / "artifact-manifest.json"),
+        "planned_cell_count": len(cells),
+        "completed_cell_count": len(completed),
+    }
+    axes = StatusAxes(
+        "valid",
+        "supported",
+        execution_status,
+        evidence_status,
+        promotion_status,
+        report["statuses"]["coverage_status"],
+    )
+    return rendered, cross_engine_exit_code([axes])
+
+
+def _run_cross_engine(
+    profile_path: Path,
+    target_paths: Sequence[Path],
+    output_path: Path,
+    *,
+    target_checkout: Optional[Path] = None,
+    model_root: Optional[Path] = None,
+    port: Optional[int] = None,
+) -> Tuple[Mapping[str, Any], int]:
     profile, profile_raw, loaded = _cross_engine_profile(profile_path)
     if not target_paths:
         raise ContractError("run-cross-engine requires at least one --target")
@@ -450,20 +818,16 @@ def _run_cross_engine(profile_path: Path, target_paths: Sequence[Path], output_p
         }
         return rendered, 4
 
-    for target, _raw in targets:
-        resolve_target_adapter(target)
-    # Slice E/F CLI deliberately does not turn preflight into fabricated evidence.
-    rendered = {
-        "status": "preflight_only",
-        "contract_status": "valid",
-        "capability_status": "supported",
-        "execution_status": "not_started",
-        "evidence_status": "not_evaluated",
-        "reason_code": "scenario_execution_not_available",
-        "campaign": str(campaign_path),
-        "planned_cell_count": len(campaign.cells),
-    }
-    return rendered, 6
+    return _execute_serving_publication(
+        profile=profile,
+        campaign=campaign,
+        targets=targets,
+        scenario_sets=scenario_sets,
+        root=root,
+        target_checkout=target_checkout,
+        model_root=model_root,
+        port=port,
+    )
 
 
 def _status_axes(evidence: Mapping[str, Any]) -> StatusAxes:
@@ -740,11 +1104,22 @@ def _parser() -> argparse.ArgumentParser:
 
     run_cross_engine = subparsers.add_parser(
         "run-cross-engine",
-        help="strictly preflight and freeze a cross-engine campaign before execution",
+        help="freeze, preflight, and execute an enabled cross-engine publication campaign",
     )
     run_cross_engine.add_argument("--profile", type=Path, required=True)
     run_cross_engine.add_argument("--target", type=Path, action="append", required=True)
     run_cross_engine.add_argument("--output", type=Path, required=True)
+    run_cross_engine.add_argument(
+        "--target-checkout",
+        type=Path,
+        help="absolute installed target environment for a single enabled publication target",
+    )
+    run_cross_engine.add_argument(
+        "--model-root",
+        type=Path,
+        help="absolute local model snapshot for a single enabled publication target",
+    )
+    run_cross_engine.add_argument("--port", type=int)
 
     compare_cross_engine = subparsers.add_parser(
         "compare-cross-engine",
@@ -830,7 +1205,12 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
             return 0
         if args.command == "run-cross-engine":
             rendered, exit_code = _run_cross_engine(
-                args.profile, args.target, args.output
+                args.profile,
+                args.target,
+                args.output,
+                target_checkout=args.target_checkout,
+                model_root=args.model_root,
+                port=args.port,
             )
             print(json.dumps(rendered, sort_keys=True))
             return exit_code

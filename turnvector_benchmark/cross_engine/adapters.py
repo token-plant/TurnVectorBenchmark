@@ -11,6 +11,7 @@ from ..core import ContractError
 _MAX_ARGUMENTS = 32
 _MAX_TEXT = 4096
 _LOOPBACKS = frozenset({"127.0.0.1", "::1"})
+_MLX_CHAT_TEMPLATE_ARGS = '{"enable_thinking":false}'
 
 
 @dataclass(frozen=True)
@@ -89,8 +90,17 @@ ADAPTER_REGISTRY: Mapping[str, AdapterRegistration] = {
         engine_family="mlx-lm",
         command_id="mlx-lm-openai-server",
         lifecycle_module="adapters.cross_engine.mlx_lm",
-        manifest_arguments=("--model", "{model_root}", "--host", "127.0.0.1", "--port", "{port}"),
-        prefix=(),
+        manifest_arguments=(
+            "--model",
+            "{model_root}",
+            "--host",
+            "127.0.0.1",
+            "--port",
+            "{port}",
+            "--chat-template-args",
+            _MLX_CHAT_TEMPLATE_ARGS,
+        ),
+        prefix=("--chat-template-args", _MLX_CHAT_TEMPLATE_ARGS),
         arguments=_rules(
             executable_field="executable",
             extras={
@@ -178,6 +188,8 @@ def _argument_value(name: str, value: Any, rule: ArgumentRule) -> str:
 
 
 def _substitute(token: str, bindings: Mapping[str, Any], where: str) -> str:
+    if token == _MLX_CHAT_TEMPLATE_ARGS:
+        return token
     rendered = token
     for name in ("model_root", "target_checkout", "python_executable", "port"):
         marker = "{" + name + "}"

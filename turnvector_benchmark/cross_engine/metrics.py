@@ -28,6 +28,26 @@ class RequestObservation:
     output_obligations_met: bool = True
     error_class: Optional[str] = None
     slo_e2e_ms: Optional[float] = None
+    slo_ttft_ms: Optional[float] = None
+
+    def as_dict(self) -> Dict[str, Any]:
+        return {
+            "request_id": self.request_id,
+            "dispatch_ns": self.dispatch_ns,
+            "terminal_ns": self.terminal_ns,
+            "content_event_ns": list(self.content_event_ns),
+            "wire_complete": self.wire_complete,
+            "benchmark_input_tokens": self.benchmark_input_tokens,
+            "benchmark_output_tokens": self.benchmark_output_tokens,
+            "server_input_tokens": self.server_input_tokens,
+            "server_output_tokens": self.server_output_tokens,
+            "token_authority": self.token_authority,
+            "required_output_tokens": self.required_output_tokens,
+            "output_obligations_met": self.output_obligations_met,
+            "error_class": self.error_class,
+            "slo_e2e_ms": self.slo_e2e_ms,
+            "slo_ttft_ms": self.slo_ttft_ms,
+        }
 
 
 @dataclass(frozen=True)
@@ -104,6 +124,7 @@ def observation_from_stream_result(
     required_output_tokens: Optional[int] = None,
     output_obligations_met: bool = True,
     slo_e2e_ms: Optional[float] = None,
+    slo_ttft_ms: Optional[float] = None,
 ) -> RequestObservation:
     usage = result.completion.usage
     return RequestObservation(
@@ -121,6 +142,7 @@ def observation_from_stream_result(
         output_obligations_met=output_obligations_met,
         error_class=None,
         slo_e2e_ms=slo_e2e_ms,
+        slo_ttft_ms=slo_ttft_ms,
     )
 
 
@@ -133,6 +155,7 @@ def failed_observation(
     benchmark_input_tokens: Optional[int] = None,
     required_output_tokens: Optional[int] = None,
     slo_e2e_ms: Optional[float] = None,
+    slo_ttft_ms: Optional[float] = None,
 ) -> RequestObservation:
     return RequestObservation(
         request_id=request_id,
@@ -149,6 +172,7 @@ def failed_observation(
         output_obligations_met=False,
         error_class=error_class,
         slo_e2e_ms=slo_e2e_ms,
+        slo_ttft_ms=slo_ttft_ms,
     )
 
 
@@ -180,6 +204,10 @@ def _canonical_token_counts(observation: RequestObservation) -> Tuple[Optional[i
         if observation.wire_complete and benchmark_output is None:
             raise ContractError("benchmark_tokenizer authority requires an output token count")
         return benchmark_input, benchmark_output
+    if not observation.wire_complete:
+        if benchmark_input is None:
+            raise ContractError("both token authority requires a Benchmark input count for failures")
+        return benchmark_input, None
     if None in (benchmark_input, benchmark_output, server_input, server_output):
         raise ContractError("both token authority requires Benchmark and server token counts")
     if benchmark_input != server_input or benchmark_output != server_output:
@@ -225,6 +253,10 @@ def reduce_request_metrics(observation: RequestObservation) -> RequestMetrics:
         slo_e2e_ms = finite_number(observation.slo_e2e_ms, "slo_e2e_ms", minimum=0.0)
     else:
         slo_e2e_ms = None
+    if observation.slo_ttft_ms is not None:
+        slo_ttft_ms = finite_number(observation.slo_ttft_ms, "slo_ttft_ms", minimum=0.0)
+    else:
+        slo_ttft_ms = None
 
     ttft_ms = (
         None if not content_event_ns else (content_event_ns[0] - dispatch_ns) / 1_000_000.0
@@ -268,6 +300,8 @@ def reduce_request_metrics(observation: RequestObservation) -> RequestMetrics:
     )
     slo_satisfied = completion_valid and (
         slo_e2e_ms is None or (e2e_ms is not None and e2e_ms <= slo_e2e_ms)
+    ) and (
+        slo_ttft_ms is None or (ttft_ms is not None and ttft_ms <= slo_ttft_ms)
     )
     return RequestMetrics(
         request_id=request_id,

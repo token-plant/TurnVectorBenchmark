@@ -213,6 +213,12 @@
         "protocol_version": {
           "const": "turnvector.benchmark.openai-serving.v1"
         },
+        "response_dialect": {
+          "enum": [
+            "strict_v1",
+            "mlx_lm_0_31"
+          ]
+        },
         "stream_format": {
           "const": "sse-data-json"
         },
@@ -465,6 +471,59 @@
   "$id": "https://token-plant.github.io/TurnVectorBenchmark/schemas/cross-engine-target-v1.schema.json",
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "additionalProperties": false,
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "manifest_purpose": {
+            "const": "publication"
+          }
+        },
+        "required": [
+          "manifest_purpose"
+        ]
+      },
+      "then": {
+        "properties": {
+          "enabled": {
+            "const": true
+          },
+          "endpoint": {
+            "properties": {
+              "response_dialect": {
+                "const": "mlx_lm_0_31"
+              }
+            },
+            "required": [
+              "response_dialect"
+            ]
+          },
+          "engine_family": {
+            "const": "mlx-lm"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "manifest_purpose": {
+            "const": "example"
+          }
+        },
+        "required": [
+          "manifest_purpose"
+        ]
+      },
+      "then": {
+        "properties": {
+          "enabled": {
+            "const": false
+          }
+        }
+      }
+    }
+  ],
   "properties": {
     "adapter": {
       "$ref": "#/$defs/adapter"
@@ -480,7 +539,7 @@
       "type": "array"
     },
     "enabled": {
-      "const": false
+      "type": "boolean"
     },
     "endpoint": {
       "$ref": "#/$defs/endpoint_expectation"
@@ -505,7 +564,10 @@
       "$ref": "#/$defs/id"
     },
     "manifest_purpose": {
-      "const": "example"
+      "enum": [
+        "example",
+        "publication"
+      ]
     },
     "model": {
       "$ref": "#/$defs/model"

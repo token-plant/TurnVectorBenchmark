@@ -37,10 +37,19 @@
       "additionalProperties": false,
       "properties": {
         "allowed_forms": {
-          "const": [
-            "absolute",
-            "paired_delta",
-            "regression"
+          "oneOf": [
+            {
+              "const": [
+                "absolute"
+              ]
+            },
+            {
+              "const": [
+                "absolute",
+                "paired_delta",
+                "regression"
+              ]
+            }
           ]
         },
         "coverage_disclosure_required": {
@@ -395,6 +404,9 @@
         "composite_winner_score": {
           "const": "forbidden"
         },
+        "cross_target_favorable_claims": {
+          "const": "forbidden"
+        },
         "diagnostic_imports_satisfy_gates": {
           "const": false
         },
@@ -488,6 +500,48 @@
   "$id": "https://token-plant.github.io/TurnVectorBenchmark/schemas/cross-engine-profile-v1.schema.json",
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "additionalProperties": false,
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "id": {
+            "const": "mlx-lm-openai-serving-publication-v1"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      },
+      "then": {
+        "properties": {
+          "claim_scope": {
+            "const": "absolute_single_target"
+          },
+          "comparison_policy": {
+            "properties": {
+              "allowed_forms": {
+                "const": [
+                  "absolute"
+                ]
+              }
+            }
+          },
+          "publication_policy": {
+            "required": [
+              "cross_target_favorable_claims"
+            ]
+          },
+          "response_dialect": {
+            "const": "mlx_lm_0_31"
+          }
+        },
+        "required": [
+          "claim_scope",
+          "response_dialect"
+        ]
+      }
+    }
+  ],
   "properties": {
     "artifact_limits": {
       "$ref": "#/$defs/artifact_limits"
@@ -498,6 +552,12 @@
       },
       "minItems": 1,
       "type": "array"
+    },
+    "claim_scope": {
+      "enum": [
+        "absolute_single_target",
+        "cross_engine_comparison"
+      ]
     },
     "comparison_policy": {
       "$ref": "#/$defs/comparison_policy"
@@ -521,7 +581,10 @@
       "$ref": "#/$defs/host_admission"
     },
     "id": {
-      "const": "cross-engine-openai-serving-v1"
+      "enum": [
+        "cross-engine-openai-serving-v1",
+        "mlx-lm-openai-serving-publication-v1"
+      ]
     },
     "lifecycle_timeouts_seconds": {
       "$ref": "#/$defs/lifecycle_timeouts"
@@ -552,6 +615,12 @@
       "minItems": 1,
       "type": "array",
       "uniqueItems": true
+    },
+    "response_dialect": {
+      "enum": [
+        "strict_v1",
+        "mlx_lm_0_31"
+      ]
     },
     "scenario_sets": {
       "items": {

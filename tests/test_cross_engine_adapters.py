@@ -57,6 +57,8 @@ class CrossEngineAdapterTests(unittest.TestCase):
             argv,
             (
                 "/opt/mlx/bin/mlx_lm.server",
+                "--chat-template-args",
+                '{"enable_thinking":false}',
                 "--host",
                 "127.0.0.1",
                 "--port",
@@ -92,6 +94,17 @@ class CrossEngineAdapterTests(unittest.TestCase):
         self.assertEqual(control[0], sys.executable)
         self.assertEqual(control[1:3], ("-B", "-m"))
         self.assertNotIn("shell", control)
+        with self.assertRaisesRegex(ContractError, "unknown fields"):
+            build_target_argv(
+                "mlx-lm-openai-server",
+                {
+                    "executable": "/opt/mlx/bin/mlx_lm.server",
+                    "host": "127.0.0.1",
+                    "port": 31418,
+                    "model": "/models/qwen",
+                    "chat_template_args": '{"enable_thinking":true}',
+                },
+            )
 
     def test_unknown_arguments_and_non_loopback_listener_fail_closed(self) -> None:
         base = {
@@ -128,6 +141,10 @@ class CrossEngineAdapterTests(unittest.TestCase):
                 self.assertIn("127.0.0.1", argv)
                 self.assertIn("31418", argv)
                 self.assertNotIn("{port}", argv)
+                if command_id == "mlx-lm-openai-server":
+                    index = argv.index("--chat-template-args")
+                    self.assertEqual(argv[index + 1], '{"enable_thinking":false}')
+                    self.assertNotIn("chat_template_args", registration.arguments)
 
     def test_process_and_listener_evidence_binds_owned_group(self) -> None:
         records = (

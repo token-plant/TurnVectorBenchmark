@@ -215,6 +215,14 @@ def _endpoint_config(target: Any, target_argv: Sequence[str]) -> Mapping[str, An
         raise ContractError("registered target argv lacks a loopback host and port") from error
     model = _field(target, "model", {})
     model_id = _field(model, "id")
+    if (
+        _field(target, "engine_family") == "mlx-lm"
+        and _field(target, "manifest_purpose") == "publication"
+    ):
+        try:
+            model_id = target_argv[target_argv.index("--model") + 1]
+        except (ValueError, IndexError) as error:
+            raise ContractError("mlx-lm target argv lacks its runtime model path") from error
     if not isinstance(model_id, str) or not model_id:
         raise ContractError("target model must declare an ID")
     admitted.update(

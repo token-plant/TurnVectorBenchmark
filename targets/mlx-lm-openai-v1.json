@@ -6,7 +6,9 @@
       "--host",
       "127.0.0.1",
       "--port",
-      "{port}"
+      "{port}",
+      "--chat-template-args",
+      "{\"enable_thinking\":false}"
     ],
     "environment_names": [
       "HF_HUB_CACHE"

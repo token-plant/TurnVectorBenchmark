@@ -179,6 +179,47 @@ class SSEParserTests(unittest.TestCase):
         with self.assertRaisesRegex(OpenAIProtocolError, "event exceeds"):
             parser.feed(body)
 
+    def test_mlx_031_dialect_projects_only_observed_wire_differences(self) -> None:
+        parser = SSEParser(
+            response_dialect="mlx_lm_0_31",
+            clock=ControlledClock([10, 20, 30, 40, 50, 60]),
+        )
+        parser.feed(stream_body("mlx-lm-0.31"))
+        result = parser.finish()
+        self.assertEqual(result.response_dialect, "mlx_lm_0_31")
+        self.assertEqual(result.reasoning_text, "private")
+        self.assertEqual(result.visible_text, "hello 世界")
+        self.assertEqual(result.content_event_ns, (30,))
+        self.assertEqual([comment.line for comment in result.raw_comments], [": keepalive 1/4"])
+        self.assertEqual(result.raw_comments[0].received_ns, 10)
+        self.assertEqual(
+            result.usage.as_dict(),
+            {
+                "prompt_tokens": 4,
+                "completion_tokens": 3,
+                "total_tokens": 7,
+                "prompt_tokens_details": {"cached_tokens": 1},
+                "completion_tokens_details": {"reasoning_tokens": 1},
+            },
+        )
+
+    def test_strict_default_rejects_mlx_wire_and_mlx_extensions_fail_closed(self) -> None:
+        with self.assertRaises(OpenAIProtocolError):
+            SSEParser().feed(stream_body("mlx-lm-0.31"))
+        for mode in (
+            "mlx-lm-0.31-unknown-comment",
+            "mlx-lm-0.31-unknown-delta",
+            "mlx-lm-0.31-terminal-content",
+            "mlx-lm-0.31-unknown-token-detail",
+        ):
+            with self.subTest(mode=mode):
+                parser = SSEParser(response_dialect="mlx_lm_0_31")
+                with self.assertRaises(ContractError):
+                    parser.feed(stream_body(mode))
+                    parser.finish()
+        with self.assertRaisesRegex(ContractError, "response_dialect"):
+            SSEParser(response_dialect="permissive")
+
 
 class OpenAIHTTPClientTests(unittest.TestCase):
     def test_stdlib_client_owns_exact_post_and_parses_fragmented_stream(self) -> None:
@@ -195,6 +236,31 @@ class OpenAIHTTPClientTests(unittest.TestCase):
             self.assertEqual(observed[0]["accept"], "text/event-stream")
             self.assertEqual(observed[0]["accept_encoding"], "identity")
             self.assertEqual(observed[0]["body"], request())
+
+    def test_mlx_031_client_requires_http_10_and_exposes_wire_evidence(self) -> None:
+        with FixtureOpenAIServer("mlx-lm-0.31") as server:
+            clock = ControlledClock([100, 110, 120, 130, 140, 150, 160])
+            result = OpenAIHTTPClient(
+                server.endpoint(),
+                response_dialect="mlx_lm_0_31",
+                clock=clock,
+            ).complete(request())
+        self.assertEqual(result.dispatch_ns, 100)
+        self.assertEqual(result.response_dialect, "mlx_lm_0_31")
+        self.assertEqual(result.http_version, "HTTP/1.0")
+        self.assertEqual(result.completion.response_dialect, "mlx_lm_0_31")
+        self.assertEqual(result.completion.http_version, "HTTP/1.0")
+        self.assertEqual([item.line for item in result.raw_comments], [": keepalive 1/4"])
+        self.assertEqual(result.completion.content_event_ns, (130,))
+
+        with FixtureOpenAIServer("mlx-lm-0.31") as server:
+            with self.assertRaisesRegex(OpenAIProtocolError, "HTTP/1.1"):
+                OpenAIHTTPClient(server.endpoint()).complete(request())
+        with FixtureOpenAIServer() as server:
+            with self.assertRaisesRegex(OpenAIProtocolError, "HTTP/1.0"):
+                OpenAIHTTPClient(
+                    server.endpoint(), response_dialect="mlx_lm_0_31"
+                ).complete(request())
 
     def test_redirect_non200_wrong_content_compression_and_oversize_fail_closed(self) -> None:
         for mode, exception in (

@@ -57,6 +57,44 @@ class CrossEngineCampaignTests(unittest.TestCase):
         self.assertEqual({cell.target_id for cell in paired[:2]}, {"mlx-lm", "turnvector"})
         self.assertEqual([cell.ordinal for cell in plan.cells], list(range(8)))
 
+    def test_campaign_retains_stable_immutable_matrix_parameters(self) -> None:
+        parameters = {"offered_load_rps": 4, "prompt_bucket": "medium"}
+        plan = freeze_campaign(
+            campaign_id="campaign-parameters",
+            cases=[
+                {
+                    "scenario_id": "open-loop-load-sweep",
+                    "case_id": "openai-serving.open-loop-load-sweep.workload.c0002",
+                    "pairing_id": "openai-serving.open-loop-load-sweep.workload.c0002",
+                    "matrix_id": "workload",
+                    "parameters": parameters,
+                }
+            ],
+            target_ids=["mlx-lm"],
+            repetition_count=1,
+        )
+        parameters["offered_load_rps"] = 99
+        cell = plan.cells[0]
+        self.assertEqual(cell.matrix_id, "workload")
+        self.assertEqual(cell.pairing_id, "openai-serving.open-loop-load-sweep.workload.c0002")
+        self.assertEqual(dict(cell.parameters), {"offered_load_rps": 4, "prompt_bucket": "medium"})
+        with self.assertRaises(TypeError):
+            cell.parameters["offered_load_rps"] = 8
+        self.assertEqual(
+            cell.as_dict()["parameters"],
+            {"offered_load_rps": 4, "prompt_bucket": "medium"},
+        )
+
+    def test_campaign_rejects_nested_or_nonfinite_parameters(self) -> None:
+        for value in ({"x": []}, {"x": float("nan")}, {"x": None}):
+            with self.subTest(value=value), self.assertRaises(ContractError):
+                freeze_campaign(
+                    campaign_id="campaign-invalid-parameters",
+                    cases=[{"scenario_id": "scenario-a", "case_id": "case-a", "parameters": value}],
+                    target_ids=["mlx-lm"],
+                    repetition_count=1,
+                )
+
     def test_attempt_ledger_retains_invalid_retry_and_first_eligible(self) -> None:
         root = self.temporary_path()
         ledger = AttemptLedger(

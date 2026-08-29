@@ -18,7 +18,8 @@ def _chunk(
     finish_reason: Optional[str] = None,
     index: int = 0,
     choices: Optional[Sequence[Mapping[str, Any]]] = None,
-    usage: Optional[Mapping[str, int]] = None,
+    usage: Optional[Mapping[str, Any]] = None,
+    object_type: str = "chat.completion.chunk",
 ) -> Dict[str, Any]:
     if choices is None:
         choices = [
@@ -30,7 +31,7 @@ def _chunk(
         ]
     result: Dict[str, Any] = {
         "id": "fixture-request",
-        "object": "chat.completion.chunk",
+        "object": object_type,
         "created": 1,
         "model": FIXTURE_MODEL,
         "choices": list(choices),
@@ -67,6 +68,49 @@ def stream_body(mode: str) -> bytes:
     done = _event("[DONE]")
     if mode in ("normal", "fragmented"):
         return role + reasoning + first + second + terminal + usage + done
+    if mode.startswith("mlx-lm-0.31"):
+        keepalive = b": keepalive 1/4\n\n"
+        mlx_reasoning = _event(
+            _chunk(delta={"role": "assistant", "reasoning": "private"})
+        )
+        mlx_content = _event(
+            _chunk(delta={"role": "assistant", "content": "hello 世界"})
+        )
+        mlx_terminal = _event(
+            _chunk(delta={"role": "assistant"}, finish_reason="stop")
+        )
+        mlx_usage_value: Dict[str, Any] = {
+            "prompt_tokens": 4,
+            "completion_tokens": 3,
+            "total_tokens": 7,
+            "prompt_tokens_details": {"cached_tokens": 1},
+            "completion_tokens_details": {"reasoning_tokens": 1},
+        }
+        if mode == "mlx-lm-0.31-unknown-comment":
+            keepalive = b": ping\n\n"
+        elif mode == "mlx-lm-0.31-unknown-delta":
+            mlx_reasoning = _event(
+                _chunk(delta={"role": "assistant", "reasoning_content": "private"})
+            )
+        elif mode == "mlx-lm-0.31-terminal-content":
+            mlx_terminal = _event(
+                _chunk(
+                    delta={"role": "assistant", "content": "forbidden"},
+                    finish_reason="stop",
+                )
+            )
+        elif mode == "mlx-lm-0.31-unknown-token-detail":
+            mlx_usage_value["prompt_tokens_details"] = {"unregistered_tokens": 1}
+        elif mode != "mlx-lm-0.31":
+            raise ValueError(mode)
+        mlx_usage = _event(
+            _chunk(
+                choices=[],
+                usage=mlx_usage_value,
+                object_type="chat.completion",
+            )
+        )
+        return keepalive + mlx_reasoning + mlx_content + mlx_terminal + mlx_usage + done
     if mode == "missing-terminal":
         return role + first + done
     if mode == "missing-done":
@@ -240,10 +284,15 @@ class _Handler(BaseHTTPRequestHandler):
             self.wfile.write(body_bytes)
 
 
+class _HTTP10Handler(_Handler):
+    protocol_version = "HTTP/1.0"
+
+
 class FixtureOpenAIServer:
     def __init__(self, mode: str = "normal") -> None:
         self.mode = mode
-        self._server = _Server(("127.0.0.1", 0), _Handler, mode)
+        handler = _HTTP10Handler if mode.startswith("mlx-lm-0.31") else _Handler
+        self._server = _Server(("127.0.0.1", 0), handler, mode)
         self._thread = threading.Thread(target=self._server.serve_forever, daemon=True)
 
     @property
