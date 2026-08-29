@@ -237,6 +237,8 @@ python3 -B -m turnvector_benchmark run-cross-engine \
 
 The runner verifies the pinned launcher and model snapshot, fixes Qwen thinking off, starts a fresh owned process for each cell, and writes Benchmark-owned request traces, raw SSE events/comments, request and trial metrics, TTFT/throughput summaries, output hashes, host/process evidence, attempts, an artifact manifest, and checksums. These rows are endpoint-serving evidence only—not TurnVector qualification or native-inference evidence.
 
+A small-sample AX Engine 7.1.5 versus mlx-lm 0.31.3 diagnostic, including machine-readable per-request observations and explicit non-publication claim boundaries, is available in [AX Engine vs mlx-lm serving diagnostic](docs/AX-ENGINE-MLX-LM-SERVING-DIAGNOSTIC-20260829.md).
+
 ## Gateway Validation Profile
 
 The separate `profiles/gateway-validation-v1.json` contract fixes five
