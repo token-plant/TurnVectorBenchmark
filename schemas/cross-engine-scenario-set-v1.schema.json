@@ -1,0 +1,713 @@
+{
+  "$defs": {
+    "arrival_trace": {
+      "additionalProperties": false,
+      "properties": {
+        "concurrency": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "maximum": 1024,
+              "minimum": 1,
+              "type": "integer"
+            }
+          ]
+        },
+        "late_request_policy": {
+          "const": "continue_to_terminal_or_global_deadline"
+        },
+        "mode": {
+          "enum": [
+            "single",
+            "closed_loop",
+            "open_loop",
+            "sequential",
+            "paired"
+          ]
+        },
+        "offered_request_rates": {
+          "items": {
+            "exclusiveMinimum": 0,
+            "type": "number"
+          },
+          "maxItems": 64,
+          "type": "array",
+          "uniqueItems": true
+        },
+        "offsets_ms": {
+          "items": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "maxItems": 100000,
+          "type": "array"
+        },
+        "requests_per_trial": {
+          "maximum": 100000,
+          "minimum": 1,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "mode",
+        "requests_per_trial",
+        "concurrency",
+        "offered_request_rates",
+        "offsets_ms",
+        "late_request_policy"
+      ],
+      "type": "object"
+    },
+    "corpus": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "representativeness": {
+          "enum": [
+            "smoke_only",
+            "frozen_representative"
+          ]
+        },
+        "revision": {
+          "$ref": "#/$defs/nonempty"
+        },
+        "sha256": {
+          "$ref": "#/$defs/digest"
+        }
+      },
+      "required": [
+        "id",
+        "revision",
+        "sha256",
+        "representativeness"
+      ],
+      "type": "object"
+    },
+    "digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "type": "string"
+    },
+    "dimension": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "values": {
+          "items": {
+            "$ref": "#/$defs/scalar"
+          },
+          "maxItems": 64,
+          "minItems": 1,
+          "type": "array",
+          "uniqueItems": true
+        }
+      },
+      "required": [
+        "id",
+        "values"
+      ],
+      "type": "object"
+    },
+    "fixed_output": {
+      "additionalProperties": false,
+      "properties": {
+        "finish_reason_policy": {
+          "const": "length_or_exact_eos_at_bound"
+        },
+        "mode": {
+          "const": "fixed_tokens"
+        },
+        "required_output_tokens": {
+          "maximum": 65536,
+          "minimum": 1,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "mode",
+        "required_output_tokens",
+        "finish_reason_policy"
+      ],
+      "type": "object"
+    },
+    "gate": {
+      "additionalProperties": false,
+      "properties": {
+        "decision": {
+          "enum": [
+            "evidence",
+            "promotion"
+          ]
+        },
+        "expected": {
+          "type": "number"
+        },
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "metric": {
+          "$ref": "#/$defs/id"
+        },
+        "operator": {
+          "enum": [
+            "eq",
+            "gte",
+            "lte"
+          ]
+        }
+      },
+      "required": [
+        "id",
+        "decision",
+        "metric",
+        "operator",
+        "expected"
+      ],
+      "type": "object"
+    },
+    "git_sha": {
+      "pattern": "^[0-9a-f]{40}$",
+      "type": "string"
+    },
+    "id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]*$",
+      "type": "string"
+    },
+    "identity": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "revision": {
+          "$ref": "#/$defs/nonempty"
+        },
+        "sha256": {
+          "$ref": "#/$defs/digest"
+        }
+      },
+      "required": [
+        "id",
+        "revision",
+        "sha256"
+      ],
+      "type": "object"
+    },
+    "ids": {
+      "items": {
+        "$ref": "#/$defs/id"
+      },
+      "type": "array",
+      "uniqueItems": true
+    },
+    "isolation": {
+      "additionalProperties": false,
+      "properties": {
+        "cache": {
+          "enum": [
+            "fresh",
+            "preserved_disk",
+            "memory_warm",
+            "scenario_defined"
+          ]
+        },
+        "connection": {
+          "enum": [
+            "new_per_request",
+            "keepalive_per_trial"
+          ]
+        },
+        "process": {
+          "enum": [
+            "fresh_process_fresh_state_root",
+            "fresh_process_preserved_disk_state",
+            "session_reuse_memory_warm",
+            "no_reset"
+          ]
+        }
+      },
+      "required": [
+        "process",
+        "cache",
+        "connection"
+      ],
+      "type": "object"
+    },
+    "matrix": {
+      "additionalProperties": false,
+      "properties": {
+        "dimensions": {
+          "items": {
+            "$ref": "#/$defs/dimension"
+          },
+          "maxItems": 16,
+          "minItems": 1,
+          "type": "array"
+        },
+        "id": {
+          "$ref": "#/$defs/id"
+        }
+      },
+      "required": [
+        "id",
+        "dimensions"
+      ],
+      "type": "object"
+    },
+    "metric_eligibility": {
+      "additionalProperties": false,
+      "properties": {
+        "client_post_first_minimum_tokens": {
+          "const": 2
+        },
+        "native_timing_requires_correlated_timestamps": {
+          "const": true
+        },
+        "token_authority": {
+          "enum": [
+            "benchmark_tokenizer",
+            "server_usage",
+            "both"
+          ]
+        },
+        "unavailable_value": {
+          "const": null
+        }
+      },
+      "required": [
+        "token_authority",
+        "client_post_first_minimum_tokens",
+        "native_timing_requires_correlated_timestamps",
+        "unavailable_value"
+      ],
+      "type": "object"
+    },
+    "natural_output": {
+      "additionalProperties": false,
+      "properties": {
+        "finish_reason_policy": {
+          "const": "terminal_finish_reason_required"
+        },
+        "mode": {
+          "const": "natural_completion"
+        },
+        "required_output_tokens": {
+          "type": "null"
+        }
+      },
+      "required": [
+        "mode",
+        "required_output_tokens",
+        "finish_reason_policy"
+      ],
+      "type": "object"
+    },
+    "nonempty": {
+      "maxLength": 4096,
+      "minLength": 1,
+      "type": "string"
+    },
+    "nonnegative_integer": {
+      "minimum": 0,
+      "type": "integer"
+    },
+    "positive_integer": {
+      "minimum": 1,
+      "type": "integer"
+    },
+    "prompt": {
+      "additionalProperties": false,
+      "properties": {
+        "manifest_sha256": {
+          "$ref": "#/$defs/digest"
+        },
+        "resolved_input_policy": {
+          "enum": [
+            "canonical_text_and_per_target_tokens",
+            "identical_token_ids"
+          ]
+        },
+        "strata": {
+          "items": {
+            "$ref": "#/$defs/id"
+          },
+          "maxItems": 32,
+          "minItems": 1,
+          "type": "array",
+          "uniqueItems": true
+        }
+      },
+      "required": [
+        "manifest_sha256",
+        "resolved_input_policy",
+        "strata"
+      ],
+      "type": "object"
+    },
+    "protocol": {
+      "additionalProperties": false,
+      "properties": {
+        "cooldown_seconds": {
+          "maximum": 3600,
+          "minimum": 0,
+          "type": "number"
+        },
+        "global_deadline_seconds": {
+          "exclusiveMinimum": 0,
+          "maximum": 86400,
+          "type": "number"
+        },
+        "measured_repetitions": {
+          "maximum": 1000,
+          "minimum": 1,
+          "type": "integer"
+        },
+        "timeout_seconds": {
+          "exclusiveMinimum": 0,
+          "maximum": 3600,
+          "type": "number"
+        },
+        "warmup_repetitions": {
+          "maximum": 100,
+          "minimum": 0,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "warmup_repetitions",
+        "measured_repetitions",
+        "cooldown_seconds",
+        "timeout_seconds",
+        "global_deadline_seconds"
+      ],
+      "type": "object"
+    },
+    "reducer": {
+      "additionalProperties": false,
+      "properties": {
+        "aggregates": {
+          "items": {
+            "enum": [
+              "count",
+              "sum",
+              "min",
+              "max",
+              "mean",
+              "p50",
+              "p95",
+              "p99"
+            ]
+          },
+          "minItems": 1,
+          "type": "array",
+          "uniqueItems": true
+        },
+        "metric": {
+          "$ref": "#/$defs/id"
+        }
+      },
+      "required": [
+        "metric",
+        "aggregates"
+      ],
+      "type": "object"
+    },
+    "request_dialect": {
+      "additionalProperties": false,
+      "properties": {
+        "n": {
+          "const": 1
+        },
+        "output_bound_field": {
+          "enum": [
+            "max_tokens",
+            "max_completion_tokens"
+          ]
+        },
+        "path": {
+          "const": "/chat/completions"
+        },
+        "protocol_version": {
+          "const": "turnvector.benchmark.openai-serving.v1"
+        },
+        "seed_policy": {
+          "enum": [
+            "required_when_supported",
+            "forbidden"
+          ]
+        },
+        "stream": {
+          "const": true
+        },
+        "stream_usage_policy": {
+          "const": "include_when_supported"
+        },
+        "temperature": {
+          "const": 0
+        },
+        "top_p": {
+          "const": 1
+        }
+      },
+      "required": [
+        "protocol_version",
+        "path",
+        "stream",
+        "temperature",
+        "top_p",
+        "n",
+        "seed_policy",
+        "output_bound_field",
+        "stream_usage_policy"
+      ],
+      "type": "object"
+    },
+    "scalar": {
+      "type": [
+        "string",
+        "integer",
+        "number",
+        "boolean"
+      ]
+    },
+    "scenario": {
+      "additionalProperties": false,
+      "properties": {
+        "activation": {
+          "enum": [
+            "required_common",
+            "capability_conditioned"
+          ]
+        },
+        "arrival_trace": {
+          "$ref": "#/$defs/arrival_trace"
+        },
+        "claim_boundaries": {
+          "items": {
+            "maxLength": 1024,
+            "minLength": 1,
+            "type": "string"
+          },
+          "maxItems": 32,
+          "minItems": 1,
+          "type": "array"
+        },
+        "corpus": {
+          "$ref": "#/$defs/corpus"
+        },
+        "family": {
+          "enum": [
+            "single-client-streaming",
+            "closed-loop-concurrency",
+            "open-loop-load-sweep",
+            "long-context-serving",
+            "deterministic-repeat",
+            "shared-prefix-fanout",
+            "prefix-restart-restore",
+            "multi-model-coexistence",
+            "prefill-vs-decode-interference",
+            "cancellation-and-disconnect",
+            "mtp-acceleration",
+            "route-fallback",
+            "prefix-churn-pressure"
+          ]
+        },
+        "gates": {
+          "items": {
+            "$ref": "#/$defs/gate"
+          },
+          "minItems": 1,
+          "type": "array"
+        },
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "isolation": {
+          "$ref": "#/$defs/isolation"
+        },
+        "matrices": {
+          "items": {
+            "$ref": "#/$defs/matrix"
+          },
+          "maxItems": 16,
+          "minItems": 1,
+          "type": "array"
+        },
+        "metric_eligibility": {
+          "$ref": "#/$defs/metric_eligibility"
+        },
+        "metrics": {
+          "items": {
+            "$ref": "#/$defs/id"
+          },
+          "minItems": 1,
+          "type": "array",
+          "uniqueItems": true
+        },
+        "output_work": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/fixed_output"
+            },
+            {
+              "$ref": "#/$defs/natural_output"
+            }
+          ]
+        },
+        "prompt": {
+          "$ref": "#/$defs/prompt"
+        },
+        "protocol": {
+          "$ref": "#/$defs/protocol"
+        },
+        "reducers": {
+          "items": {
+            "$ref": "#/$defs/reducer"
+          },
+          "minItems": 1,
+          "type": "array"
+        },
+        "request_dialect": {
+          "$ref": "#/$defs/request_dialect"
+        },
+        "required_capabilities": {
+          "items": {
+            "enum": [
+              "openai_chat_completions",
+              "streaming_sse",
+              "usage_accounting_or_benchmark_tokenizer",
+              "route_reporting",
+              "prefix_cache_memory",
+              "prefix_cache_disk",
+              "mtp",
+              "multi_model",
+              "cancellation",
+              "server_queue_metrics",
+              "process_memory_attribution",
+              "restartable_state",
+              "native_output_identity"
+            ]
+          },
+          "type": "array",
+          "uniqueItems": true
+        },
+        "required_raw_artifacts": {
+          "items": {
+            "$ref": "#/$defs/id"
+          },
+          "minItems": 1,
+          "type": "array",
+          "uniqueItems": true
+        },
+        "slos": {
+          "$ref": "#/$defs/slos"
+        },
+        "tokenizer": {
+          "$ref": "#/$defs/identity"
+        }
+      },
+      "required": [
+        "id",
+        "family",
+        "activation",
+        "required_capabilities",
+        "matrices",
+        "corpus",
+        "prompt",
+        "tokenizer",
+        "request_dialect",
+        "output_work",
+        "arrival_trace",
+        "slos",
+        "protocol",
+        "isolation",
+        "metric_eligibility",
+        "metrics",
+        "reducers",
+        "gates",
+        "required_raw_artifacts",
+        "claim_boundaries"
+      ],
+      "type": "object"
+    },
+    "slos": {
+      "additionalProperties": false,
+      "properties": {
+        "e2e_ms": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "exclusiveMinimum": 0,
+              "type": "number"
+            }
+          ]
+        },
+        "minimum_goodput_ratio": {
+          "maximum": 1,
+          "minimum": 0,
+          "type": "number"
+        },
+        "ttft_ms": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "exclusiveMinimum": 0,
+              "type": "number"
+            }
+          ]
+        }
+      },
+      "required": [
+        "ttft_ms",
+        "e2e_ms",
+        "minimum_goodput_ratio"
+      ],
+      "type": "object"
+    }
+  },
+  "$id": "https://token-plant.github.io/TurnVectorBenchmark/schemas/cross-engine-scenario-set-v1.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "activation": {
+      "enum": [
+        "required_common",
+        "capability_conditioned"
+      ]
+    },
+    "id": {
+      "$ref": "#/$defs/id"
+    },
+    "measurement_surface": {
+      "const": "openai_serving"
+    },
+    "scenarios": {
+      "items": {
+        "$ref": "#/$defs/scenario"
+      },
+      "maxItems": 64,
+      "minItems": 1,
+      "type": "array"
+    },
+    "schema_version": {
+      "const": "turnvector.benchmark.cross-engine-scenario-set.v1"
+    }
+  },
+  "required": [
+    "schema_version",
+    "id",
+    "measurement_surface",
+    "activation",
+    "scenarios"
+  ],
+  "type": "object"
+}

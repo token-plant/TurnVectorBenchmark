@@ -1,0 +1,2625 @@
+{
+  "activation": "capability_conditioned",
+  "id": "openai-serving-capabilities-v1",
+  "measurement_surface": "openai_serving",
+  "scenarios": [
+    {
+      "activation": "capability_conditioned",
+      "arrival_trace": {
+        "concurrency": 2,
+        "late_request_policy": "continue_to_terminal_or_global_deadline",
+        "mode": "paired",
+        "offered_request_rates": [],
+        "offsets_ms": [],
+        "requests_per_trial": 2
+      },
+      "claim_boundaries": [
+        "Endpoint-serving evidence only; no TurnVector qualification or native-inference claim."
+      ],
+      "corpus": {
+        "id": "openai-serving-smoke-corpus-v1",
+        "representativeness": "smoke_only",
+        "revision": "v1",
+        "sha256": "6964bba765a5701579406bc20ef2b71060aaddaada74f6c3587a8d28490f285d"
+      },
+      "family": "cancellation-and-disconnect",
+      "gates": [
+        {
+          "decision": "evidence",
+          "expected": 0,
+          "id": "wire-contract",
+          "metric": "failed_request_count",
+          "operator": "eq"
+        },
+        {
+          "decision": "promotion",
+          "expected": 0.95,
+          "id": "slo-goodput",
+          "metric": "slo_goodput_ratio",
+          "operator": "gte"
+        }
+      ],
+      "id": "cancellation-and-disconnect",
+      "isolation": {
+        "cache": "fresh",
+        "connection": "keepalive_per_trial",
+        "process": "fresh_process_fresh_state_root"
+      },
+      "matrices": [
+        {
+          "dimensions": [
+            {
+              "id": "termination_mode",
+              "values": [
+                "cancel",
+                "disconnect"
+              ]
+            }
+          ],
+          "id": "workload"
+        }
+      ],
+      "metric_eligibility": {
+        "client_post_first_minimum_tokens": 2,
+        "native_timing_requires_correlated_timestamps": true,
+        "token_authority": "both",
+        "unavailable_value": null
+      },
+      "metrics": [
+        "successful_request_count",
+        "failed_request_count",
+        "input_token_count",
+        "output_token_count",
+        "e2e_ms",
+        "ttft_ms",
+        "stream_event_interval_ms",
+        "client_post_first_output_ms_per_token",
+        "request_throughput",
+        "output_throughput",
+        "offered_request_rate",
+        "completion_rate",
+        "output_mismatch_count",
+        "output_contract_violation_count",
+        "token_count_disagreement_count",
+        "slo_goodput_ratio",
+        "cancellation_ack_ms",
+        "leaked_work_count"
+      ],
+      "output_work": {
+        "finish_reason_policy": "length_or_exact_eos_at_bound",
+        "mode": "fixed_tokens",
+        "required_output_tokens": 64
+      },
+      "prompt": {
+        "manifest_sha256": "865695c1242a2403803a6e8738f9c5f4ce3c0b586764a7554e474f04f5f728ff",
+        "resolved_input_policy": "canonical_text_and_per_target_tokens",
+        "strata": [
+          "short",
+          "medium",
+          "long"
+        ]
+      },
+      "protocol": {
+        "cooldown_seconds": 5,
+        "global_deadline_seconds": 300,
+        "measured_repetitions": 3,
+        "timeout_seconds": 60,
+        "warmup_repetitions": 1
+      },
+      "reducers": [
+        {
+          "aggregates": [
+            "count",
+            "sum"
+          ],
+          "metric": "successful_request_count"
+        },
+        {
+          "aggregates": [
+            "count",
+            "sum"
+          ],
+          "metric": "failed_request_count"
+        },
+        {
+          "aggregates": [
+            "count",
+            "sum"
+          ],
+          "metric": "input_token_count"
+        },
+        {
+          "aggregates": [
+            "count",
+            "sum"
+          ],
+          "metric": "output_token_count"
+        },
+        {
+          "aggregates": [
+            "count",
+            "min",
+            "max",
+            "mean",
+            "p50",
+            "p95",
+            "p99"
+          ],
+          "metric": "e2e_ms"
+        },
+        {
+          "aggregates": [
+            "count",
+            "min",
+            "max",
+            "mean",
+            "p50",
+            "p95",
+            "p99"
+          ],
+          "metric": "ttft_ms"
+        },
+        {
+          "aggregates": [
+            "count",
+            "min",
+            "max",
+            "mean",
+            "p50",
+            "p95",
+            "p99"
+          ],
+          "metric": "stream_event_interval_ms"
+        },
+        {
+          "aggregates": [
+            "count",
+            "min",
+            "max",
+            "mean",
+            "p50",
+            "p95",
+            "p99"
+          ],
+          "metric": "client_post_first_output_ms_per_token"
+        },
+        {
+          "aggregates": [
+            "count",
+            "min",
+            "max",
+            "mean",
+            "p50",
+            "p95",
+            "p99"
+          ],
+          "metric": "request_throughput"
+        },
+        {
+          "aggregates": [
+            "count",
+            "min",
+            "max",
+            "mean",
+            "p50",
+            "p95",
+            "p99"
+          ],
+          "metric": "output_throughput"
+        },
+        {
+          "aggregates": [
+            "count",
+            "min",
+            "max",
+            "mean",
+            "p50",
+            "p95",
+            "p99"
+          ],
+          "metric": "offered_request_rate"
+        },
+        {
+          "aggregates": [
+            "count",
+            "min",
+            "max",
+            "mean",
+            "p50",
+            "p95",
+            "p99"
+          ],
+          "metric": "completion_rate"
+        },
+        {
+          "aggregates": [
+            "count",
+            "sum"
+          ],
+          "metric": "output_mismatch_count"
+        },
+        {
+          "aggregates": [
+            "count",
+            "sum"
+          ],
+          "metric": "output_contract_violation_count"
+        },
+        {
+          "aggregates": [
+            "count",
+            "sum"
+          ],
+          "metric": "token_count_disagreement_count"
+        },
+        {
+          "aggregates": [
+            "count",
+            "min",
+            "max",
+            "mean",
+            "p50",
+            "p95",
+            "p99"
+          ],
+          "metric": "slo_goodput_ratio"
+        },
+        {
+          "aggregates": [
+            "count",
+            "min",
+            "max",
+            "mean",
+            "p50",
+            "p95",
+            "p99"
+          ],
+          "metric": "cancellation_ack_ms"
+        },
+        {
+          "aggregates": [
+            "count",
+            "sum"
+          ],
+          "metric": "leaked_work_count"
+        }
+      ],
+      "request_dialect": {
+        "n": 1,
+        "output_bound_field": "max_completion_tokens",
+        "path": "/chat/completions",
+        "protocol_version": "turnvector.benchmark.openai-serving.v1",
+        "seed_policy": "required_when_supported",
+        "stream": true,
+        "stream_usage_policy": "include_when_supported",
+        "temperature": 0,
+        "top_p": 1
+      },
+      "required_capabilities": [
+        "cancellation"
+      ],
+      "required_raw_artifacts": [
+        "attempts",
+        "request_trace",
+        "stream_events",
+        "raw_trials",
+        "host_samples",
+        "process_audit",
+        "output_hashes"
+      ],
+      "slos": {
+        "e2e_ms": 30000,
+        "minimum_goodput_ratio": 0.95,
+        "ttft_ms": 2000
+      },
+      "tokenizer": {
+        "id": "qwen-tokenizer-v1",
+        "revision": "fixture-v1",
+        "sha256": "f516d211540d04bc44da37c4b6a1f8ee1d636320cef51e75f42e2061052bd5ec"
+      }
+    },
+    {
+      "activation": "capability_conditioned",
+      "arrival_trace": {
+        "concurrency": 1,
+        "late_request_policy": "continue_to_terminal_or_global_deadline",
+        "mode": "single",
+        "offered_request_rates": [],
+        "offsets_ms": [],
+        "requests_per_trial": 1
+      },
+      "claim_boundaries": [
+        "MTP speedup requires a same-target direct denominator, route proof, reconciled draft accounting, fixed output work, and exact output-token identity."
+      ],
+      "corpus": {
+        "id": "openai-serving-smoke-corpus-v1",
+        "representativeness": "smoke_only",
+        "revision": "v1",
+        "sha256": "6964bba765a5701579406bc20ef2b71060aaddaada74f6c3587a8d28490f285d"
+      },
+      "family": "mtp-acceleration",
+      "gates": [
+        {
+          "decision": "evidence",
+          "expected": 0,
+          "id": "wire-contract",
+          "metric": "failed_request_count",
+          "operator": "eq"
+        },
+        {
+          "decision": "promotion",
+          "expected": 0.95,
+          "id": "slo-goodput",
+          "metric": "slo_goodput_ratio",
+          "operator": "gte"
+        }
+      ],
+      "id": "mtp-acceleration",
+      "isolation": {
+        "cache": "fresh",
+        "connection": "keepalive_per_trial",
+        "process": "fresh_process_fresh_state_root"
+      },
+      "matrices": [
+        {
+          "dimensions": [
+            {
+              "id": "route",
+              "values": [
+                "direct",
+                "mtp"
+              ]
+            },
+            {
+              "id": "prompt_suite",
+              "values": [
+                "short",
+                "medium"
+              ]
+            }
+          ],
+          "id": "workload"
+        }
+      ],
+      "metric_eligibility": {
+        "client_post_first_minimum_tokens": 2,
+        "native_timing_requires_correlated_timestamps": true,
+        "token_authority": "both",
+        "unavailable_value": null
+      },
+      "metrics": [
+        "successful_request_count",
+        "failed_request_count",
+        "input_token_count",
+        "output_token_count",
+        "e2e_ms",
+        "ttft_ms",
+        "stream_event_interval_ms",
+        "client_post_first_output_ms_per_token",
+        "request_throughput",
+        "output_throughput",
+        "offered_request_rate",
+        "completion_rate",
+        "output_mismatch_count",
+        "output_contract_violation_count",
+        "token_count_disagreement_count",
+        "slo_goodput_ratio",
+        "drafted_token_count",
+        "accepted_draft_token_count",
+        "rejected_draft_token_count",
+        "emitted_token_count",
+        "mtp_accept_ratio",
+        "fallback_count"
+      ],
+      "output_work": {
+        "finish_reason_policy": "length_or_exact_eos_at_bound",
+        "mode": "fixed_tokens",
+        "required_output_tokens": 64
+      },
+      "prompt": {
+        "manifest_sha256": "865695c1242a2403803a6e8738f9c5f4ce3c0b586764a7554e474f04f5f728ff",
+        "resolved_input_policy": "canonical_text_and_per_target_tokens",
+        "strata": [
+          "short",
+          "medium",
+          "long"
+        ]
+      },
+      "protocol": {
+        "cooldown_seconds": 5,
+        "global_deadline_seconds": 300,
+        "measured_repetitions": 3,
+        "timeout_seconds": 60,
+        "warmup_repetitions": 1
+      },
+      "reducers": [
+        {
+          "aggregates": [
+            "count",
+            "sum"
+          ],
+          "metric": "successful_request_count"
+        },
+        {
+          "aggregates": [
+            "count",
+            "sum"
+          ],
+          "metric": "failed_request_count"
+        },
+        {
+          "aggregates": [
+            "count",
+            "sum"
+          ],
+          "metric": "input_token_count"
+        },
+        {
+          "aggregates": [
+            "count",
+            "sum"
+          ],
+          "metric": "output_token_count"
+        },
+        {
+          "aggregates": [
+            "count",
+            "min",
+            "max",
+            "mean",
+            "p50",
+            "p95",
+            "p99"
+          ],
+          "metric": "e2e_ms"
+        },
+        {
+          "aggregates": [
+            "count",
+            "min",
+            "max",
+            "mean",
+            "p50",
+            "p95",
+            "p99"
+          ],
+          "metric": "ttft_ms"
+        },
+        {
+          "aggregates": [
+            "count",
+            "min",
+            "max",
+            "mean",
+            "p50",
+            "p95",
+            "p99"
+          ],
+          "metric": "stream_event_interval_ms"
+        },
+        {
+          "aggregates": [
+            "count",
+            "min",
+            "max",
+            "mean",
+            "p50",
+            "p95",
+            "p99"
+          ],
+          "metric": "client_post_first_output_ms_per_token"
+        },
+        {
+          "aggregates": [
+            "count",
+            "min",
+            "max",
+            "mean",
+            "p50",
+            "p95",
+            "p99"
+          ],
+          "metric": "request_throughput"
+        },
+        {
+          "aggregates": [
+            "count",
+            "min",
+            "max",
+            "mean",
+            "p50",
+            "p95",
+            "p99"
+          ],
+          "metric": "output_throughput"
+        },
+        {
+          "aggregates": [
+            "count",
+            "min",
+            "max",
+            "mean",
+            "p50",
+            "p95",
+            "p99"
+          ],
+          "metric": "offered_request_rate"
+        },
+        {
+          "aggregates": [
+            "count",
+            "min",
+            "max",
+            "mean",
+            "p50",
+            "p95",
+            "p99"
+          ],
+          "metric": "completion_rate"
+        },
+        {
+          "aggregates": [
+            "count",
+            "sum"
+          ],
+          "metric": "output_mismatch_count"
+        },
+        {
+          "aggregates": [
+            "count",
+            "sum"
+          ],
+          "metric": "output_contract_violation_count"
+        },
+        {
+          "aggregates": [
+            "count",
+            "sum"
+          ],
+          "metric": "token_count_disagreement_count"
+        },
+        {
+          "aggregates": [
+            "count",
+            "min",
+            "max",
+            "mean",
+            "p50",
+            "p95",
+            "p99"
+          ],
+          "metric": "slo_goodput_ratio"
+        },
+        {
+          "aggregates": [
+            "count",
+            "sum"
+          ],
+          "metric": "drafted_token_count"
+        },
+        {
+          "aggregates": [
+            "count",
+            "sum"
+          ],
+          "metric": "accepted_draft_token_count"
+        },
+        {
+          "aggregates": [
+            "count",
+            "sum"
+          ],
+          "metric": "rejected_draft_token_count"
+        },
+        {
+          "aggregates": [
+            "count",
+            "sum"
+          ],
+          "metric": "emitted_token_count"
+        },
+        {
+          "aggregates": [
+            "count",
+            "min",
+            "max",
+            "mean",
+            "p50",
+            "p95",
+            "p99"
+          ],
+          "metric": "mtp_accept_ratio"
+        },
+        {
+          "aggregates": [
+            "count",
+            "sum"
+          ],
+          "metric": "fallback_count"
+        }
+      ],
+      "request_dialect": {
+        "n": 1,
+        "output_bound_field": "max_completion_tokens",
+        "path": "/chat/completions",
+        "protocol_version": "turnvector.benchmark.openai-serving.v1",
+        "seed_policy": "required_when_supported",
+        "stream": true,
+        "stream_usage_policy": "include_when_supported",
+        "temperature": 0,
+        "top_p": 1
+      },
+      "required_capabilities": [
+        "mtp",
+        "route_reporting"
+      ],
+      "required_raw_artifacts": [
+        "attempts",
+        "request_trace",
+        "stream_events",
+        "raw_trials",
+        "host_samples",
+        "process_audit",
+        "output_hashes",
+        "native_routes",
+        "normalized_routes"
+      ],
+      "slos": {
+        "e2e_ms": 30000,
+        "minimum_goodput_ratio": 0.95,
+        "ttft_ms": 2000
+      },
+      "tokenizer": {
+        "id": "qwen-tokenizer-v1",
+        "revision": "fixture-v1",
+        "sha256": "f516d211540d04bc44da37c4b6a1f8ee1d636320cef51e75f42e2061052bd5ec"
+      }
+    },
+    {
+      "activation": "capability_conditioned",
+      "arrival_trace": {
+        "concurrency": null,
+        "late_request_policy": "continue_to_terminal_or_global_deadline",
+        "mode": "open_loop",
+        "offered_request_rates": [
+          2
+        ],
+        "offsets_ms": [
+          0,
+          500,
+          1000,
+          1500,
+          2000,
+          2500,
+          3000,
+          3500
+        ],
+        "requests_per_trial": 8
+      },
+      "claim_boundaries": [
+        "Endpoint-serving evidence only; no TurnVector qualification or native-inference claim."
+      ],
+      "corpus": {
+        "id": "openai-serving-smoke-corpus-v1",
+        "representativeness": "smoke_only",
+        "revision": "v1",
+        "sha256": "6964bba765a5701579406bc20ef2b71060aaddaada74f6c3587a8d28490f285d"
+      },
+      "family": "multi-model-coexistence",
+      "gates": [
+        {
+          "decision": "evidence",
+          "expected": 0,
+          "id": "wire-contract",
+          "metric": "failed_request_count",
+          "operator": "eq"
+        },
+        {
+          "decision": "promotion",
+          "expected": 0.95,
+          "id": "slo-goodput",
+          "metric": "slo_goodput_ratio",
+          "operator": "gte"
+        }
+      ],
+      "id": "multi-model-coexistence",
+      "isolation": {
+        "cache": "fresh",
+        "connection": "keepalive_per_trial",
+        "process": "fresh_process_fresh_state_root"
+      },
+      "matrices": [
+        {
+          "dimensions": [
+            {
+              "id": "traffic_pattern",
+              "values": [
+                "alternating",
+                "overlapping"
+              ]
+            }
+          ],
+          "id": "workload"
+        }
+      ],
+      "metric_eligibility": {
+        "client_post_first_minimum_tokens": 2,
+        "native_timing_requires_correlated_timestamps": true,
+        "token_authority": "both",
+        "unavailable_value": null
+      },
+      "metrics": [
+        "successful_request_count",
+        "failed_request_count",
+        "input_token_count",
+        "output_token_count",
+        "e2e_ms",
+        "ttft_ms",
+        "stream_event_interval_ms",
+        "client_post_first_output_ms_per_token",
+        "request_throughput",
+        "output_throughput",
+        "offered_request_rate",
+        "completion_rate",
+        "output_mismatch_count",
+        "output_contract_violation_count",
+        "token_count_disagreement_count",
+        "slo_goodput_ratio",
+        "maximum_progress_gap_ms",
+        "weighted_service_error"
+      ],
+      "output_work": {
+        "finish_reason_policy": "length_or_exact_eos_at_bound",
+        "mode": "fixed_tokens",
+        "required_output_tokens": 64
+      },
+      "prompt": {
+        "manifest_sha256": "865695c1242a2403803a6e8738f9c5f4ce3c0b586764a7554e474f04f5f728ff",
+        "resolved_input_policy": "canonical_text_and_per_target_tokens",
+        "strata": [
+          "short",
+          "medium",
+          "long"
+        ]
+      },
+      "protocol": {
+        "cooldown_seconds": 5,
+        "global_deadline_seconds": 300,
+        "measured_repetitions": 3,
+        "timeout_seconds": 60,
+        "warmup_repetitions": 1
+      },
+      "reducers": [
+        {
+          "aggregates": [
+            "count",
+            "sum"
+          ],
+          "metric": "successful_request_count"
+        },
+        {
+          "aggregates": [
+            "count",
+            "sum"
+          ],
+          "metric": "failed_request_count"
+        },
+        {
+          "aggregates": [
+            "count",
+            "sum"
+          ],
+          "metric": "input_token_count"
+        },
+        {
+          "aggregates": [
+            "count",
+            "sum"
+          ],
+          "metric": "output_token_count"
+        },
+        {
+          "aggregates": [
+            "count",
+            "min",
+            "max",
+            "mean",
+            "p50",
+            "p95",
+            "p99"
+          ],
+          "metric": "e2e_ms"
+        },
+        {
+          "aggregates": [
+            "count",
+            "min",
+            "max",
+            "mean",
+            "p50",
+            "p95",
+            "p99"
+          ],
+          "metric": "ttft_ms"
+        },
+        {
+          "aggregates": [
+            "count",
+            "min",
+            "max",
+            "mean",
+            "p50",
+            "p95",
+            "p99"
+          ],
+          "metric": "stream_event_interval_ms"
+        },
+        {
+          "aggregates": [
+            "count",
+            "min",
+            "max",
+            "mean",
+            "p50",
+            "p95",
+            "p99"
+          ],
+          "metric": "client_post_first_output_ms_per_token"
+        },
+        {
+          "aggregates": [
+            "count",
+            "min",
+            "max",
+            "mean",
+            "p50",
+            "p95",
+            "p99"
+          ],
+          "metric": "request_throughput"
+        },
+        {
+          "aggregates": [
+            "count",
+            "min",
+            "max",
+            "mean",
+            "p50",
+            "p95",
+            "p99"
+          ],
+          "metric": "output_throughput"
+        },
+        {
+          "aggregates": [
+            "count",
+            "min",
+            "max",
+            "mean",
+            "p50",
+            "p95",
+            "p99"
+          ],
+          "metric": "offered_request_rate"
+        },
+        {
+          "aggregates": [
+            "count",
+            "min",
+            "max",
+            "mean",
+            "p50",
+            "p95",
+            "p99"
+          ],
+          "metric": "completion_rate"
+        },
+        {
+          "aggregates": [
+            "count",
+            "sum"
+          ],
+          "metric": "output_mismatch_count"
+        },
+        {
+          "aggregates": [
+            "count",
+            "sum"
+          ],
+          "metric": "output_contract_violation_count"
+        },
+        {
+          "aggregates": [
+            "count",
+            "sum"
+          ],
+          "metric": "token_count_disagreement_count"
+        },
+        {
+          "aggregates": [
+            "count",
+            "min",
+            "max",
+            "mean",
+            "p50",
+            "p95",
+            "p99"
+          ],
+          "metric": "slo_goodput_ratio"
+        },
+        {
+          "aggregates": [
+            "count",
+            "min",
+            "max",
+            "mean",
+            "p50",
+            "p95",
+            "p99"
+          ],
+          "metric": "maximum_progress_gap_ms"
+        },
+        {
+          "aggregates": [
+            "count",
+            "min",
+            "max",
+            "mean",
+            "p50",
+            "p95",
+            "p99"
+          ],
+          "metric": "weighted_service_error"
+        }
+      ],
+      "request_dialect": {
+        "n": 1,
+        "output_bound_field": "max_completion_tokens",
+        "path": "/chat/completions",
+        "protocol_version": "turnvector.benchmark.openai-serving.v1",
+        "seed_policy": "required_when_supported",
+        "stream": true,
+        "stream_usage_policy": "include_when_supported",
+        "temperature": 0,
+        "top_p": 1
+      },
+      "required_capabilities": [
+        "multi_model"
+      ],
+      "required_raw_artifacts": [
+        "attempts",
+        "request_trace",
+        "stream_events",
+        "raw_trials",
+        "host_samples",
+        "process_audit",
+        "output_hashes"
+      ],
+      "slos": {
+        "e2e_ms": 30000,
+        "minimum_goodput_ratio": 0.95,
+        "ttft_ms": 2000
+      },
+      "tokenizer": {
+        "id": "qwen-tokenizer-v1",
+        "revision": "fixture-v1",
+        "sha256": "f516d211540d04bc44da37c4b6a1f8ee1d636320cef51e75f42e2061052bd5ec"
+      }
+    },
+    {
+      "activation": "capability_conditioned",
+      "arrival_trace": {
+        "concurrency": 2,
+        "late_request_policy": "continue_to_terminal_or_global_deadline",
+        "mode": "paired",
+        "offered_request_rates": [],
+        "offsets_ms": [],
+        "requests_per_trial": 2
+      },
+      "claim_boundaries": [
+        "Endpoint-serving evidence only; no TurnVector qualification or native-inference claim."
+      ],
+      "corpus": {
+        "id": "openai-serving-smoke-corpus-v1",
+        "representativeness": "smoke_only",
+        "revision": "v1",
+        "sha256": "6964bba765a5701579406bc20ef2b71060aaddaada74f6c3587a8d28490f285d"
+      },
+      "family": "prefill-vs-decode-interference",
+      "gates": [
+        {
+          "decision": "evidence",
+          "expected": 0,
+          "id": "wire-contract",
+          "metric": "failed_request_count",
+          "operator": "eq"
+        },
+        {
+          "decision": "promotion",
+          "expected": 0.95,
+          "id": "slo-goodput",
+          "metric": "slo_goodput_ratio",
+          "operator": "gte"
+        }
+      ],
+      "id": "prefill-vs-decode-interference",
+      "isolation": {
+        "cache": "fresh",
+        "connection": "keepalive_per_trial",
+        "process": "fresh_process_fresh_state_root"
+      },
+      "matrices": [
+        {
+          "dimensions": [
+            {
+              "id": "prefill_tokens",
+              "values": [
+                2048,
+                8192
+              ]
+            },
+            {
+              "id": "arrival_mode",
+              "values": [
+                "closed_loop",
+                "open_loop"
+              ]
+            }
+          ],
+          "id": "workload"
+        }
+      ],
+      "metric_eligibility": {
+        "client_post_first_minimum_tokens": 2,
+        "native_timing_requires_correlated_timestamps": true,
+        "token_authority": "both",
+        "unavailable_value": null
+      },
+      "metrics": [
+        "successful_request_count",
+        "failed_request_count",
+        "input_token_count",
+        "output_token_count",
+        "e2e_ms",
+        "ttft_ms",
+        "stream_event_interval_ms",
+        "client_post_first_output_ms_per_token",
+        "request_throughput",
+        "output_throughput",
+        "offered_request_rate",
+        "completion_rate",
+        "output_mismatch_count",
+        "output_contract_violation_count",
+        "token_count_disagreement_count",
+        "slo_goodput_ratio",
+        "interactive_ttft_ms",
+        "queue_delay_ms"
+      ],
+      "output_work": {
+        "finish_reason_policy": "length_or_exact_eos_at_bound",
+        "mode": "fixed_tokens",
+        "required_output_tokens": 64
+      },
+      "prompt": {
+        "manifest_sha256": "865695c1242a2403803a6e8738f9c5f4ce3c0b586764a7554e474f04f5f728ff",
+        "resolved_input_policy": "canonical_text_and_per_target_tokens",
+        "strata": [
+          "short",
+          "medium",
+          "long"
+        ]
+      },
+      "protocol": {
+        "cooldown_seconds": 5,
+        "global_deadline_seconds": 300,
+        "measured_repetitions": 3,
+        "timeout_seconds": 60,
+        "warmup_repetitions": 1
+      },
+      "reducers": [
+        {
+          "aggregates": [
+            "count",
+            "sum"
+          ],
+          "metric": "successful_request_count"
+        },
+        {
+          "aggregates": [
+            "count",
+            "sum"
+          ],
+          "metric": "failed_request_count"
+        },
+        {
+          "aggregates": [
+            "count",
+            "sum"
+          ],
+          "metric": "input_token_count"
+        },
+        {
+          "aggregates": [
+            "count",
+            "sum"
+          ],
+          "metric": "output_token_count"
+        },
+        {
+          "aggregates": [
+            "count",
+            "min",
+            "max",
+            "mean",
+            "p50",
+            "p95",
+            "p99"
+          ],
+          "metric": "e2e_ms"
+        },
+        {
+          "aggregates": [
+            "count",
+            "min",
+            "max",
+            "mean",
+            "p50",
+            "p95",
+            "p99"
+          ],
+          "metric": "ttft_ms"
+        },
+        {
+          "aggregates": [
+            "count",
+            "min",
+            "max",
+            "mean",
+            "p50",
+            "p95",
+            "p99"
+          ],
+          "metric": "stream_event_interval_ms"
+        },
+        {
+          "aggregates": [
+            "count",
+            "min",
+            "max",
+            "mean",
+            "p50",
+            "p95",
+            "p99"
+          ],
+          "metric": "client_post_first_output_ms_per_token"
+        },
+        {
+          "aggregates": [
+            "count",
+            "min",
+            "max",
+            "mean",
+            "p50",
+            "p95",
+            "p99"
+          ],
+          "metric": "request_throughput"
+        },
+        {
+          "aggregates": [
+            "count",
+            "min",
+            "max",
+            "mean",
+            "p50",
+            "p95",
+            "p99"
+          ],
+          "metric": "output_throughput"
+        },
+        {
+          "aggregates": [
+            "count",
+            "min",
+            "max",
+            "mean",
+            "p50",
+            "p95",
+            "p99"
+          ],
+          "metric": "offered_request_rate"
+        },
+        {
+          "aggregates": [
+            "count",
+            "min",
+            "max",
+            "mean",
+            "p50",
+            "p95",
+            "p99"
+          ],
+          "metric": "completion_rate"
+        },
+        {
+          "aggregates": [
+            "count",
+            "sum"
+          ],
+          "metric": "output_mismatch_count"
+        },
+        {
+          "aggregates": [
+            "count",
+            "sum"
+          ],
+          "metric": "output_contract_violation_count"
+        },
+        {
+          "aggregates": [
+            "count",
+            "sum"
+          ],
+          "metric": "token_count_disagreement_count"
+        },
+        {
+          "aggregates": [
+            "count",
+            "min",
+            "max",
+            "mean",
+            "p50",
+            "p95",
+            "p99"
+          ],
+          "metric": "slo_goodput_ratio"
+        },
+        {
+          "aggregates": [
+            "count",
+            "min",
+            "max",
+            "mean",
+            "p50",
+            "p95",
+            "p99"
+          ],
+          "metric": "interactive_ttft_ms"
+        },
+        {
+          "aggregates": [
+            "count",
+            "min",
+            "max",
+            "mean",
+            "p50",
+            "p95",
+            "p99"
+          ],
+          "metric": "queue_delay_ms"
+        }
+      ],
+      "request_dialect": {
+        "n": 1,
+        "output_bound_field": "max_completion_tokens",
+        "path": "/chat/completions",
+        "protocol_version": "turnvector.benchmark.openai-serving.v1",
+        "seed_policy": "required_when_supported",
+        "stream": true,
+        "stream_usage_policy": "include_when_supported",
+        "temperature": 0,
+        "top_p": 1
+      },
+      "required_capabilities": [
+        "server_queue_metrics"
+      ],
+      "required_raw_artifacts": [
+        "attempts",
+        "request_trace",
+        "stream_events",
+        "raw_trials",
+        "host_samples",
+        "process_audit",
+        "output_hashes"
+      ],
+      "slos": {
+        "e2e_ms": 30000,
+        "minimum_goodput_ratio": 0.95,
+        "ttft_ms": 2000
+      },
+      "tokenizer": {
+        "id": "qwen-tokenizer-v1",
+        "revision": "fixture-v1",
+        "sha256": "f516d211540d04bc44da37c4b6a1f8ee1d636320cef51e75f42e2061052bd5ec"
+      }
+    },
+    {
+      "activation": "capability_conditioned",
+      "arrival_trace": {
+        "concurrency": 1,
+        "late_request_policy": "continue_to_terminal_or_global_deadline",
+        "mode": "sequential",
+        "offered_request_rates": [],
+        "offsets_ms": [],
+        "requests_per_trial": 6
+      },
+      "claim_boundaries": [
+        "Endpoint-serving evidence only; no TurnVector qualification or native-inference claim."
+      ],
+      "corpus": {
+        "id": "openai-serving-smoke-corpus-v1",
+        "representativeness": "smoke_only",
+        "revision": "v1",
+        "sha256": "6964bba765a5701579406bc20ef2b71060aaddaada74f6c3587a8d28490f285d"
+      },
+      "family": "prefix-churn-pressure",
+      "gates": [
+        {
+          "decision": "evidence",
+          "expected": 0,
+          "id": "wire-contract",
+          "metric": "failed_request_count",
+          "operator": "eq"
+        },
+        {
+          "decision": "promotion",
+          "expected": 0.95,
+          "id": "slo-goodput",
+          "metric": "slo_goodput_ratio",
+          "operator": "gte"
+        }
+      ],
+      "id": "prefix-churn-pressure",
+      "isolation": {
+        "cache": "fresh",
+        "connection": "keepalive_per_trial",
+        "process": "fresh_process_fresh_state_root"
+      },
+      "matrices": [
+        {
+          "dimensions": [
+            {
+              "id": "cache_state",
+              "values": [
+                "baseline",
+                "churn",
+                "recovery"
+              ]
+            }
+          ],
+          "id": "workload"
+        }
+      ],
+      "metric_eligibility": {
+        "client_post_first_minimum_tokens": 2,
+        "native_timing_requires_correlated_timestamps": true,
+        "token_authority": "both",
+        "unavailable_value": null
+      },
+      "metrics": [
+        "successful_request_count",
+        "failed_request_count",
+        "input_token_count",
+        "output_token_count",
+        "e2e_ms",
+        "ttft_ms",
+        "stream_event_interval_ms",
+        "client_post_first_output_ms_per_token",
+        "request_throughput",
+        "output_throughput",
+        "offered_request_rate",
+        "completion_rate",
+        "output_mismatch_count",
+        "output_contract_violation_count",
+        "token_count_disagreement_count",
+        "slo_goodput_ratio",
+        "prefix_hit_token_count",
+        "eviction_count",
+        "corruption_count"
+      ],
+      "output_work": {
+        "finish_reason_policy": "length_or_exact_eos_at_bound",
+        "mode": "fixed_tokens",
+        "required_output_tokens": 64
+      },
+      "prompt": {
+        "manifest_sha256": "865695c1242a2403803a6e8738f9c5f4ce3c0b586764a7554e474f04f5f728ff",
+        "resolved_input_policy": "canonical_text_and_per_target_tokens",
+        "strata": [
+          "short",
+          "medium",
+          "long"
+        ]
+      },
+      "protocol": {
+        "cooldown_seconds": 5,
+        "global_deadline_seconds": 300,
+        "measured_repetitions": 3,
+        "timeout_seconds": 60,
+        "warmup_repetitions": 1
+      },
+      "reducers": [
+        {
+          "aggregates": [
+            "count",
+            "sum"
+          ],
+          "metric": "successful_request_count"
+        },
+        {
+          "aggregates": [
+            "count",
+            "sum"
+          ],
+          "metric": "failed_request_count"
+        },
+        {
+          "aggregates": [
+            "count",
+            "sum"
+          ],
+          "metric": "input_token_count"
+        },
+        {
+          "aggregates": [
+            "count",
+            "sum"
+          ],
+          "metric": "output_token_count"
+        },
+        {
+          "aggregates": [
+            "count",
+            "min",
+            "max",
+            "mean",
+            "p50",
+            "p95",
+            "p99"
+          ],
+          "metric": "e2e_ms"
+        },
+        {
+          "aggregates": [
+            "count",
+            "min",
+            "max",
+            "mean",
+            "p50",
+            "p95",
+            "p99"
+          ],
+          "metric": "ttft_ms"
+        },
+        {
+          "aggregates": [
+            "count",
+            "min",
+            "max",
+            "mean",
+            "p50",
+            "p95",
+            "p99"
+          ],
+          "metric": "stream_event_interval_ms"
+        },
+        {
+          "aggregates": [
+            "count",
+            "min",
+            "max",
+            "mean",
+            "p50",
+            "p95",
+            "p99"
+          ],
+          "metric": "client_post_first_output_ms_per_token"
+        },
+        {
+          "aggregates": [
+            "count",
+            "min",
+            "max",
+            "mean",
+            "p50",
+            "p95",
+            "p99"
+          ],
+          "metric": "request_throughput"
+        },
+        {
+          "aggregates": [
+            "count",
+            "min",
+            "max",
+            "mean",
+            "p50",
+            "p95",
+            "p99"
+          ],
+          "metric": "output_throughput"
+        },
+        {
+          "aggregates": [
+            "count",
+            "min",
+            "max",
+            "mean",
+            "p50",
+            "p95",
+            "p99"
+          ],
+          "metric": "offered_request_rate"
+        },
+        {
+          "aggregates": [
+            "count",
+            "min",
+            "max",
+            "mean",
+            "p50",
+            "p95",
+            "p99"
+          ],
+          "metric": "completion_rate"
+        },
+        {
+          "aggregates": [
+            "count",
+            "sum"
+          ],
+          "metric": "output_mismatch_count"
+        },
+        {
+          "aggregates": [
+            "count",
+            "sum"
+          ],
+          "metric": "output_contract_violation_count"
+        },
+        {
+          "aggregates": [
+            "count",
+            "sum"
+          ],
+          "metric": "token_count_disagreement_count"
+        },
+        {
+          "aggregates": [
+            "count",
+            "min",
+            "max",
+            "mean",
+            "p50",
+            "p95",
+            "p99"
+          ],
+          "metric": "slo_goodput_ratio"
+        },
+        {
+          "aggregates": [
+            "count",
+            "sum"
+          ],
+          "metric": "prefix_hit_token_count"
+        },
+        {
+          "aggregates": [
+            "count",
+            "sum"
+          ],
+          "metric": "eviction_count"
+        },
+        {
+          "aggregates": [
+            "count",
+            "sum"
+          ],
+          "metric": "corruption_count"
+        }
+      ],
+      "request_dialect": {
+        "n": 1,
+        "output_bound_field": "max_completion_tokens",
+        "path": "/chat/completions",
+        "protocol_version": "turnvector.benchmark.openai-serving.v1",
+        "seed_policy": "required_when_supported",
+        "stream": true,
+        "stream_usage_policy": "include_when_supported",
+        "temperature": 0,
+        "top_p": 1
+      },
+      "required_capabilities": [
+        "prefix_cache_memory",
+        "route_reporting"
+      ],
+      "required_raw_artifacts": [
+        "attempts",
+        "request_trace",
+        "stream_events",
+        "raw_trials",
+        "host_samples",
+        "process_audit",
+        "output_hashes",
+        "native_routes",
+        "normalized_routes"
+      ],
+      "slos": {
+        "e2e_ms": 30000,
+        "minimum_goodput_ratio": 0.95,
+        "ttft_ms": 2000
+      },
+      "tokenizer": {
+        "id": "qwen-tokenizer-v1",
+        "revision": "fixture-v1",
+        "sha256": "f516d211540d04bc44da37c4b6a1f8ee1d636320cef51e75f42e2061052bd5ec"
+      }
+    },
+    {
+      "activation": "capability_conditioned",
+      "arrival_trace": {
+        "concurrency": 1,
+        "late_request_policy": "continue_to_terminal_or_global_deadline",
+        "mode": "sequential",
+        "offered_request_rates": [],
+        "offsets_ms": [],
+        "requests_per_trial": 3
+      },
+      "claim_boundaries": [
+        "Endpoint-serving evidence only; no TurnVector qualification or native-inference claim."
+      ],
+      "corpus": {
+        "id": "openai-serving-smoke-corpus-v1",
+        "representativeness": "smoke_only",
+        "revision": "v1",
+        "sha256": "6964bba765a5701579406bc20ef2b71060aaddaada74f6c3587a8d28490f285d"
+      },
+      "family": "prefix-restart-restore",
+      "gates": [
+        {
+          "decision": "evidence",
+          "expected": 0,
+          "id": "wire-contract",
+          "metric": "failed_request_count",
+          "operator": "eq"
+        },
+        {
+          "decision": "promotion",
+          "expected": 0.95,
+          "id": "slo-goodput",
+          "metric": "slo_goodput_ratio",
+          "operator": "gte"
+        }
+      ],
+      "id": "prefix-restart-restore",
+      "isolation": {
+        "cache": "preserved_disk",
+        "connection": "keepalive_per_trial",
+        "process": "fresh_process_preserved_disk_state"
+      },
+      "matrices": [
+        {
+          "dimensions": [
+            {
+              "id": "cache_state",
+              "values": [
+                "cold_process_cold_cache",
+                "warm_memory_prefix_hit",
+                "restarted_disk_prefix_hit"
+              ]
+            }
+          ],
+          "id": "workload"
+        }
+      ],
+      "metric_eligibility": {
+        "client_post_first_minimum_tokens": 2,
+        "native_timing_requires_correlated_timestamps": true,
+        "token_authority": "both",
+        "unavailable_value": null
+      },
+      "metrics": [
+        "successful_request_count",
+        "failed_request_count",
+        "input_token_count",
+        "output_token_count",
+        "e2e_ms",
+        "ttft_ms",
+        "stream_event_interval_ms",
+        "client_post_first_output_ms_per_token",
+        "request_throughput",
+        "output_throughput",
+        "offered_request_rate",
+        "completion_rate",
+        "output_mismatch_count",
+        "output_contract_violation_count",
+        "token_count_disagreement_count",
+        "slo_goodput_ratio",
+        "prefix_hit_token_count",
+        "reuse_coverage_ratio"
+      ],
+      "output_work": {
+        "finish_reason_policy": "length_or_exact_eos_at_bound",
+        "mode": "fixed_tokens",
+        "required_output_tokens": 64
+      },
+      "prompt": {
+        "manifest_sha256": "865695c1242a2403803a6e8738f9c5f4ce3c0b586764a7554e474f04f5f728ff",
+        "resolved_input_policy": "canonical_text_and_per_target_tokens",
+        "strata": [
+          "short",
+          "medium",
+          "long"
+        ]
+      },
+      "protocol": {
+        "cooldown_seconds": 5,
+        "global_deadline_seconds": 300,
+        "measured_repetitions": 3,
+        "timeout_seconds": 60,
+        "warmup_repetitions": 1
+      },
+      "reducers": [
+        {
+          "aggregates": [
+            "count",
+            "sum"
+          ],
+          "metric": "successful_request_count"
+        },
+        {
+          "aggregates": [
+            "count",
+            "sum"
+          ],
+          "metric": "failed_request_count"
+        },
+        {
+          "aggregates": [
+            "count",
+            "sum"
+          ],
+          "metric": "input_token_count"
+        },
+        {
+          "aggregates": [
+            "count",
+            "sum"
+          ],
+          "metric": "output_token_count"
+        },
+        {
+          "aggregates": [
+            "count",
+            "min",
+            "max",
+            "mean",
+            "p50",
+            "p95",
+            "p99"
+          ],
+          "metric": "e2e_ms"
+        },
+        {
+          "aggregates": [
+            "count",
+            "min",
+            "max",
+            "mean",
+            "p50",
+            "p95",
+            "p99"
+          ],
+          "metric": "ttft_ms"
+        },
+        {
+          "aggregates": [
+            "count",
+            "min",
+            "max",
+            "mean",
+            "p50",
+            "p95",
+            "p99"
+          ],
+          "metric": "stream_event_interval_ms"
+        },
+        {
+          "aggregates": [
+            "count",
+            "min",
+            "max",
+            "mean",
+            "p50",
+            "p95",
+            "p99"
+          ],
+          "metric": "client_post_first_output_ms_per_token"
+        },
+        {
+          "aggregates": [
+            "count",
+            "min",
+            "max",
+            "mean",
+            "p50",
+            "p95",
+            "p99"
+          ],
+          "metric": "request_throughput"
+        },
+        {
+          "aggregates": [
+            "count",
+            "min",
+            "max",
+            "mean",
+            "p50",
+            "p95",
+            "p99"
+          ],
+          "metric": "output_throughput"
+        },
+        {
+          "aggregates": [
+            "count",
+            "min",
+            "max",
+            "mean",
+            "p50",
+            "p95",
+            "p99"
+          ],
+          "metric": "offered_request_rate"
+        },
+        {
+          "aggregates": [
+            "count",
+            "min",
+            "max",
+            "mean",
+            "p50",
+            "p95",
+            "p99"
+          ],
+          "metric": "completion_rate"
+        },
+        {
+          "aggregates": [
+            "count",
+            "sum"
+          ],
+          "metric": "output_mismatch_count"
+        },
+        {
+          "aggregates": [
+            "count",
+            "sum"
+          ],
+          "metric": "output_contract_violation_count"
+        },
+        {
+          "aggregates": [
+            "count",
+            "sum"
+          ],
+          "metric": "token_count_disagreement_count"
+        },
+        {
+          "aggregates": [
+            "count",
+            "min",
+            "max",
+            "mean",
+            "p50",
+            "p95",
+            "p99"
+          ],
+          "metric": "slo_goodput_ratio"
+        },
+        {
+          "aggregates": [
+            "count",
+            "sum"
+          ],
+          "metric": "prefix_hit_token_count"
+        },
+        {
+          "aggregates": [
+            "count",
+            "min",
+            "max",
+            "mean",
+            "p50",
+            "p95",
+            "p99"
+          ],
+          "metric": "reuse_coverage_ratio"
+        }
+      ],
+      "request_dialect": {
+        "n": 1,
+        "output_bound_field": "max_completion_tokens",
+        "path": "/chat/completions",
+        "protocol_version": "turnvector.benchmark.openai-serving.v1",
+        "seed_policy": "required_when_supported",
+        "stream": true,
+        "stream_usage_policy": "include_when_supported",
+        "temperature": 0,
+        "top_p": 1
+      },
+      "required_capabilities": [
+        "prefix_cache_disk",
+        "restartable_state",
+        "route_reporting"
+      ],
+      "required_raw_artifacts": [
+        "attempts",
+        "request_trace",
+        "stream_events",
+        "raw_trials",
+        "host_samples",
+        "process_audit",
+        "output_hashes",
+        "native_routes",
+        "normalized_routes"
+      ],
+      "slos": {
+        "e2e_ms": 30000,
+        "minimum_goodput_ratio": 0.95,
+        "ttft_ms": 2000
+      },
+      "tokenizer": {
+        "id": "qwen-tokenizer-v1",
+        "revision": "fixture-v1",
+        "sha256": "f516d211540d04bc44da37c4b6a1f8ee1d636320cef51e75f42e2061052bd5ec"
+      }
+    },
+    {
+      "activation": "capability_conditioned",
+      "arrival_trace": {
+        "concurrency": 1,
+        "late_request_policy": "continue_to_terminal_or_global_deadline",
+        "mode": "single",
+        "offered_request_rates": [],
+        "offsets_ms": [],
+        "requests_per_trial": 1
+      },
+      "claim_boundaries": [
+        "Endpoint-serving evidence only; no TurnVector qualification or native-inference claim."
+      ],
+      "corpus": {
+        "id": "openai-serving-smoke-corpus-v1",
+        "representativeness": "smoke_only",
+        "revision": "v1",
+        "sha256": "6964bba765a5701579406bc20ef2b71060aaddaada74f6c3587a8d28490f285d"
+      },
+      "family": "route-fallback",
+      "gates": [
+        {
+          "decision": "evidence",
+          "expected": 0,
+          "id": "wire-contract",
+          "metric": "failed_request_count",
+          "operator": "eq"
+        },
+        {
+          "decision": "promotion",
+          "expected": 0.95,
+          "id": "slo-goodput",
+          "metric": "slo_goodput_ratio",
+          "operator": "gte"
+        }
+      ],
+      "id": "route-fallback",
+      "isolation": {
+        "cache": "fresh",
+        "connection": "keepalive_per_trial",
+        "process": "fresh_process_fresh_state_root"
+      },
+      "matrices": [
+        {
+          "dimensions": [
+            {
+              "id": "requested_route",
+              "values": [
+                "direct",
+                "mtp"
+              ]
+            },
+            {
+              "id": "induced_condition",
+              "values": [
+                "none",
+                "unsupported",
+                "capacity"
+              ]
+            }
+          ],
+          "id": "workload"
+        }
+      ],
+      "metric_eligibility": {
+        "client_post_first_minimum_tokens": 2,
+        "native_timing_requires_correlated_timestamps": true,
+        "token_authority": "both",
+        "unavailable_value": null
+      },
+      "metrics": [
+        "successful_request_count",
+        "failed_request_count",
+        "input_token_count",
+        "output_token_count",
+        "e2e_ms",
+        "ttft_ms",
+        "stream_event_interval_ms",
+        "client_post_first_output_ms_per_token",
+        "request_throughput",
+        "output_throughput",
+        "offered_request_rate",
+        "completion_rate",
+        "output_mismatch_count",
+        "output_contract_violation_count",
+        "token_count_disagreement_count",
+        "slo_goodput_ratio",
+        "fallback_count",
+        "route_contract_violation_count"
+      ],
+      "output_work": {
+        "finish_reason_policy": "length_or_exact_eos_at_bound",
+        "mode": "fixed_tokens",
+        "required_output_tokens": 64
+      },
+      "prompt": {
+        "manifest_sha256": "865695c1242a2403803a6e8738f9c5f4ce3c0b586764a7554e474f04f5f728ff",
+        "resolved_input_policy": "canonical_text_and_per_target_tokens",
+        "strata": [
+          "short",
+          "medium",
+          "long"
+        ]
+      },
+      "protocol": {
+        "cooldown_seconds": 5,
+        "global_deadline_seconds": 300,
+        "measured_repetitions": 3,
+        "timeout_seconds": 60,
+        "warmup_repetitions": 1
+      },
+      "reducers": [
+        {
+          "aggregates": [
+            "count",
+            "sum"
+          ],
+          "metric": "successful_request_count"
+        },
+        {
+          "aggregates": [
+            "count",
+            "sum"
+          ],
+          "metric": "failed_request_count"
+        },
+        {
+          "aggregates": [
+            "count",
+            "sum"
+          ],
+          "metric": "input_token_count"
+        },
+        {
+          "aggregates": [
+            "count",
+            "sum"
+          ],
+          "metric": "output_token_count"
+        },
+        {
+          "aggregates": [
+            "count",
+            "min",
+            "max",
+            "mean",
+            "p50",
+            "p95",
+            "p99"
+          ],
+          "metric": "e2e_ms"
+        },
+        {
+          "aggregates": [
+            "count",
+            "min",
+            "max",
+            "mean",
+            "p50",
+            "p95",
+            "p99"
+          ],
+          "metric": "ttft_ms"
+        },
+        {
+          "aggregates": [
+            "count",
+            "min",
+            "max",
+            "mean",
+            "p50",
+            "p95",
+            "p99"
+          ],
+          "metric": "stream_event_interval_ms"
+        },
+        {
+          "aggregates": [
+            "count",
+            "min",
+            "max",
+            "mean",
+            "p50",
+            "p95",
+            "p99"
+          ],
+          "metric": "client_post_first_output_ms_per_token"
+        },
+        {
+          "aggregates": [
+            "count",
+            "min",
+            "max",
+            "mean",
+            "p50",
+            "p95",
+            "p99"
+          ],
+          "metric": "request_throughput"
+        },
+        {
+          "aggregates": [
+            "count",
+            "min",
+            "max",
+            "mean",
+            "p50",
+            "p95",
+            "p99"
+          ],
+          "metric": "output_throughput"
+        },
+        {
+          "aggregates": [
+            "count",
+            "min",
+            "max",
+            "mean",
+            "p50",
+            "p95",
+            "p99"
+          ],
+          "metric": "offered_request_rate"
+        },
+        {
+          "aggregates": [
+            "count",
+            "min",
+            "max",
+            "mean",
+            "p50",
+            "p95",
+            "p99"
+          ],
+          "metric": "completion_rate"
+        },
+        {
+          "aggregates": [
+            "count",
+            "sum"
+          ],
+          "metric": "output_mismatch_count"
+        },
+        {
+          "aggregates": [
+            "count",
+            "sum"
+          ],
+          "metric": "output_contract_violation_count"
+        },
+        {
+          "aggregates": [
+            "count",
+            "sum"
+          ],
+          "metric": "token_count_disagreement_count"
+        },
+        {
+          "aggregates": [
+            "count",
+            "min",
+            "max",
+            "mean",
+            "p50",
+            "p95",
+            "p99"
+          ],
+          "metric": "slo_goodput_ratio"
+        },
+        {
+          "aggregates": [
+            "count",
+            "sum"
+          ],
+          "metric": "fallback_count"
+        },
+        {
+          "aggregates": [
+            "count",
+            "sum"
+          ],
+          "metric": "route_contract_violation_count"
+        }
+      ],
+      "request_dialect": {
+        "n": 1,
+        "output_bound_field": "max_completion_tokens",
+        "path": "/chat/completions",
+        "protocol_version": "turnvector.benchmark.openai-serving.v1",
+        "seed_policy": "required_when_supported",
+        "stream": true,
+        "stream_usage_policy": "include_when_supported",
+        "temperature": 0,
+        "top_p": 1
+      },
+      "required_capabilities": [
+        "route_reporting"
+      ],
+      "required_raw_artifacts": [
+        "attempts",
+        "request_trace",
+        "stream_events",
+        "raw_trials",
+        "host_samples",
+        "process_audit",
+        "output_hashes",
+        "native_routes",
+        "normalized_routes"
+      ],
+      "slos": {
+        "e2e_ms": 30000,
+        "minimum_goodput_ratio": 0.95,
+        "ttft_ms": 2000
+      },
+      "tokenizer": {
+        "id": "qwen-tokenizer-v1",
+        "revision": "fixture-v1",
+        "sha256": "f516d211540d04bc44da37c4b6a1f8ee1d636320cef51e75f42e2061052bd5ec"
+      }
+    },
+    {
+      "activation": "capability_conditioned",
+      "arrival_trace": {
+        "concurrency": 4,
+        "late_request_policy": "continue_to_terminal_or_global_deadline",
+        "mode": "closed_loop",
+        "offered_request_rates": [],
+        "offsets_ms": [],
+        "requests_per_trial": 8
+      },
+      "claim_boundaries": [
+        "A latency-only repeated-prompt result cannot establish prefix reuse; positive claims require output parity plus corroborated or benchmark-forced hit evidence."
+      ],
+      "corpus": {
+        "id": "openai-serving-smoke-corpus-v1",
+        "representativeness": "smoke_only",
+        "revision": "v1",
+        "sha256": "6964bba765a5701579406bc20ef2b71060aaddaada74f6c3587a8d28490f285d"
+      },
+      "family": "shared-prefix-fanout",
+      "gates": [
+        {
+          "decision": "evidence",
+          "expected": 0,
+          "id": "wire-contract",
+          "metric": "failed_request_count",
+          "operator": "eq"
+        },
+        {
+          "decision": "promotion",
+          "expected": 0.95,
+          "id": "slo-goodput",
+          "metric": "slo_goodput_ratio",
+          "operator": "gte"
+        }
+      ],
+      "id": "shared-prefix-fanout",
+      "isolation": {
+        "cache": "memory_warm",
+        "connection": "keepalive_per_trial",
+        "process": "session_reuse_memory_warm"
+      },
+      "matrices": [
+        {
+          "dimensions": [
+            {
+              "id": "concurrency",
+              "values": [
+                2,
+                4
+              ]
+            },
+            {
+              "id": "reuse_depth",
+              "values": [
+                1,
+                4
+              ]
+            }
+          ],
+          "id": "workload"
+        }
+      ],
+      "metric_eligibility": {
+        "client_post_first_minimum_tokens": 2,
+        "native_timing_requires_correlated_timestamps": true,
+        "token_authority": "both",
+        "unavailable_value": null
+      },
+      "metrics": [
+        "successful_request_count",
+        "failed_request_count",
+        "input_token_count",
+        "output_token_count",
+        "e2e_ms",
+        "ttft_ms",
+        "stream_event_interval_ms",
+        "client_post_first_output_ms_per_token",
+        "request_throughput",
+        "output_throughput",
+        "offered_request_rate",
+        "completion_rate",
+        "output_mismatch_count",
+        "output_contract_violation_count",
+        "token_count_disagreement_count",
+        "slo_goodput_ratio",
+        "prefix_hit_token_count",
+        "reuse_coverage_ratio"
+      ],
+      "output_work": {
+        "finish_reason_policy": "length_or_exact_eos_at_bound",
+        "mode": "fixed_tokens",
+        "required_output_tokens": 64
+      },
+      "prompt": {
+        "manifest_sha256": "865695c1242a2403803a6e8738f9c5f4ce3c0b586764a7554e474f04f5f728ff",
+        "resolved_input_policy": "canonical_text_and_per_target_tokens",
+        "strata": [
+          "short",
+          "medium",
+          "long"
+        ]
+      },
+      "protocol": {
+        "cooldown_seconds": 5,
+        "global_deadline_seconds": 300,
+        "measured_repetitions": 3,
+        "timeout_seconds": 60,
+        "warmup_repetitions": 1
+      },
+      "reducers": [
+        {
+          "aggregates": [
+            "count",
+            "sum"
+          ],
+          "metric": "successful_request_count"
+        },
+        {
+          "aggregates": [
+            "count",
+            "sum"
+          ],
+          "metric": "failed_request_count"
+        },
+        {
+          "aggregates": [
+            "count",
+            "sum"
+          ],
+          "metric": "input_token_count"
+        },
+        {
+          "aggregates": [
+            "count",
+            "sum"
+          ],
+          "metric": "output_token_count"
+        },
+        {
+          "aggregates": [
+            "count",
+            "min",
+            "max",
+            "mean",
+            "p50",
+            "p95",
+            "p99"
+          ],
+          "metric": "e2e_ms"
+        },
+        {
+          "aggregates": [
+            "count",
+            "min",
+            "max",
+            "mean",
+            "p50",
+            "p95",
+            "p99"
+          ],
+          "metric": "ttft_ms"
+        },
+        {
+          "aggregates": [
+            "count",
+            "min",
+            "max",
+            "mean",
+            "p50",
+            "p95",
+            "p99"
+          ],
+          "metric": "stream_event_interval_ms"
+        },
+        {
+          "aggregates": [
+            "count",
+            "min",
+            "max",
+            "mean",
+            "p50",
+            "p95",
+            "p99"
+          ],
+          "metric": "client_post_first_output_ms_per_token"
+        },
+        {
+          "aggregates": [
+            "count",
+            "min",
+            "max",
+            "mean",
+            "p50",
+            "p95",
+            "p99"
+          ],
+          "metric": "request_throughput"
+        },
+        {
+          "aggregates": [
+            "count",
+            "min",
+            "max",
+            "mean",
+            "p50",
+            "p95",
+            "p99"
+          ],
+          "metric": "output_throughput"
+        },
+        {
+          "aggregates": [
+            "count",
+            "min",
+            "max",
+            "mean",
+            "p50",
+            "p95",
+            "p99"
+          ],
+          "metric": "offered_request_rate"
+        },
+        {
+          "aggregates": [
+            "count",
+            "min",
+            "max",
+            "mean",
+            "p50",
+            "p95",
+            "p99"
+          ],
+          "metric": "completion_rate"
+        },
+        {
+          "aggregates": [
+            "count",
+            "sum"
+          ],
+          "metric": "output_mismatch_count"
+        },
+        {
+          "aggregates": [
+            "count",
+            "sum"
+          ],
+          "metric": "output_contract_violation_count"
+        },
+        {
+          "aggregates": [
+            "count",
+            "sum"
+          ],
+          "metric": "token_count_disagreement_count"
+        },
+        {
+          "aggregates": [
+            "count",
+            "min",
+            "max",
+            "mean",
+            "p50",
+            "p95",
+            "p99"
+          ],
+          "metric": "slo_goodput_ratio"
+        },
+        {
+          "aggregates": [
+            "count",
+            "sum"
+          ],
+          "metric": "prefix_hit_token_count"
+        },
+        {
+          "aggregates": [
+            "count",
+            "min",
+            "max",
+            "mean",
+            "p50",
+            "p95",
+            "p99"
+          ],
+          "metric": "reuse_coverage_ratio"
+        }
+      ],
+      "request_dialect": {
+        "n": 1,
+        "output_bound_field": "max_completion_tokens",
+        "path": "/chat/completions",
+        "protocol_version": "turnvector.benchmark.openai-serving.v1",
+        "seed_policy": "required_when_supported",
+        "stream": true,
+        "stream_usage_policy": "include_when_supported",
+        "temperature": 0,
+        "top_p": 1
+      },
+      "required_capabilities": [
+        "prefix_cache_memory",
+        "route_reporting"
+      ],
+      "required_raw_artifacts": [
+        "attempts",
+        "request_trace",
+        "stream_events",
+        "raw_trials",
+        "host_samples",
+        "process_audit",
+        "output_hashes",
+        "native_routes",
+        "normalized_routes"
+      ],
+      "slos": {
+        "e2e_ms": 30000,
+        "minimum_goodput_ratio": 0.95,
+        "ttft_ms": 2000
+      },
+      "tokenizer": {
+        "id": "qwen-tokenizer-v1",
+        "revision": "fixture-v1",
+        "sha256": "f516d211540d04bc44da37c4b6a1f8ee1d636320cef51e75f42e2061052bd5ec"
+      }
+    }
+  ],
+  "schema_version": "turnvector.benchmark.cross-engine-scenario-set.v1"
+}

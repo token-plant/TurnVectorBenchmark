@@ -1,0 +1,391 @@
+{
+  "$defs": {
+    "coverage": {
+      "additionalProperties": false,
+      "properties": {
+        "common_cells": {
+          "$ref": "#/$defs/ids"
+        },
+        "common_supported_cell_count": {
+          "$ref": "#/$defs/nonnegative_integer"
+        },
+        "coverage_status": {
+          "enum": [
+            "complete",
+            "partial",
+            "zero_common_cells"
+          ]
+        },
+        "excluded": {
+          "additionalProperties": false,
+          "patternProperties": {
+            "^[a-z0-9][a-z0-9._-]*$": {
+              "$ref": "#/$defs/nonempty"
+            }
+          },
+          "type": "object"
+        },
+        "left_only_cell_count": {
+          "$ref": "#/$defs/nonnegative_integer"
+        },
+        "left_only_cells": {
+          "$ref": "#/$defs/ids"
+        },
+        "requested_cell_count": {
+          "$ref": "#/$defs/nonnegative_integer"
+        },
+        "requested_cells": {
+          "$ref": "#/$defs/ids"
+        },
+        "right_only_cell_count": {
+          "$ref": "#/$defs/nonnegative_integer"
+        },
+        "right_only_cells": {
+          "$ref": "#/$defs/ids"
+        }
+      },
+      "required": [
+        "coverage_status"
+      ],
+      "type": "object"
+    },
+    "diagnostic": {
+      "additionalProperties": false,
+      "properties": {
+        "code": {
+          "$ref": "#/$defs/id"
+        },
+        "message": {
+          "maxLength": 1024,
+          "minLength": 1,
+          "type": "string"
+        },
+        "stage": {
+          "enum": [
+            "contract",
+            "capability",
+            "environment",
+            "lifecycle",
+            "execution",
+            "wire",
+            "output",
+            "metric",
+            "evidence_gate",
+            "promotion_gate",
+            "coverage",
+            "cleanup"
+          ]
+        }
+      },
+      "required": [
+        "stage",
+        "code",
+        "message"
+      ],
+      "type": "object"
+    },
+    "id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]*$",
+      "type": "string"
+    },
+    "ids": {
+      "items": {
+        "$ref": "#/$defs/id"
+      },
+      "type": "array",
+      "uniqueItems": true
+    },
+    "metric_row": {
+      "additionalProperties": false,
+      "oneOf": [
+        {
+          "properties": {
+            "eligibility": {
+              "const": "available"
+            },
+            "value": {
+              "type": "number"
+            }
+          }
+        },
+        {
+          "properties": {
+            "eligibility": {
+              "const": "unavailable"
+            },
+            "value": {
+              "type": "null"
+            }
+          }
+        }
+      ],
+      "properties": {
+        "case_id": {
+          "$ref": "#/$defs/id"
+        },
+        "comparison_form": {
+          "enum": [
+            "absolute",
+            "paired_delta",
+            "regression"
+          ]
+        },
+        "eligibility": {
+          "enum": [
+            "available",
+            "unavailable"
+          ]
+        },
+        "measurement_surface": {
+          "enum": [
+            "openai_serving",
+            "native_inference"
+          ]
+        },
+        "metric_id": {
+          "$ref": "#/$defs/id"
+        },
+        "model_equivalence_class": {
+          "enum": [
+            "exact_artifact",
+            "same_source_model",
+            "shape_matched",
+            "capability_demo"
+          ]
+        },
+        "observation_level": {
+          "enum": [
+            "client_only",
+            "declared",
+            "corroborated",
+            "benchmark_forced"
+          ]
+        },
+        "pairing_id": {
+          "$ref": "#/$defs/id"
+        },
+        "provenance_class": {
+          "enum": [
+            "benchmark_measurement",
+            "diagnostic_import"
+          ]
+        },
+        "raw_artifact_ids": {
+          "items": {
+            "$ref": "#/$defs/id"
+          },
+          "minItems": 1,
+          "type": "array",
+          "uniqueItems": true
+        },
+        "semantic_claim": {
+          "enum": [
+            "serving",
+            "route",
+            "prefix_reuse",
+            "mtp",
+            "other_speculative",
+            "determinism"
+          ]
+        },
+        "unit": {
+          "$ref": "#/$defs/id"
+        },
+        "value": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "number"
+            }
+          ]
+        },
+        "workload_contract": {
+          "enum": [
+            "same_api_workload",
+            "same_resolved_model_work"
+          ]
+        }
+      },
+      "required": [
+        "case_id",
+        "pairing_id",
+        "metric_id",
+        "unit",
+        "value",
+        "eligibility",
+        "measurement_surface",
+        "comparison_form",
+        "semantic_claim",
+        "observation_level",
+        "provenance_class",
+        "workload_contract",
+        "model_equivalence_class",
+        "raw_artifact_ids"
+      ],
+      "type": "object"
+    },
+    "nonempty": {
+      "maxLength": 4096,
+      "minLength": 1,
+      "type": "string"
+    },
+    "nonnegative_integer": {
+      "minimum": 0,
+      "type": "integer"
+    },
+    "statuses": {
+      "additionalProperties": false,
+      "properties": {
+        "capability_status": {
+          "enum": [
+            "supported",
+            "capability_unsupported",
+            "profile_incompatible",
+            "not_applicable",
+            "environment_unavailable"
+          ]
+        },
+        "contract_status": {
+          "enum": [
+            "valid",
+            "invalid",
+            "interrupted"
+          ]
+        },
+        "coverage_status": {
+          "enum": [
+            "complete",
+            "partial",
+            "zero_common_cells"
+          ]
+        },
+        "evidence_status": {
+          "enum": [
+            "not_evaluated",
+            "publishable",
+            "not_publishable"
+          ]
+        },
+        "execution_status": {
+          "enum": [
+            "not_started",
+            "completed",
+            "partial",
+            "infrastructure_failed"
+          ]
+        },
+        "promotion_status": {
+          "enum": [
+            "not_evaluated",
+            "not_applicable",
+            "passed",
+            "failed"
+          ]
+        }
+      },
+      "required": [
+        "contract_status",
+        "capability_status",
+        "execution_status",
+        "evidence_status",
+        "promotion_status",
+        "coverage_status"
+      ],
+      "type": "object"
+    }
+  },
+  "$id": "https://token-plant.github.io/TurnVectorBenchmark/schemas/cross-engine-report-v1.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "coverage": {
+      "$ref": "#/$defs/coverage"
+    },
+    "diagnostics": {
+      "items": {
+        "$ref": "#/$defs/diagnostic"
+      },
+      "maxItems": 64,
+      "type": "array"
+    },
+    "metric_rows": {
+      "anyOf": [
+        {
+          "items": {
+            "allOf": [
+              {
+                "$ref": "#/$defs/metric_row"
+              },
+              {
+                "properties": {
+                  "measurement_surface": {
+                    "const": "openai_serving"
+                  }
+                },
+                "required": [
+                  "measurement_surface"
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "items": {
+            "allOf": [
+              {
+                "$ref": "#/$defs/metric_row"
+              },
+              {
+                "properties": {
+                  "measurement_surface": {
+                    "const": "native_inference"
+                  }
+                },
+                "required": [
+                  "measurement_surface"
+                ]
+              }
+            ]
+          }
+        }
+      ],
+      "maxItems": 1000000,
+      "type": "array"
+    },
+    "primary_diagnostic": {
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "$ref": "#/$defs/diagnostic"
+        }
+      ]
+    },
+    "qualification_claim": {
+      "const": null
+    },
+    "run_id": {
+      "$ref": "#/$defs/nonempty"
+    },
+    "schema_version": {
+      "const": "turnvector.benchmark.cross-engine-report.v1"
+    },
+    "statuses": {
+      "$ref": "#/$defs/statuses"
+    }
+  },
+  "required": [
+    "schema_version",
+    "run_id",
+    "statuses",
+    "primary_diagnostic",
+    "diagnostics",
+    "coverage",
+    "metric_rows",
+    "qualification_claim"
+  ],
+  "type": "object"
+}

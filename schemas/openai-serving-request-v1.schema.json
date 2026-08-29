@@ -1,0 +1,116 @@
+{
+  "$defs": {
+    "message": {
+      "additionalProperties": false,
+      "properties": {
+        "content": {
+          "maxLength": 1048576,
+          "minLength": 1,
+          "type": "string"
+        },
+        "role": {
+          "enum": [
+            "system",
+            "user"
+          ]
+        }
+      },
+      "required": [
+        "role",
+        "content"
+      ],
+      "type": "object"
+    },
+    "stream_options": {
+      "additionalProperties": false,
+      "properties": {
+        "include_usage": {
+          "const": true
+        }
+      },
+      "required": [
+        "include_usage"
+      ],
+      "type": "object"
+    }
+  },
+  "$id": "https://token-plant.github.io/TurnVectorBenchmark/schemas/openai-serving-request-v1.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "oneOf": [
+    {
+      "not": {
+        "required": [
+          "max_completion_tokens"
+        ]
+      },
+      "required": [
+        "max_tokens"
+      ]
+    },
+    {
+      "not": {
+        "required": [
+          "max_tokens"
+        ]
+      },
+      "required": [
+        "max_completion_tokens"
+      ]
+    }
+  ],
+  "properties": {
+    "max_completion_tokens": {
+      "maximum": 65536,
+      "minimum": 1,
+      "type": "integer"
+    },
+    "max_tokens": {
+      "maximum": 65536,
+      "minimum": 1,
+      "type": "integer"
+    },
+    "messages": {
+      "items": {
+        "$ref": "#/$defs/message"
+      },
+      "maxItems": 128,
+      "minItems": 1,
+      "type": "array"
+    },
+    "model": {
+      "maxLength": 256,
+      "minLength": 1,
+      "type": "string"
+    },
+    "n": {
+      "const": 1
+    },
+    "seed": {
+      "maximum": 9223372036854775807,
+      "minimum": 0,
+      "type": "integer"
+    },
+    "stream": {
+      "const": true
+    },
+    "stream_options": {
+      "$ref": "#/$defs/stream_options"
+    },
+    "temperature": {
+      "const": 0
+    },
+    "top_p": {
+      "const": 1
+    }
+  },
+  "required": [
+    "model",
+    "messages",
+    "stream",
+    "temperature",
+    "top_p",
+    "n"
+  ],
+  "type": "object"
+}

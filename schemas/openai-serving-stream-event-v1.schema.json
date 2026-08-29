@@ -1,0 +1,294 @@
+{
+  "$defs": {
+    "digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "type": "string"
+    },
+    "git_sha": {
+      "pattern": "^[0-9a-f]{40}$",
+      "type": "string"
+    },
+    "id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]*$",
+      "type": "string"
+    },
+    "ids": {
+      "items": {
+        "$ref": "#/$defs/id"
+      },
+      "type": "array",
+      "uniqueItems": true
+    },
+    "nonempty": {
+      "maxLength": 4096,
+      "minLength": 1,
+      "type": "string"
+    },
+    "nonnegative_integer": {
+      "minimum": 0,
+      "type": "integer"
+    },
+    "positive_integer": {
+      "minimum": 1,
+      "type": "integer"
+    },
+    "usage": {
+      "additionalProperties": false,
+      "properties": {
+        "completion_tokens": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "prompt_tokens": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "total_tokens": {
+          "minimum": 0,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "prompt_tokens",
+        "completion_tokens",
+        "total_tokens"
+      ],
+      "type": "object"
+    }
+  },
+  "$id": "https://token-plant.github.io/TurnVectorBenchmark/schemas/openai-serving-stream-event-v1.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "oneOf": [
+    {
+      "properties": {
+        "content": {
+          "type": "null"
+        },
+        "finish_reason": {
+          "type": "null"
+        },
+        "kind": {
+          "const": "role_delta"
+        },
+        "reasoning": {
+          "type": "null"
+        },
+        "role": {
+          "const": "assistant"
+        },
+        "usage": {
+          "type": "null"
+        }
+      }
+    },
+    {
+      "properties": {
+        "content": {
+          "type": "null"
+        },
+        "finish_reason": {
+          "type": "null"
+        },
+        "kind": {
+          "const": "reasoning_delta"
+        },
+        "reasoning": {
+          "type": "string"
+        },
+        "role": {
+          "type": "null"
+        },
+        "usage": {
+          "type": "null"
+        }
+      }
+    },
+    {
+      "properties": {
+        "content": {
+          "type": "string"
+        },
+        "finish_reason": {
+          "type": "null"
+        },
+        "kind": {
+          "const": "content_delta"
+        },
+        "reasoning": {
+          "type": "null"
+        },
+        "role": {
+          "type": "null"
+        },
+        "usage": {
+          "type": "null"
+        }
+      }
+    },
+    {
+      "properties": {
+        "content": {
+          "type": "null"
+        },
+        "finish_reason": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "kind": {
+          "const": "terminal"
+        },
+        "reasoning": {
+          "type": "null"
+        },
+        "role": {
+          "type": "null"
+        },
+        "usage": {
+          "type": "null"
+        }
+      }
+    },
+    {
+      "properties": {
+        "content": {
+          "type": "null"
+        },
+        "finish_reason": {
+          "type": "null"
+        },
+        "kind": {
+          "const": "usage"
+        },
+        "reasoning": {
+          "type": "null"
+        },
+        "role": {
+          "type": "null"
+        },
+        "usage": {
+          "$ref": "#/$defs/usage"
+        }
+      }
+    },
+    {
+      "properties": {
+        "content": {
+          "type": "null"
+        },
+        "finish_reason": {
+          "type": "null"
+        },
+        "kind": {
+          "const": "done"
+        },
+        "reasoning": {
+          "type": "null"
+        },
+        "role": {
+          "type": "null"
+        },
+        "usage": {
+          "type": "null"
+        }
+      }
+    }
+  ],
+  "properties": {
+    "content": {
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "string"
+        }
+      ]
+    },
+    "finish_reason": {
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "maxLength": 256,
+          "minLength": 1,
+          "type": "string"
+        }
+      ]
+    },
+    "kind": {
+      "enum": [
+        "role_delta",
+        "reasoning_delta",
+        "content_delta",
+        "terminal",
+        "usage",
+        "done"
+      ]
+    },
+    "raw_data_sha256": {
+      "$ref": "#/$defs/digest"
+    },
+    "reasoning": {
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "string"
+        }
+      ]
+    },
+    "receipt_ns": {
+      "minimum": 0,
+      "type": "integer"
+    },
+    "request_id": {
+      "$ref": "#/$defs/id"
+    },
+    "role": {
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "enum": [
+            "assistant"
+          ]
+        }
+      ]
+    },
+    "schema_version": {
+      "const": "turnvector.benchmark.openai-serving-stream-event.v1"
+    },
+    "sequence": {
+      "minimum": 0,
+      "type": "integer"
+    },
+    "usage": {
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "$ref": "#/$defs/usage"
+        }
+      ]
+    }
+  },
+  "required": [
+    "schema_version",
+    "request_id",
+    "sequence",
+    "receipt_ns",
+    "kind",
+    "role",
+    "reasoning",
+    "content",
+    "finish_reason",
+    "usage",
+    "raw_data_sha256"
+  ],
+  "type": "object"
+}

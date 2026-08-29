@@ -1,0 +1,559 @@
+{
+  "$defs": {
+    "adapter": {
+      "additionalProperties": false,
+      "properties": {
+        "arguments": {
+          "items": {
+            "maxLength": 4096,
+            "minLength": 1,
+            "type": "string"
+          },
+          "maxItems": 128,
+          "minItems": 1,
+          "type": "array"
+        },
+        "environment_names": {
+          "items": {
+            "pattern": "^[A-Z][A-Z0-9_]*$",
+            "type": "string"
+          },
+          "maxItems": 64,
+          "type": "array",
+          "uniqueItems": true
+        },
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "protocol_version": {
+          "const": "turnvector.benchmark.cross-engine-lifecycle.v1"
+        },
+        "registered_command": {
+          "enum": [
+            "turnvector-openai-server",
+            "ax-engine-openai-server",
+            "mlx-lm-openai-server",
+            "llama-cpp-openai-server"
+          ]
+        },
+        "stderr_limit_bytes": {
+          "maximum": 16777216,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "version": {
+          "$ref": "#/$defs/id"
+        },
+        "working_directory": {
+          "pattern": "^\\{[a-z_]+\\}$",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "version",
+        "protocol_version",
+        "registered_command",
+        "arguments",
+        "environment_names",
+        "working_directory",
+        "stderr_limit_bytes"
+      ],
+      "type": "object"
+    },
+    "capabilities": {
+      "additionalProperties": false,
+      "properties": {
+        "cancellation": {
+          "$ref": "#/$defs/capability_disposition"
+        },
+        "mtp": {
+          "$ref": "#/$defs/capability_disposition"
+        },
+        "multi_model": {
+          "$ref": "#/$defs/capability_disposition"
+        },
+        "native_output_identity": {
+          "$ref": "#/$defs/capability_disposition"
+        },
+        "openai_chat_completions": {
+          "$ref": "#/$defs/capability_disposition"
+        },
+        "prefix_cache_disk": {
+          "$ref": "#/$defs/capability_disposition"
+        },
+        "prefix_cache_memory": {
+          "$ref": "#/$defs/capability_disposition"
+        },
+        "process_memory_attribution": {
+          "$ref": "#/$defs/capability_disposition"
+        },
+        "restartable_state": {
+          "$ref": "#/$defs/capability_disposition"
+        },
+        "route_reporting": {
+          "$ref": "#/$defs/capability_disposition"
+        },
+        "seed": {
+          "$ref": "#/$defs/capability_disposition"
+        },
+        "server_queue_metrics": {
+          "$ref": "#/$defs/capability_disposition"
+        },
+        "stream_usage": {
+          "$ref": "#/$defs/capability_disposition"
+        },
+        "streaming_sse": {
+          "$ref": "#/$defs/capability_disposition"
+        },
+        "usage_accounting_or_benchmark_tokenizer": {
+          "$ref": "#/$defs/capability_disposition"
+        }
+      },
+      "required": [
+        "openai_chat_completions",
+        "streaming_sse",
+        "usage_accounting_or_benchmark_tokenizer",
+        "seed",
+        "stream_usage",
+        "route_reporting",
+        "prefix_cache_memory",
+        "prefix_cache_disk",
+        "mtp",
+        "multi_model",
+        "cancellation",
+        "server_queue_metrics",
+        "process_memory_attribution",
+        "restartable_state",
+        "native_output_identity"
+      ],
+      "type": "object"
+    },
+    "capability_disposition": {
+      "additionalProperties": false,
+      "properties": {
+        "reason_code": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/id"
+            }
+          ]
+        },
+        "status": {
+          "enum": [
+            "supported",
+            "capability_unsupported",
+            "profile_incompatible",
+            "environment_unavailable",
+            "not_applicable"
+          ]
+        }
+      },
+      "required": [
+        "status",
+        "reason_code"
+      ],
+      "type": "object"
+    },
+    "dependency": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "sha256": {
+          "$ref": "#/$defs/digest"
+        },
+        "version": {
+          "maxLength": 256,
+          "minLength": 1,
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "version",
+        "sha256"
+      ],
+      "type": "object"
+    },
+    "digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "type": "string"
+    },
+    "endpoint_expectation": {
+      "additionalProperties": false,
+      "properties": {
+        "api_flavor": {
+          "const": "chat_completions"
+        },
+        "authentication_env_var": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "pattern": "^[A-Z][A-Z0-9_]*$",
+              "type": "string"
+            }
+          ]
+        },
+        "output_bound_field": {
+          "enum": [
+            "max_tokens",
+            "max_completion_tokens"
+          ]
+        },
+        "protocol_family": {
+          "const": "openai-compatible"
+        },
+        "protocol_version": {
+          "const": "turnvector.benchmark.openai-serving.v1"
+        },
+        "stream_format": {
+          "const": "sse-data-json"
+        },
+        "transport": {
+          "const": "http"
+        }
+      },
+      "required": [
+        "protocol_family",
+        "protocol_version",
+        "transport",
+        "api_flavor",
+        "stream_format",
+        "output_bound_field",
+        "authentication_env_var"
+      ],
+      "type": "object"
+    },
+    "executable": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "path": {
+          "maxLength": 4096,
+          "minLength": 1,
+          "type": "string"
+        },
+        "sha256": {
+          "$ref": "#/$defs/digest"
+        }
+      },
+      "required": [
+        "id",
+        "path",
+        "sha256"
+      ],
+      "type": "object"
+    },
+    "git_sha": {
+      "pattern": "^[0-9a-f]{40}$",
+      "type": "string"
+    },
+    "id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]*$",
+      "type": "string"
+    },
+    "ids": {
+      "items": {
+        "$ref": "#/$defs/id"
+      },
+      "type": "array",
+      "uniqueItems": true
+    },
+    "model": {
+      "additionalProperties": false,
+      "properties": {
+        "architecture_sha256": {
+          "$ref": "#/$defs/digest"
+        },
+        "chat_template_sha256": {
+          "$ref": "#/$defs/digest"
+        },
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "mtp_sidecar_sha256": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/digest"
+            }
+          ]
+        },
+        "quantization": {
+          "$ref": "#/$defs/quantization"
+        },
+        "revision": {
+          "$ref": "#/$defs/git_sha"
+        },
+        "runtime_config_sha256": {
+          "$ref": "#/$defs/digest"
+        },
+        "snapshot_sha256": {
+          "$ref": "#/$defs/digest"
+        },
+        "tokenizer_id": {
+          "$ref": "#/$defs/id"
+        },
+        "tokenizer_sha256": {
+          "$ref": "#/$defs/digest"
+        },
+        "upstream_repository": {
+          "maxLength": 2048,
+          "pattern": "^https://[^ ]+$",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "upstream_repository",
+        "revision",
+        "snapshot_sha256",
+        "architecture_sha256",
+        "quantization",
+        "tokenizer_id",
+        "tokenizer_sha256",
+        "chat_template_sha256",
+        "mtp_sidecar_sha256",
+        "runtime_config_sha256"
+      ],
+      "type": "object"
+    },
+    "nonempty": {
+      "maxLength": 4096,
+      "minLength": 1,
+      "type": "string"
+    },
+    "nonnegative_integer": {
+      "minimum": 0,
+      "type": "integer"
+    },
+    "positive_integer": {
+      "minimum": 1,
+      "type": "integer"
+    },
+    "process_topology": {
+      "additionalProperties": false,
+      "properties": {
+        "deployment": {
+          "enum": [
+            "single_process",
+            "controller_with_workers",
+            "process_per_model"
+          ]
+        },
+        "expected_processes": {
+          "maximum": 1024,
+          "minimum": 1,
+          "type": "integer"
+        },
+        "listener_process": {
+          "enum": [
+            "leader",
+            "worker"
+          ]
+        }
+      },
+      "required": [
+        "deployment",
+        "expected_processes",
+        "listener_process"
+      ],
+      "type": "object"
+    },
+    "quantization": {
+      "additionalProperties": false,
+      "properties": {
+        "algorithm": {
+          "$ref": "#/$defs/id"
+        },
+        "bit_width": {
+          "maximum": 32,
+          "minimum": 1,
+          "type": "integer"
+        },
+        "group_size": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "maximum": 65536,
+              "minimum": 1,
+              "type": "integer"
+            }
+          ]
+        },
+        "tensor_coverage_sha256": {
+          "$ref": "#/$defs/digest"
+        }
+      },
+      "required": [
+        "algorithm",
+        "bit_width",
+        "group_size",
+        "tensor_coverage_sha256"
+      ],
+      "type": "object"
+    },
+    "scenario_disposition": {
+      "additionalProperties": false,
+      "properties": {
+        "reason_code": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/id"
+            }
+          ]
+        },
+        "scenario_id": {
+          "$ref": "#/$defs/id"
+        },
+        "status": {
+          "enum": [
+            "supported",
+            "capability_unsupported",
+            "profile_incompatible",
+            "environment_unavailable",
+            "not_applicable"
+          ]
+        }
+      },
+      "required": [
+        "scenario_id",
+        "status",
+        "reason_code"
+      ],
+      "type": "object"
+    },
+    "source": {
+      "additionalProperties": false,
+      "properties": {
+        "dirty": {
+          "type": "boolean"
+        },
+        "repository": {
+          "maxLength": 2048,
+          "pattern": "^https://[^ ]+$",
+          "type": "string"
+        },
+        "revision": {
+          "$ref": "#/$defs/git_sha"
+        }
+      },
+      "required": [
+        "repository",
+        "revision",
+        "dirty"
+      ],
+      "type": "object"
+    }
+  },
+  "$id": "https://token-plant.github.io/TurnVectorBenchmark/schemas/cross-engine-target-v1.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "adapter": {
+      "$ref": "#/$defs/adapter"
+    },
+    "capabilities": {
+      "$ref": "#/$defs/capabilities"
+    },
+    "dependencies": {
+      "items": {
+        "$ref": "#/$defs/dependency"
+      },
+      "maxItems": 128,
+      "type": "array"
+    },
+    "enabled": {
+      "const": false
+    },
+    "endpoint": {
+      "$ref": "#/$defs/endpoint_expectation"
+    },
+    "engine_family": {
+      "enum": [
+        "turnvector",
+        "ax-engine",
+        "mlx-lm",
+        "llama.cpp"
+      ]
+    },
+    "executables": {
+      "items": {
+        "$ref": "#/$defs/executable"
+      },
+      "maxItems": 32,
+      "minItems": 1,
+      "type": "array"
+    },
+    "id": {
+      "$ref": "#/$defs/id"
+    },
+    "manifest_purpose": {
+      "const": "example"
+    },
+    "model": {
+      "$ref": "#/$defs/model"
+    },
+    "process_topology": {
+      "$ref": "#/$defs/process_topology"
+    },
+    "route_mapper_version": {
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "$ref": "#/$defs/id"
+        }
+      ]
+    },
+    "scenario_support": {
+      "items": {
+        "$ref": "#/$defs/scenario_disposition"
+      },
+      "maxItems": 13,
+      "minItems": 13,
+      "type": "array"
+    },
+    "schema_version": {
+      "const": "turnvector.benchmark.cross-engine-target.v1"
+    },
+    "source": {
+      "$ref": "#/$defs/source"
+    }
+  },
+  "required": [
+    "schema_version",
+    "id",
+    "manifest_purpose",
+    "enabled",
+    "engine_family",
+    "source",
+    "adapter",
+    "executables",
+    "dependencies",
+    "endpoint",
+    "process_topology",
+    "model",
+    "scenario_support",
+    "capabilities",
+    "route_mapper_version"
+  ],
+  "type": "object"
+}
