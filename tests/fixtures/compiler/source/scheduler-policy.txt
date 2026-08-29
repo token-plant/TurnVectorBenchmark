@@ -1,0 +1,3 @@
+fixture source scheduler-policy weighted-service
+fixture source scheduler-policy idle-reentry
+fixture source scheduler-policy safety-before-urgency

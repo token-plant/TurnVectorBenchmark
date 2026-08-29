@@ -1,0 +1,4 @@
+fixture source observability-qualification turn-attribution
+fixture source observability-qualification status-mapping
+fixture source observability-qualification external-calibration
+fixture source observability-qualification qualified-label

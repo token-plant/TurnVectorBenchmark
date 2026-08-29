@@ -1,0 +1,1209 @@
+{
+  "$defs": {
+    "counts": {
+      "additionalProperties": false,
+      "properties": {
+        "aggregate_negative_template_count": {
+          "$ref": "#/$defs/u64"
+        },
+        "artifact_membership_total": {
+          "$ref": "#/$defs/u64"
+        },
+        "authority_byte_count": {
+          "$ref": "#/$defs/u64"
+        },
+        "authority_file_count": {
+          "$ref": "#/$defs/u64"
+        },
+        "behavior_case_count": {
+          "$ref": "#/$defs/u64"
+        },
+        "bundle_evidence_record_count": {
+          "$ref": "#/$defs/u64"
+        },
+        "case_plan_count": {
+          "$ref": "#/$defs/u64"
+        },
+        "endpoint_path_reference_count": {
+          "$ref": "#/$defs/u64"
+        },
+        "endpoint_support_reference_count": {
+          "$ref": "#/$defs/u64"
+        },
+        "endpoint_total_reference_count": {
+          "$ref": "#/$defs/u64"
+        },
+        "enforcement_path_count": {
+          "$ref": "#/$defs/u64"
+        },
+        "entity_record_count": {
+          "$ref": "#/$defs/u64"
+        },
+        "evidence_bundle_count": {
+          "$ref": "#/$defs/u64"
+        },
+        "evidence_source_count": {
+          "$ref": "#/$defs/u64"
+        },
+        "gate_aggregate_negative_record_count": {
+          "$ref": "#/$defs/u64"
+        },
+        "gate_count": {
+          "$ref": "#/$defs/u64"
+        },
+        "gate_plumbing_negative_record_count": {
+          "$ref": "#/$defs/u64"
+        },
+        "judge_count": {
+          "$ref": "#/$defs/u64"
+        },
+        "judge_negative_template_count": {
+          "$ref": "#/$defs/u64"
+        },
+        "key_count_exec": {
+          "$ref": "#/$defs/u64"
+        },
+        "key_count_run": {
+          "$ref": "#/$defs/u64"
+        },
+        "lane_context_contract_count": {
+          "$ref": "#/$defs/u64"
+        },
+        "lane_context_record_count": {
+          "$ref": "#/$defs/u64"
+        },
+        "lane_count": {
+          "$ref": "#/$defs/u64"
+        },
+        "lane_output_record_count": {
+          "$ref": "#/$defs/u64"
+        },
+        "logical_arena_byte_count": {
+          "$ref": "#/$defs/u64"
+        },
+        "obligation_count": {
+          "$ref": "#/$defs/u64"
+        },
+        "obligation_gate_pair_count": {
+          "$ref": "#/$defs/u64"
+        },
+        "path_case_record_count": {
+          "$ref": "#/$defs/u64"
+        },
+        "path_evidence_record_count": {
+          "$ref": "#/$defs/u64"
+        },
+        "path_gate_record_count": {
+          "$ref": "#/$defs/u64"
+        },
+        "path_judge_negative_record_count": {
+          "$ref": "#/$defs/u64"
+        },
+        "plumbing_negative_template_count": {
+          "$ref": "#/$defs/u64"
+        },
+        "post_gate_output_contract_count": {
+          "$ref": "#/$defs/u64"
+        },
+        "relation_only_record_count": {
+          "$ref": "#/$defs/u64"
+        },
+        "relation_path_record_count": {
+          "$ref": "#/$defs/u64"
+        },
+        "relation_support_record_count": {
+          "$ref": "#/$defs/u64"
+        },
+        "relation_total_record_count": {
+          "$ref": "#/$defs/u64"
+        },
+        "section_byte_count": {
+          "$ref": "#/$defs/u64"
+        },
+        "section_count": {
+          "$ref": "#/$defs/u64"
+        },
+        "serialized_input_byte_count": {
+          "$ref": "#/$defs/u64"
+        }
+      },
+      "required": [
+        "lane_count",
+        "behavior_case_count",
+        "case_plan_count",
+        "obligation_count",
+        "judge_count",
+        "evidence_bundle_count",
+        "evidence_source_count",
+        "lane_context_contract_count",
+        "post_gate_output_contract_count",
+        "gate_count",
+        "judge_negative_template_count",
+        "aggregate_negative_template_count",
+        "plumbing_negative_template_count",
+        "obligation_gate_pair_count",
+        "enforcement_path_count",
+        "bundle_evidence_record_count",
+        "path_case_record_count",
+        "path_gate_record_count",
+        "path_evidence_record_count",
+        "path_judge_negative_record_count",
+        "gate_aggregate_negative_record_count",
+        "gate_plumbing_negative_record_count",
+        "lane_context_record_count",
+        "lane_output_record_count",
+        "artifact_membership_total",
+        "relation_path_record_count",
+        "relation_support_record_count",
+        "relation_total_record_count",
+        "endpoint_path_reference_count",
+        "endpoint_support_reference_count",
+        "endpoint_total_reference_count",
+        "entity_record_count",
+        "relation_only_record_count",
+        "serialized_input_byte_count",
+        "authority_file_count",
+        "authority_byte_count",
+        "section_count",
+        "section_byte_count",
+        "logical_arena_byte_count",
+        "key_count_exec",
+        "key_count_run"
+      ],
+      "type": "object"
+    },
+    "entity_sets": {
+      "additionalProperties": false,
+      "properties": {
+        "aggregate_negative_template_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "behavior_case_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "case_plan_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "enforcement_path_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "evidence_bundle_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "evidence_source_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "gate_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "judge_negative_template_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "judge_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "lane_context_contract_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "lane_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "obligation_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "plumbing_negative_template_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "post_gate_output_contract_sha256": {
+          "$ref": "#/$defs/sha256"
+        }
+      },
+      "required": [
+        "lane_sha256",
+        "behavior_case_sha256",
+        "case_plan_sha256",
+        "obligation_sha256",
+        "judge_sha256",
+        "evidence_bundle_sha256",
+        "evidence_source_sha256",
+        "lane_context_contract_sha256",
+        "post_gate_output_contract_sha256",
+        "gate_sha256",
+        "judge_negative_template_sha256",
+        "aggregate_negative_template_sha256",
+        "plumbing_negative_template_sha256",
+        "enforcement_path_sha256"
+      ],
+      "type": "object"
+    },
+    "expected_keys": {
+      "additionalProperties": false,
+      "properties": {
+        "compile_key_count": {
+          "$ref": "#/$defs/u64"
+        },
+        "count": {
+          "$ref": "#/$defs/u64"
+        },
+        "execution_key_count": {
+          "$ref": "#/$defs/u64"
+        },
+        "names": {
+          "items": {
+            "minLength": 1,
+            "pattern": "^[\\x20-\\x7e]+$",
+            "type": "string"
+          },
+          "type": "array",
+          "uniqueItems": true
+        },
+        "run_global_key_count": {
+          "$ref": "#/$defs/u64"
+        },
+        "sha256": {
+          "$ref": "#/$defs/sha256"
+        }
+      },
+      "required": [
+        "names",
+        "count",
+        "sha256",
+        "compile_key_count",
+        "execution_key_count",
+        "run_global_key_count"
+      ],
+      "type": "object"
+    },
+    "historical_object": {
+      "additionalProperties": false,
+      "properties": {
+        "byte_count": {
+          "$ref": "#/$defs/u64"
+        },
+        "git_object_type": {
+          "const": "blob"
+        },
+        "path": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "revision": {
+          "$ref": "#/$defs/revision40"
+        },
+        "sha256": {
+          "$ref": "#/$defs/sha256"
+        }
+      },
+      "required": [
+        "revision",
+        "path",
+        "byte_count",
+        "sha256",
+        "git_object_type"
+      ],
+      "type": "object"
+    },
+    "identifier": {
+      "pattern": "^[a-z0-9][a-z0-9._-]*$",
+      "type": "string"
+    },
+    "inputs": {
+      "additionalProperties": false,
+      "properties": {
+        "authority_snapshot_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "catalog_path": {
+          "const": "authority/obligation-catalog-v1.jsonl"
+        },
+        "catalog_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "compile_limits_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "expectation_path": {
+          "const": "expectations/turnvector-implementation-v2.json"
+        },
+        "expectation_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "source_reconciliation_path": {
+          "const": "authority/source-reconciliation-v1.json"
+        },
+        "source_reconciliation_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "traceability_bindings": {
+          "$ref": "#/$defs/traceability_bindings"
+        },
+        "traceability_path": {
+          "const": "authority/traceability-v1.json"
+        },
+        "traceability_sha256": {
+          "$ref": "#/$defs/sha256"
+        }
+      },
+      "required": [
+        "source_reconciliation_path",
+        "source_reconciliation_sha256",
+        "expectation_path",
+        "expectation_sha256",
+        "catalog_path",
+        "catalog_sha256",
+        "traceability_path",
+        "traceability_sha256",
+        "authority_snapshot_sha256",
+        "compile_limits_sha256",
+        "traceability_bindings"
+      ],
+      "type": "object"
+    },
+    "limitations": {
+      "items": false,
+      "maxItems": 4,
+      "minItems": 4,
+      "prefixItems": [
+        {
+          "const": "plan proves closure relative to the accepted obligation catalog and exact source snapshot only",
+          "maxLength": 1024
+        },
+        {
+          "const": "no production behavior, adapter availability, or semantic completeness of source prose is claimed",
+          "maxLength": 1024
+        },
+        {
+          "const": "plan binds the through-START chronology prefix only; the final history digest/count is first persisted by RunEnvironment",
+          "maxLength": 1024
+        },
+        {
+          "const": "structural fixture readiness does not imply claim readiness",
+          "maxLength": 1024
+        }
+      ],
+      "type": "array"
+    },
+    "limits": {
+      "additionalProperties": false,
+      "properties": {
+        "aggregate_negative_tests_per_gate_max": {
+          "const": 1,
+          "type": "integer"
+        },
+        "attempt_object_staging_directory_max": {
+          "const": 33619968,
+          "type": "integer"
+        },
+        "authority_child_stderr_bytes_max": {
+          "const": 1048576,
+          "type": "integer"
+        },
+        "authority_child_stdout_bytes_max": {
+          "const": 33652736,
+          "type": "integer"
+        },
+        "authority_child_timeout_seconds": {
+          "const": 600,
+          "type": "integer"
+        },
+        "authority_file_bytes_max": {
+          "const": 4194304,
+          "type": "integer"
+        },
+        "authority_file_count_max": {
+          "const": 256,
+          "type": "integer"
+        },
+        "authority_hash_buffer_max": {
+          "const": 65536,
+          "type": "integer"
+        },
+        "authority_section_bytes_total_max": {
+          "const": 33554432,
+          "type": "integer"
+        },
+        "authority_section_count_max": {
+          "const": 1024,
+          "type": "integer"
+        },
+        "authority_total_bytes_max": {
+          "const": 67108864,
+          "type": "integer"
+        },
+        "canonical_directory_entry_count_max": {
+          "const": 4096,
+          "type": "integer"
+        },
+        "canonical_directory_name_bytes_max": {
+          "const": 4194304,
+          "type": "integer"
+        },
+        "canonical_directory_sort_index_bytes_max": {
+          "const": 65536,
+          "type": "integer"
+        },
+        "case_plan_count_max": {
+          "const": 4096,
+          "type": "integer"
+        },
+        "catalog_record_count_max": {
+          "const": 512,
+          "type": "integer"
+        },
+        "compile_chronology_event_max": {
+          "const": 16384,
+          "type": "integer"
+        },
+        "compile_chronology_genesis_max": {
+          "const": 32768,
+          "type": "integer"
+        },
+        "context_artifacts_per_lane_max": {
+          "const": 2,
+          "type": "integer"
+        },
+        "coverage_plan_or_failure_max": {
+          "const": 33554432,
+          "type": "integer"
+        },
+        "custody_domain_record_max": {
+          "const": 32768,
+          "type": "integer"
+        },
+        "custody_event_staging_file_max": {
+          "const": 16384,
+          "type": "integer"
+        },
+        "custody_registry_binding_event_max": {
+          "const": 16384,
+          "type": "integer"
+        },
+        "custody_registry_genesis_max": {
+          "const": 32768,
+          "type": "integer"
+        },
+        "evidence_bundle_count_max": {
+          "const": 64,
+          "type": "integer"
+        },
+        "evidence_members_per_bundle_or_path_max": {
+          "const": 16,
+          "type": "integer"
+        },
+        "evidence_source_count_max": {
+          "const": 256,
+          "type": "integer"
+        },
+        "execution_closure_file_bytes_max": {
+          "const": 83886080,
+          "type": "integer"
+        },
+        "execution_closure_loaded_image_count_max": {
+          "const": 512,
+          "type": "integer"
+        },
+        "execution_closure_loaded_image_path_bytes_max": {
+          "const": 4096,
+          "type": "integer"
+        },
+        "execution_closure_loaded_image_path_bytes_total_max": {
+          "const": 2097152,
+          "type": "integer"
+        },
+        "execution_closure_path_bytes_max": {
+          "const": 4096,
+          "type": "integer"
+        },
+        "execution_closure_path_bytes_total_max": {
+          "const": 16777216,
+          "type": "integer"
+        },
+        "execution_closure_record_count_max": {
+          "const": 4096,
+          "type": "integer"
+        },
+        "execution_closure_symlink_target_bytes_max": {
+          "const": 4096,
+          "type": "integer"
+        },
+        "execution_closure_symlink_target_bytes_total_max": {
+          "const": 16777216,
+          "type": "integer"
+        },
+        "gate_count_max": {
+          "const": 256,
+          "type": "integer"
+        },
+        "interruption_quarantine_max": {
+          "const": 33619968,
+          "type": "integer"
+        },
+        "judge_count_max": {
+          "const": 256,
+          "type": "integer"
+        },
+        "judge_negative_tests_per_path_max": {
+          "const": 1,
+          "type": "integer"
+        },
+        "largest_single_serialized_parser_input_max": {
+          "const": 4194304,
+          "type": "integer"
+        },
+        "logical_retained_index_arena_max": {
+          "const": 33554432,
+          "type": "integer"
+        },
+        "negative_test_class_count_max": {
+          "const": 256,
+          "type": "integer"
+        },
+        "obligation_count_max": {
+          "const": 256,
+          "type": "integer"
+        },
+        "output_streaming_chunk_max": {
+          "const": 65536,
+          "type": "integer"
+        },
+        "path_count_max": {
+          "const": 32768,
+          "type": "integer"
+        },
+        "paths_per_case_max": {
+          "const": 32,
+          "type": "integer"
+        },
+        "paths_per_gate_max": {
+          "const": 512,
+          "type": "integer"
+        },
+        "paths_per_obligation_max": {
+          "const": 1024,
+          "type": "integer"
+        },
+        "per_receipt_max": {
+          "const": 65536,
+          "type": "integer"
+        },
+        "plumbing_negative_tests_per_gate_max": {
+          "const": 1,
+          "type": "integer"
+        },
+        "post_gate_outputs_per_lane_max": {
+          "const": 2,
+          "type": "integer"
+        },
+        "repository_control_config_bytes_total_max": {
+          "const": 1048576,
+          "type": "integer"
+        },
+        "repository_control_entry_count_max": {
+          "const": 32768,
+          "type": "integer"
+        },
+        "repository_control_file_bytes_max": {
+          "const": 4194304,
+          "type": "integer"
+        },
+        "repository_control_file_bytes_total_max": {
+          "const": 33554432,
+          "type": "integer"
+        },
+        "repository_control_git_output_bytes_max": {
+          "const": 134217728,
+          "type": "integer"
+        },
+        "repository_control_git_output_bytes_other_max": {
+          "const": 4194304,
+          "type": "integer"
+        },
+        "repository_control_git_path_record_count_max": {
+          "const": 32768,
+          "type": "integer"
+        },
+        "repository_control_git_stderr_bytes_max": {
+          "const": 1048576,
+          "type": "integer"
+        },
+        "repository_control_git_timeout_seconds": {
+          "const": 60,
+          "type": "integer"
+        },
+        "repository_control_ignore_bytes_total_max": {
+          "const": 4194304,
+          "type": "integer"
+        },
+        "repository_control_ignore_file_bytes_max": {
+          "const": 1048576,
+          "type": "integer"
+        },
+        "repository_control_ignore_file_count_max": {
+          "const": 256,
+          "type": "integer"
+        },
+        "repository_control_path_bytes_max": {
+          "const": 4096,
+          "type": "integer"
+        },
+        "repository_control_path_bytes_total_max": {
+          "const": 134217728,
+          "type": "integer"
+        },
+        "serialized_input_bytes_total_max": {
+          "const": 16777216,
+          "type": "integer"
+        },
+        "t_max": {
+          "const": 8,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "authority_file_count_max",
+        "authority_file_bytes_max",
+        "authority_total_bytes_max",
+        "authority_section_count_max",
+        "authority_section_bytes_total_max",
+        "serialized_input_bytes_total_max",
+        "catalog_record_count_max",
+        "case_plan_count_max",
+        "obligation_count_max",
+        "judge_count_max",
+        "evidence_bundle_count_max",
+        "evidence_source_count_max",
+        "gate_count_max",
+        "negative_test_class_count_max",
+        "path_count_max",
+        "paths_per_obligation_max",
+        "evidence_members_per_bundle_or_path_max",
+        "context_artifacts_per_lane_max",
+        "post_gate_outputs_per_lane_max",
+        "paths_per_case_max",
+        "paths_per_gate_max",
+        "judge_negative_tests_per_path_max",
+        "aggregate_negative_tests_per_gate_max",
+        "plumbing_negative_tests_per_gate_max",
+        "authority_hash_buffer_max",
+        "largest_single_serialized_parser_input_max",
+        "logical_retained_index_arena_max",
+        "output_streaming_chunk_max",
+        "coverage_plan_or_failure_max",
+        "per_receipt_max",
+        "custody_domain_record_max",
+        "custody_registry_genesis_max",
+        "custody_registry_binding_event_max",
+        "compile_chronology_genesis_max",
+        "compile_chronology_event_max",
+        "custody_event_staging_file_max",
+        "attempt_object_staging_directory_max",
+        "interruption_quarantine_max",
+        "t_max",
+        "execution_closure_record_count_max",
+        "execution_closure_file_bytes_max",
+        "execution_closure_path_bytes_max",
+        "execution_closure_path_bytes_total_max",
+        "execution_closure_symlink_target_bytes_max",
+        "execution_closure_symlink_target_bytes_total_max",
+        "execution_closure_loaded_image_count_max",
+        "execution_closure_loaded_image_path_bytes_max",
+        "execution_closure_loaded_image_path_bytes_total_max",
+        "canonical_directory_entry_count_max",
+        "canonical_directory_name_bytes_max",
+        "canonical_directory_sort_index_bytes_max",
+        "repository_control_entry_count_max",
+        "repository_control_path_bytes_max",
+        "repository_control_path_bytes_total_max",
+        "repository_control_file_bytes_max",
+        "repository_control_file_bytes_total_max",
+        "repository_control_config_bytes_total_max",
+        "repository_control_ignore_file_count_max",
+        "repository_control_ignore_file_bytes_max",
+        "repository_control_ignore_bytes_total_max",
+        "repository_control_git_path_record_count_max",
+        "repository_control_git_output_bytes_max",
+        "repository_control_git_output_bytes_other_max",
+        "repository_control_git_stderr_bytes_max",
+        "repository_control_git_timeout_seconds",
+        "authority_child_stdout_bytes_max",
+        "authority_child_stderr_bytes_max",
+        "authority_child_timeout_seconds"
+      ],
+      "type": "object"
+    },
+    "relation_sets": {
+      "additionalProperties": false,
+      "properties": {
+        "behavior_obligation_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "bundle_evidence_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "gate_aggregate_negative_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "gate_plumbing_negative_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "lane_bundle_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "lane_context_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "lane_output_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "obligation_gate_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "obligation_judge_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "path_case_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "path_evidence_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "path_gate_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "path_judge_negative_sha256": {
+          "$ref": "#/$defs/sha256"
+        }
+      },
+      "required": [
+        "behavior_obligation_sha256",
+        "obligation_judge_sha256",
+        "lane_bundle_sha256",
+        "obligation_gate_sha256",
+        "bundle_evidence_sha256",
+        "lane_context_sha256",
+        "lane_output_sha256",
+        "path_case_sha256",
+        "path_gate_sha256",
+        "path_evidence_sha256",
+        "path_judge_negative_sha256",
+        "gate_aggregate_negative_sha256",
+        "gate_plumbing_negative_sha256"
+      ],
+      "type": "object"
+    },
+    "revision40": {
+      "pattern": "^[0-9a-f]{40}$",
+      "type": "string"
+    },
+    "section_record": {
+      "additionalProperties": false,
+      "properties": {
+        "end": {
+          "$ref": "#/$defs/u64"
+        },
+        "path": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "start": {
+          "$ref": "#/$defs/u64"
+        }
+      },
+      "required": [
+        "path",
+        "start",
+        "end",
+        "sha256"
+      ],
+      "type": "object"
+    },
+    "sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "type": "string"
+    },
+    "source": {
+      "additionalProperties": false,
+      "properties": {
+        "clean": {
+          "type": "boolean"
+        },
+        "clean_required": {
+          "type": "boolean"
+        },
+        "historical_objects": {
+          "items": {
+            "$ref": "#/$defs/historical_object"
+          },
+          "type": "array"
+        },
+        "historical_objects_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "observed_head": {
+          "$ref": "#/$defs/revision40"
+        },
+        "repository": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "repository_control_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "repository_control_version": {
+          "const": "turnvector.benchmark.repository-control.v1"
+        },
+        "revision": {
+          "$ref": "#/$defs/revision40"
+        },
+        "revision_relation": {
+          "enum": [
+            "descendant",
+            "exact"
+          ]
+        },
+        "section_records": {
+          "items": {
+            "$ref": "#/$defs/section_record"
+          },
+          "type": "array"
+        },
+        "section_records_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "source_files": {
+          "items": {
+            "$ref": "#/$defs/source_file"
+          },
+          "type": "array"
+        },
+        "source_files_sha256": {
+          "$ref": "#/$defs/sha256"
+        }
+      },
+      "required": [
+        "repository",
+        "revision",
+        "observed_head",
+        "revision_relation",
+        "clean_required",
+        "clean",
+        "repository_control_sha256",
+        "repository_control_version",
+        "source_files",
+        "source_files_sha256",
+        "section_records",
+        "section_records_sha256",
+        "historical_objects",
+        "historical_objects_sha256"
+      ],
+      "type": "object"
+    },
+    "source_file": {
+      "additionalProperties": false,
+      "properties": {
+        "byte_count": {
+          "$ref": "#/$defs/u64"
+        },
+        "file_type": {
+          "const": "regular"
+        },
+        "path": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "sha256": {
+          "$ref": "#/$defs/sha256"
+        }
+      },
+      "required": [
+        "path",
+        "byte_count",
+        "sha256",
+        "file_type"
+      ],
+      "type": "object"
+    },
+    "traceability_bindings": {
+      "additionalProperties": false,
+      "properties": {
+        "aggregate_negative_sha256": {
+          "additionalProperties": {
+            "$ref": "#/$defs/sha256"
+          },
+          "maxProperties": 58,
+          "minProperties": 58,
+          "propertyNames": {
+            "$ref": "#/$defs/identifier"
+          },
+          "type": "object"
+        },
+        "case_schema_sha256": {
+          "additionalProperties": {
+            "$ref": "#/$defs/sha256"
+          },
+          "maxProperties": 12,
+          "minProperties": 12,
+          "propertyNames": {
+            "$ref": "#/$defs/identifier"
+          },
+          "type": "object"
+        },
+        "catalog_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "compile_custody_policy_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "custody_domain_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "evidence_bundle_contract_sha256": {
+          "additionalProperties": {
+            "$ref": "#/$defs/sha256"
+          },
+          "maxProperties": 12,
+          "minProperties": 12,
+          "propertyNames": {
+            "$ref": "#/$defs/identifier"
+          },
+          "type": "object"
+        },
+        "expectation_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "gate_sha256": {
+          "additionalProperties": {
+            "$ref": "#/$defs/sha256"
+          },
+          "maxProperties": 58,
+          "minProperties": 58,
+          "propertyNames": {
+            "$ref": "#/$defs/identifier"
+          },
+          "type": "object"
+        },
+        "judge_contract_sha256": {
+          "additionalProperties": {
+            "$ref": "#/$defs/sha256"
+          },
+          "maxProperties": 46,
+          "minProperties": 46,
+          "propertyNames": {
+            "$ref": "#/$defs/identifier"
+          },
+          "type": "object"
+        },
+        "judge_negative_sha256": {
+          "additionalProperties": {
+            "$ref": "#/$defs/sha256"
+          },
+          "maxProperties": 46,
+          "minProperties": 46,
+          "propertyNames": {
+            "$ref": "#/$defs/identifier"
+          },
+          "type": "object"
+        },
+        "lane_context_contract_sha256": {
+          "additionalProperties": false,
+          "properties": {
+            "environment": {
+              "$ref": "#/$defs/sha256"
+            },
+            "manifest": {
+              "$ref": "#/$defs/sha256"
+            }
+          },
+          "required": [
+            "environment",
+            "manifest"
+          ],
+          "type": "object"
+        },
+        "lane_suite_sha256": {
+          "additionalProperties": {
+            "$ref": "#/$defs/sha256"
+          },
+          "maxProperties": 12,
+          "minProperties": 12,
+          "propertyNames": {
+            "$ref": "#/$defs/identifier"
+          },
+          "type": "object"
+        },
+        "plumbing_negative_sha256": {
+          "additionalProperties": {
+            "$ref": "#/$defs/sha256"
+          },
+          "maxProperties": 58,
+          "minProperties": 58,
+          "propertyNames": {
+            "$ref": "#/$defs/identifier"
+          },
+          "type": "object"
+        },
+        "post_gate_output_contract_sha256": {
+          "additionalProperties": false,
+          "properties": {
+            "checksums": {
+              "$ref": "#/$defs/sha256"
+            },
+            "report": {
+              "$ref": "#/$defs/sha256"
+            }
+          },
+          "required": [
+            "checksums",
+            "report"
+          ],
+          "type": "object"
+        },
+        "raw_evidence_source_sha256": {
+          "additionalProperties": {
+            "$ref": "#/$defs/sha256"
+          },
+          "maxProperties": 41,
+          "minProperties": 41,
+          "propertyNames": {
+            "$ref": "#/$defs/identifier"
+          },
+          "type": "object"
+        },
+        "source_reconciliation_sha256": {
+          "$ref": "#/$defs/sha256"
+        }
+      },
+      "required": [
+        "source_reconciliation_sha256",
+        "expectation_sha256",
+        "catalog_sha256",
+        "compile_custody_policy_sha256",
+        "custody_domain_sha256",
+        "lane_suite_sha256",
+        "case_schema_sha256",
+        "judge_contract_sha256",
+        "evidence_bundle_contract_sha256",
+        "raw_evidence_source_sha256",
+        "lane_context_contract_sha256",
+        "post_gate_output_contract_sha256",
+        "gate_sha256",
+        "judge_negative_sha256",
+        "aggregate_negative_sha256",
+        "plumbing_negative_sha256"
+      ],
+      "type": "object"
+    },
+    "u64": {
+      "maximum": 18446744073709551615,
+      "minimum": 0,
+      "type": "integer"
+    }
+  },
+  "$id": "https://token-plant.github.io/TurnVectorBenchmark/schemas/coverage-plan-v1.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "attempt": {
+      "maximum": 8,
+      "minimum": 1,
+      "type": "integer"
+    },
+    "chronology_prefix_byte_count": {
+      "$ref": "#/$defs/u64"
+    },
+    "chronology_prefix_sha256": {
+      "$ref": "#/$defs/sha256"
+    },
+    "compile_custody_policy_sha256": {
+      "$ref": "#/$defs/sha256"
+    },
+    "compiler_build_sha256": {
+      "$ref": "#/$defs/sha256"
+    },
+    "counts": {
+      "$ref": "#/$defs/counts"
+    },
+    "custody_domain_id": {
+      "$ref": "#/$defs/identifier"
+    },
+    "custody_domain_sha256": {
+      "$ref": "#/$defs/sha256"
+    },
+    "custody_lineage_id": {
+      "$ref": "#/$defs/identifier"
+    },
+    "entity_sets": {
+      "$ref": "#/$defs/entity_sets"
+    },
+    "execution_closure_sha256": {
+      "$ref": "#/$defs/sha256"
+    },
+    "expected_keys": {
+      "$ref": "#/$defs/expected_keys"
+    },
+    "input_set_sha256": {
+      "$ref": "#/$defs/sha256"
+    },
+    "inputs": {
+      "$ref": "#/$defs/inputs"
+    },
+    "limitations": {
+      "$ref": "#/$defs/limitations"
+    },
+    "limits": {
+      "$ref": "#/$defs/limits"
+    },
+    "outcome": {
+      "const": "coverage_plan"
+    },
+    "profile_id": {
+      "const": "turnvector-implementation-v2"
+    },
+    "relation_sets": {
+      "$ref": "#/$defs/relation_sets"
+    },
+    "schema_version": {
+      "const": "turnvector.benchmark.coverage-plan.v1"
+    },
+    "source": {
+      "$ref": "#/$defs/source"
+    },
+    "start_event_sha256": {
+      "$ref": "#/$defs/sha256"
+    },
+    "t_max": {
+      "const": 8,
+      "type": "integer"
+    }
+  },
+  "required": [
+    "schema_version",
+    "profile_id",
+    "outcome",
+    "custody_domain_id",
+    "custody_domain_sha256",
+    "custody_lineage_id",
+    "attempt",
+    "t_max",
+    "start_event_sha256",
+    "chronology_prefix_sha256",
+    "chronology_prefix_byte_count",
+    "compiler_build_sha256",
+    "execution_closure_sha256",
+    "compile_custody_policy_sha256",
+    "input_set_sha256",
+    "inputs",
+    "source",
+    "entity_sets",
+    "relation_sets",
+    "counts",
+    "limits",
+    "expected_keys",
+    "limitations"
+  ],
+  "title": "coverage-plan-v1",
+  "type": "object"
+}

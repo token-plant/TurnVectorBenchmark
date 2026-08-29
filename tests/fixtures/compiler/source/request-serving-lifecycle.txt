@@ -1,0 +1,4 @@
+fixture source request-serving-lifecycle acceptance-before-admission
+fixture source request-serving-lifecycle materialize-after-admission
+fixture source request-serving-lifecycle bounded-output
+fixture source request-serving-lifecycle terminal-status

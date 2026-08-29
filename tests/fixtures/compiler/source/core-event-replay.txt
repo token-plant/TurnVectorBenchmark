@@ -1,0 +1,4 @@
+fixture source core-event-replay deterministic-state
+fixture source core-event-replay atomic-failure
+fixture source core-event-replay effect-idempotence
+fixture source core-event-replay cancellation-order

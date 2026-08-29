@@ -1,0 +1,4 @@
+fixture source protocol-and-owner-lifecycle owner-initialization
+fixture source protocol-and-owner-lifecycle bounded-client-transport
+fixture source protocol-and-owner-lifecycle mid-turn-daemon-failure
+fixture source protocol-and-owner-lifecycle fresh-daemon-runtime

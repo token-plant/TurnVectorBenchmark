@@ -1,0 +1,4 @@
+fixture source certification-envelopes exact-applicability
+fixture source certification-envelopes no-probing
+fixture source certification-envelopes bound-quarantine
+fixture source certification-envelopes explicit-recertification
