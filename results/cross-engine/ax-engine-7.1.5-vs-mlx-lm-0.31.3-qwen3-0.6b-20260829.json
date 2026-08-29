@@ -1,0 +1,526 @@
+{
+  "claim_boundaries": [
+    "Small-sample diagnostic only; not formal paired publication evidence.",
+    "No favorable cross-engine claim, TurnVector qualification claim, or native-inference claim is authorized.",
+    "Output throughput includes prefill and TTFT because the output bound is eight tokens; it is not pure decode throughput.",
+    "Server usage is diagnostic token authority; Benchmark/server token agreement was not established for AX Engine.",
+    "The formal mlx-lm 48-cell publication run was not admitted on this host because frozen host load and swap limits were not satisfied."
+  ],
+  "engines": [
+    {
+      "engine": "ax-engine-7.1.5",
+      "model": "mlx-community/Qwen3-0.6B-4bit",
+      "output_bound": 8,
+      "rows": [
+        {
+          "e2e_ms": [
+            157.906417,
+            159.94375
+          ],
+          "family": "closed-loop-concurrency",
+          "mean_e2e_ms": 158.9250835,
+          "mean_ttft_ms": 91.8024375,
+          "mode": "closed_loop",
+          "offered": 2,
+          "output_throughput": 99.73313594483511,
+          "parameters": {
+            "concurrency": 1
+          },
+          "request_throughput": 12.466641993104389,
+          "requests": [
+            {
+              "dispatch_ns": 5273268846518916,
+              "e2e_ms": 157.906417,
+              "finish_reason": "length",
+              "first_ns": 5273268912436833,
+              "http_version": "HTTP/1.1",
+              "ordinal": 0,
+              "output_tokens": 8,
+              "prompt_tokens": 29,
+              "terminal_ns": 5273269004425333,
+              "ttft_ms": 65.917917,
+              "valid": true,
+              "visible_sha256": "0b55c69f454edc3830e31bfb1b1e5a1ac2e12c46689fa9a7c9e08ce5f7b2c025"
+            },
+            {
+              "dispatch_ns": 5273268846747958,
+              "e2e_ms": 159.94375,
+              "finish_reason": "length",
+              "first_ns": 5273268964434916,
+              "http_version": "HTTP/1.1",
+              "ordinal": 1,
+              "output_tokens": 8,
+              "prompt_tokens": 35,
+              "terminal_ns": 5273269006691708,
+              "ttft_ms": 117.686958,
+              "valid": true,
+              "visible_sha256": "0b55c69f454edc3830e31bfb1b1e5a1ac2e12c46689fa9a7c9e08ce5f7b2c025"
+            }
+          ],
+          "trial_interval_seconds": 0.160428125,
+          "ttft_ms": [
+            65.917917,
+            117.686958
+          ],
+          "valid": 2
+        },
+        {
+          "e2e_ms": [
+            50.7045,
+            49.403917
+          ],
+          "family": "deterministic-repeat",
+          "mean_e2e_ms": 50.0542085,
+          "mean_ttft_ms": 25.92,
+          "mode": "sequential",
+          "offered": 2,
+          "output_throughput": 155.18913676042678,
+          "parameters": {
+            "session_state": "fresh"
+          },
+          "request_throughput": 19.398642095053347,
+          "requests": [
+            {
+              "dispatch_ns": 5273269010254291,
+              "e2e_ms": 50.7045,
+              "finish_reason": "length",
+              "first_ns": 5273269037304291,
+              "http_version": "HTTP/1.1",
+              "ordinal": 0,
+              "output_tokens": 8,
+              "prompt_tokens": 29,
+              "terminal_ns": 5273269060958791,
+              "ttft_ms": 27.05,
+              "valid": true,
+              "visible_sha256": "0b55c69f454edc3830e31bfb1b1e5a1ac2e12c46689fa9a7c9e08ce5f7b2c025"
+            },
+            {
+              "dispatch_ns": 5273269063869041,
+              "e2e_ms": 49.403917,
+              "finish_reason": "length",
+              "first_ns": 5273269088659041,
+              "http_version": "HTTP/1.1",
+              "ordinal": 1,
+              "output_tokens": 8,
+              "prompt_tokens": 35,
+              "terminal_ns": 5273269113272958,
+              "ttft_ms": 24.79,
+              "valid": true,
+              "visible_sha256": "0b55c69f454edc3830e31bfb1b1e5a1ac2e12c46689fa9a7c9e08ce5f7b2c025"
+            }
+          ],
+          "trial_interval_seconds": 0.1031,
+          "ttft_ms": [
+            27.05,
+            24.79
+          ],
+          "valid": 2
+        },
+        {
+          "e2e_ms": [
+            1682.44725
+          ],
+          "family": "long-context-serving",
+          "mean_e2e_ms": 1682.44725,
+          "mean_ttft_ms": 1636.171458,
+          "mode": "single",
+          "offered": 1,
+          "output_throughput": 4.695026942482535,
+          "parameters": {
+            "prompt_token_bucket": 1024
+          },
+          "request_throughput": 0.5868783678103169,
+          "requests": [
+            {
+              "dispatch_ns": 5273269138556500,
+              "e2e_ms": 1682.44725,
+              "finish_reason": "length",
+              "first_ns": 5273270774727958,
+              "http_version": "HTTP/1.1",
+              "ordinal": 0,
+              "output_tokens": 8,
+              "prompt_tokens": 1020,
+              "terminal_ns": 5273270821003750,
+              "ttft_ms": 1636.171458,
+              "valid": true,
+              "visible_sha256": "0b55c69f454edc3830e31bfb1b1e5a1ac2e12c46689fa9a7c9e08ce5f7b2c025"
+            }
+          ],
+          "trial_interval_seconds": 1.7039305839999999,
+          "ttft_ms": [
+            1636.171458
+          ],
+          "valid": 1
+        },
+        {
+          "e2e_ms": [
+            70.384292,
+            96.628959
+          ],
+          "family": "open-loop-load-sweep",
+          "mean_e2e_ms": 83.5066255,
+          "mean_ttft_ms": 57.3461875,
+          "mode": "open_loop",
+          "offered": 2,
+          "output_throughput": 14.575783770069744,
+          "parameters": {
+            "offered_load_rps": 1
+          },
+          "request_throughput": 1.821972971258718,
+          "requests": [
+            {
+              "dispatch_ns": 5273270825160833,
+              "e2e_ms": 70.384292,
+              "finish_reason": "length",
+              "first_ns": 5273270869918666,
+              "http_version": "HTTP/1.1",
+              "ordinal": 0,
+              "output_tokens": 8,
+              "prompt_tokens": 29,
+              "terminal_ns": 5273270895545125,
+              "ttft_ms": 44.757833,
+              "valid": true,
+              "visible_sha256": "0b55c69f454edc3830e31bfb1b1e5a1ac2e12c46689fa9a7c9e08ce5f7b2c025"
+            },
+            {
+              "dispatch_ns": 5273271826041291,
+              "e2e_ms": 96.628959,
+              "finish_reason": "length",
+              "first_ns": 5273271895975833,
+              "http_version": "HTTP/1.1",
+              "ordinal": 1,
+              "output_tokens": 8,
+              "prompt_tokens": 35,
+              "terminal_ns": 5273271922670250,
+              "ttft_ms": 69.934542,
+              "valid": true,
+              "visible_sha256": "0b55c69f454edc3830e31bfb1b1e5a1ac2e12c46689fa9a7c9e08ce5f7b2c025"
+            }
+          ],
+          "trial_interval_seconds": 1.097711125,
+          "ttft_ms": [
+            44.757833,
+            69.934542
+          ],
+          "valid": 2
+        },
+        {
+          "e2e_ms": [
+            55.695958
+          ],
+          "family": "single-client-streaming",
+          "mean_e2e_ms": 55.695958,
+          "mean_ttft_ms": 30.814166,
+          "mode": "single",
+          "offered": 1,
+          "output_throughput": 143.39819448767304,
+          "parameters": {
+            "prompt_bucket": "short"
+          },
+          "request_throughput": 17.92477431095913,
+          "requests": [
+            {
+              "dispatch_ns": 5273271926721750,
+              "e2e_ms": 55.695958,
+              "finish_reason": "length",
+              "first_ns": 5273271957535916,
+              "http_version": "HTTP/1.1",
+              "ordinal": 0,
+              "output_tokens": 8,
+              "prompt_tokens": 29,
+              "terminal_ns": 5273271982417708,
+              "ttft_ms": 30.814166,
+              "valid": true,
+              "visible_sha256": "0b55c69f454edc3830e31bfb1b1e5a1ac2e12c46689fa9a7c9e08ce5f7b2c025"
+            }
+          ],
+          "trial_interval_seconds": 0.05578870799999999,
+          "ttft_ms": [
+            30.814166
+          ],
+          "valid": 1
+        }
+      ],
+      "token_authority": "server_usage_diagnostic",
+      "warmups": 0
+    },
+    {
+      "engine": "mlx-lm-0.31.3",
+      "model": "mlx-community/Qwen3-0.6B-4bit",
+      "output_bound": 8,
+      "rows": [
+        {
+          "e2e_ms": [
+            237.95525,
+            141.538791
+          ],
+          "family": "closed-loop-concurrency",
+          "mean_e2e_ms": 189.74702050000002,
+          "mean_ttft_ms": 167.88654100000002,
+          "mode": "closed_loop",
+          "offered": 2,
+          "output_throughput": 67.18514704361733,
+          "parameters": {
+            "concurrency": 1
+          },
+          "request_throughput": 8.398143380452167,
+          "requests": [
+            {
+              "dispatch_ns": 5273315983719125,
+              "e2e_ms": 237.95525,
+              "finish_reason": "length",
+              "first_ns": 5273316201316416,
+              "http_version": "HTTP/1.0",
+              "ordinal": 0,
+              "output_tokens": 8,
+              "prompt_tokens": 33,
+              "terminal_ns": 5273316221674375,
+              "ttft_ms": 217.597291,
+              "valid": true,
+              "visible_sha256": "f4a59fa6c38e134e13a79b91f632a56f18cfffcacc1e4c167fd268c4e4d9bbbf"
+            },
+            {
+              "dispatch_ns": 5273315983863000,
+              "e2e_ms": 141.538791,
+              "finish_reason": "length",
+              "first_ns": 5273316102038791,
+              "http_version": "HTTP/1.0",
+              "ordinal": 1,
+              "output_tokens": 8,
+              "prompt_tokens": 39,
+              "terminal_ns": 5273316125401791,
+              "ttft_ms": 118.175791,
+              "valid": true,
+              "visible_sha256": "1559176ea2201a9b51aaf8bcf3916d6261c794f94fd1a608dfb88db19f27bb93"
+            }
+          ],
+          "trial_interval_seconds": 0.23814787499999998,
+          "ttft_ms": [
+            217.597291,
+            118.175791
+          ],
+          "valid": 2
+        },
+        {
+          "e2e_ms": [
+            85.634208,
+            88.036
+          ],
+          "family": "deterministic-repeat",
+          "mean_e2e_ms": 86.835104,
+          "mean_ttft_ms": 66.541,
+          "mode": "sequential",
+          "offered": 2,
+          "output_throughput": 92.01790245099345,
+          "parameters": {
+            "session_state": "fresh"
+          },
+          "request_throughput": 11.50223780637418,
+          "requests": [
+            {
+              "dispatch_ns": 5273316221900458,
+              "e2e_ms": 85.634208,
+              "finish_reason": "length",
+              "first_ns": 5273316287571583,
+              "http_version": "HTTP/1.0",
+              "ordinal": 0,
+              "output_tokens": 8,
+              "prompt_tokens": 33,
+              "terminal_ns": 5273316307534666,
+              "ttft_ms": 65.671125,
+              "valid": true,
+              "visible_sha256": "f4a59fa6c38e134e13a79b91f632a56f18cfffcacc1e4c167fd268c4e4d9bbbf"
+            },
+            {
+              "dispatch_ns": 5273316307666541,
+              "e2e_ms": 88.036,
+              "finish_reason": "length",
+              "first_ns": 5273316375077416,
+              "http_version": "HTTP/1.0",
+              "ordinal": 1,
+              "output_tokens": 8,
+              "prompt_tokens": 39,
+              "terminal_ns": 5273316395702541,
+              "ttft_ms": 67.410875,
+              "valid": true,
+              "visible_sha256": "1559176ea2201a9b51aaf8bcf3916d6261c794f94fd1a608dfb88db19f27bb93"
+            }
+          ],
+          "trial_interval_seconds": 0.173879208,
+          "ttft_ms": [
+            65.671125,
+            67.410875
+          ],
+          "valid": 2
+        },
+        {
+          "e2e_ms": [
+            176.684916
+          ],
+          "family": "long-context-serving",
+          "mean_e2e_ms": 176.684916,
+          "mean_ttft_ms": 154.435833,
+          "mode": "single",
+          "offered": 1,
+          "output_throughput": 41.11150081387924,
+          "parameters": {
+            "prompt_token_bucket": 1024
+          },
+          "request_throughput": 5.138937601734905,
+          "requests": [
+            {
+              "dispatch_ns": 5273316413699875,
+              "e2e_ms": 176.684916,
+              "finish_reason": "length",
+              "first_ns": 5273316568135708,
+              "http_version": "HTTP/1.0",
+              "ordinal": 0,
+              "output_tokens": 8,
+              "prompt_tokens": 1024,
+              "terminal_ns": 5273316590384791,
+              "ttft_ms": 154.435833,
+              "valid": true,
+              "visible_sha256": "717c9bf19144ee374fa0e98dc8ea2dd5d5bac709d4f10bc35c4efdb7e8e39901"
+            }
+          ],
+          "trial_interval_seconds": 0.19459275,
+          "ttft_ms": [
+            154.435833
+          ],
+          "valid": 1
+        },
+        {
+          "e2e_ms": [
+            89.296292,
+            98.681
+          ],
+          "family": "open-loop-load-sweep",
+          "mean_e2e_ms": 93.98864599999999,
+          "mean_ttft_ms": 71.44270850000001,
+          "mode": "open_loop",
+          "offered": 2,
+          "output_throughput": 14.509598254770285,
+          "parameters": {
+            "offered_load_rps": 1
+          },
+          "request_throughput": 1.8136997818462857,
+          "requests": [
+            {
+              "dispatch_ns": 5273316590643833,
+              "e2e_ms": 89.296292,
+              "finish_reason": "length",
+              "first_ns": 5273316659202500,
+              "http_version": "HTTP/1.0",
+              "ordinal": 0,
+              "output_tokens": 8,
+              "prompt_tokens": 33,
+              "terminal_ns": 5273316679940125,
+              "ttft_ms": 68.558667,
+              "valid": true,
+              "visible_sha256": "f4a59fa6c38e134e13a79b91f632a56f18cfffcacc1e4c167fd268c4e4d9bbbf"
+            },
+            {
+              "dispatch_ns": 5273317594498708,
+              "e2e_ms": 98.681,
+              "finish_reason": "length",
+              "first_ns": 5273317668825458,
+              "http_version": "HTTP/1.0",
+              "ordinal": 1,
+              "output_tokens": 8,
+              "prompt_tokens": 39,
+              "terminal_ns": 5273317693179708,
+              "ttft_ms": 74.32675,
+              "valid": true,
+              "visible_sha256": "1559176ea2201a9b51aaf8bcf3916d6261c794f94fd1a608dfb88db19f27bb93"
+            }
+          ],
+          "trial_interval_seconds": 1.102718333,
+          "ttft_ms": [
+            68.558667,
+            74.32675
+          ],
+          "valid": 2
+        },
+        {
+          "e2e_ms": [
+            87.1525
+          ],
+          "family": "single-client-streaming",
+          "mean_e2e_ms": 87.1525,
+          "mean_ttft_ms": 65.522333,
+          "mode": "single",
+          "offered": 1,
+          "output_throughput": 91.6975071173026,
+          "parameters": {
+            "prompt_bucket": "short"
+          },
+          "request_throughput": 11.462188389662826,
+          "requests": [
+            {
+              "dispatch_ns": 5273317693496625,
+              "e2e_ms": 87.1525,
+              "finish_reason": "length",
+              "first_ns": 5273317759018958,
+              "http_version": "HTTP/1.0",
+              "ordinal": 0,
+              "output_tokens": 8,
+              "prompt_tokens": 33,
+              "terminal_ns": 5273317780649125,
+              "ttft_ms": 65.522333,
+              "valid": true,
+              "visible_sha256": "f4a59fa6c38e134e13a79b91f632a56f18cfffcacc1e4c167fd268c4e4d9bbbf"
+            }
+          ],
+          "trial_interval_seconds": 0.087243375,
+          "ttft_ms": [
+            65.522333
+          ],
+          "valid": 1
+        }
+      ],
+      "token_authority": "server_usage_diagnostic",
+      "warmups": 0
+    }
+  ],
+  "environment": {
+    "architecture": "arm64",
+    "ax_engine_version": "7.1.5",
+    "host_cpu": "Apple M3 Ultra",
+    "host_memory_bytes": 274877906944,
+    "mlx_lm_version": "0.31.3",
+    "mlx_version": "0.32.2",
+    "model_id": "mlx-community/Qwen3-0.6B-4bit",
+    "model_revision": "73e3e38d981303bc594367cd910ea6eb48349da8",
+    "model_snapshot_sha256": "d8e7968c534bb2b2445ec765ec85cec9f22d107e5a5cbc7e1fa01de81411db9f",
+    "operating_system": "macOS 26.4.1",
+    "quantization": "4-bit groupwise, group size 64"
+  },
+  "method": {
+    "client_clock": "time.monotonic_ns",
+    "fresh_server_per_target": true,
+    "http_versions": {
+      "ax-engine-7.1.5": "HTTP/1.1",
+      "mlx-lm-0.31.3": "HTTP/1.0"
+    },
+    "measured_requests_per_cell": "one or two, as recorded",
+    "mlx_chat_template_args": {
+      "enable_thinking": false
+    },
+    "n": 1,
+    "output_bound_tokens": 8,
+    "seed": 0,
+    "stream": true,
+    "target_order": [
+      "ax-engine-7.1.5",
+      "mlx-lm-0.31.3"
+    ],
+    "temperature": 0,
+    "token_authority": "server_usage_diagnostic",
+    "top_p": 1,
+    "warmup_repetitions": 0
+  },
+  "recorded_date": "2026-08-29",
+  "result_id": "ax-engine-7.1.5-vs-mlx-lm-0.31.3-qwen3-0.6b-20260829",
+  "schema_version": "turnvector.benchmark.cross-engine-diagnostic-results.v1",
+  "status": "diagnostic_not_formal_publication"
+}
