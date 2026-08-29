@@ -46,7 +46,7 @@ class CrossEngineAdapterTests(unittest.TestCase):
         argv = build_target_argv(
             "mlx-lm-openai-server",
             {
-                "python_executable": "/usr/bin/python3",
+                "executable": "/opt/mlx/bin/mlx_lm.server",
                 "host": "127.0.0.1",
                 "port": 31418,
                 "model": "/models/qwen",
@@ -56,16 +56,36 @@ class CrossEngineAdapterTests(unittest.TestCase):
         self.assertEqual(
             argv,
             (
-                "/usr/bin/python3",
-                "-B",
-                "-m",
-                "mlx_lm.server",
+                "/opt/mlx/bin/mlx_lm.server",
                 "--host",
                 "127.0.0.1",
                 "--port",
                 "31418",
                 "--model",
                 "/models/qwen",
+            ),
+        )
+        ax_argv = build_target_argv(
+            "ax-engine-openai-server",
+            {
+                "executable": "/opt/ax/bin/ax-engine",
+                "host": "127.0.0.1",
+                "port": 32180,
+                "model": "/models/qwen3",
+                "offline": True,
+            },
+        )
+        self.assertEqual(
+            ax_argv,
+            (
+                "/opt/ax/bin/ax-engine",
+                "serve",
+                "--host",
+                "127.0.0.1",
+                "--port",
+                "32180",
+                "/models/qwen3",
+                "--offline",
             ),
         )
         control = lifecycle_adapter_argv("mlx-lm-openai-server")

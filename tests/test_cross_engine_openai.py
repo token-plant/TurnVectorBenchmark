@@ -16,6 +16,7 @@ from turnvector_benchmark.cross_engine.openai import (
     SSEParser,
     build_chat_request,
     parse_endpoint_descriptor,
+    probe_openai_models,
     validate_chat_request,
 )
 
@@ -55,6 +56,35 @@ class EndpointAndRequestContractTests(unittest.TestCase):
         self.assertEqual(value["temperature"], 0)
         self.assertEqual(value["top_p"], 1)
         self.assertEqual(value["n"], 1)
+
+    def test_openai_model_ids_admit_real_repository_and_absolute_path_names(self) -> None:
+        for model_id in (
+            "mlx-community/Qwen3-0.6B-4bit",
+            "/models/Qwen3-0.6B-4bit",
+        ):
+            with self.subTest(model_id=model_id):
+                endpoint = self.endpoint()
+                endpoint["model_ids"] = [model_id]
+                self.assertEqual(parse_endpoint_descriptor(endpoint).model_ids, (model_id,))
+                value = request()
+                value["model"] = model_id
+                self.assertEqual(validate_chat_request(value)["model"], model_id)
+        for model_id in ("bad\nmodel", "bad\tmodel", ""):
+            with self.subTest(model_id=model_id):
+                value = request()
+                value["model"] = model_id
+                with self.assertRaises(ContractError):
+                    validate_chat_request(value)
+
+    def test_models_probe_returns_bounded_benchmark_projection(self) -> None:
+        with FixtureOpenAIServer() as server:
+            result = probe_openai_models(server.endpoint())
+        self.assertEqual(result.http_version, "HTTP/1.1")
+        self.assertEqual([model.model_id for model in result.models], [FIXTURE_MODEL])
+        self.assertEqual(result.models[0].owned_by, "fixture")
+        self.assertEqual(result.models[0].created, 1)
+        self.assertEqual(result.models[0].extension_fields, ())
+        self.assertEqual(len(result.response_sha256), 64)
 
     def test_endpoint_path_and_network_attacks_fail_closed(self) -> None:
         base = self.endpoint()

@@ -269,7 +269,7 @@ class CrossEngineContractTests(unittest.TestCase):
         paths = sorted(SCHEMA_DIR.glob("cross-engine-*.schema.json")) + sorted(
             SCHEMA_DIR.glob("openai-serving-*.schema.json")
         )
-        self.assertEqual(len(paths), 13)
+        self.assertEqual(len(paths), 14)
         for path in paths:
             with self.subTest(path=path.name):
                 schema = load_json(path)
@@ -437,6 +437,27 @@ class CrossEngineContractTests(unittest.TestCase):
             bad = copy.deepcopy(endpoint)
             bad[forbidden] = "forbidden"
             self.assert_invalid(bad, endpoint_schema)
+
+        models_schema = load_json(SCHEMA_DIR / "openai-serving-models-v1.schema.json")
+        models = {
+            "schema_version": "turnvector.benchmark.openai-serving-models.v1",
+            "models": [
+                {
+                    "id": "/models/Qwen3-0.6B-4bit",
+                    "owned_by": None,
+                    "created": 1,
+                    "extension_fields": [],
+                    "record_sha256": "f" * 64,
+                }
+            ],
+            "http_version": "HTTP/1.0",
+            "response_bytes": 192,
+            "response_sha256": "e" * 64,
+        }
+        validate(models, models_schema)
+        bad_models = copy.deepcopy(models)
+        bad_models["models"][0]["id"] = "bad\nmodel"
+        self.assert_invalid(bad_models, models_schema)
 
         request_schema = load_json(SCHEMA_DIR / "openai-serving-request-v1.schema.json")
         request = {

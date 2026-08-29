@@ -137,6 +137,32 @@ class _Handler(BaseHTTPRequestHandler):
     def log_message(self, format: str, *args: Any) -> None:
         return
 
+    def do_GET(self) -> None:
+        if self.path != "/v1/models":
+            self.send_error(404)
+            return
+        response = json.dumps(
+            {
+                "object": "list",
+                "data": [
+                    {
+                        "id": FIXTURE_MODEL,
+                        "object": "model",
+                        "owned_by": "fixture",
+                        "created": 1,
+                    }
+                ],
+            },
+            sort_keys=True,
+            separators=(",", ":"),
+        ).encode("utf-8")
+        self.send_response(200)
+        self.send_header("Content-Type", "application/json")
+        self.send_header("Content-Length", str(len(response)))
+        self.send_header("Connection", "close")
+        self.end_headers()
+        self.wfile.write(response)
+
     def do_POST(self) -> None:
         length_text = self.headers.get("Content-Length")
         try:

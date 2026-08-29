@@ -35,12 +35,15 @@ from .openai import (
     OpenAIEndpoint,
     OpenAIHTTPClient,
     OpenAIHTTPError,
+    OpenAIModelInfo,
+    OpenAIModelsResult,
     OpenAIProtocolError,
     OpenAIStreamResult,
     ParsedChatCompletion,
     SSEParser,
     build_chat_request,
     parse_endpoint_descriptor,
+    probe_openai_models,
 )
 
 __all__ = (
@@ -57,6 +60,8 @@ __all__ = (
     "OpenAIEndpoint",
     "OpenAIHTTPClient",
     "OpenAIHTTPError",
+    "OpenAIModelInfo",
+    "OpenAIModelsResult",
     "OpenAIProtocolError",
     "OpenAIStreamResult",
     "ParsedChatCompletion",
@@ -70,6 +75,7 @@ __all__ = (
     "nearest_rank",
     "observation_from_stream_result",
     "parse_endpoint_descriptor",
+    "probe_openai_models",
     "reduce_request_metrics",
     "reduce_trial_metrics",
     "summarize_observations",

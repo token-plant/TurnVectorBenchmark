@@ -111,7 +111,7 @@ class CrossEngineControllerTests(unittest.TestCase):
             "engine_family": "mlx-lm",
             "command_id": "mlx-lm-openai-server",
             "adapter_arguments": {
-                "python_executable": "/usr/bin/python3",
+                "executable": "/opt/mlx/bin/mlx_lm.server",
                 "host": "127.0.0.1",
                 "port": 31418,
                 "model": "/models/qwen",

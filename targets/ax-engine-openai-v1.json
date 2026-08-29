@@ -2,7 +2,6 @@
   "adapter": {
     "arguments": [
       "serve",
-      "--model",
       "{model_root}",
       "--host",
       "127.0.0.1",
@@ -99,8 +98,8 @@
   "engine_family": "ax-engine",
   "executables": [
     {
-      "id": "ax-engine-server",
-      "path": "{target_checkout}/bin/ax-engine-server",
+      "id": "ax-engine",
+      "path": "{target_checkout}/bin/ax-engine",
       "sha256": "8c1a619b7134f0f93433cdcbb24e38e931343e1fba6db2d15c9568432fb6c59d"
     }
   ],
@@ -200,7 +199,7 @@
   "schema_version": "turnvector.benchmark.cross-engine-target.v1",
   "source": {
     "dirty": false,
-    "repository": "https://github.com/ax-engine/ax-engine",
+    "repository": "https://github.com/defai-digital/ax-engine",
     "revision": "7a515436a29a30872e21217ee58cd17573aa4243"
   }
 }

@@ -72,15 +72,14 @@ ADAPTER_REGISTRY: Mapping[str, AdapterRegistration] = {
         engine_family="ax-engine",
         command_id="ax-engine-openai-server",
         lifecycle_module="adapters.cross_engine.ax_engine",
-        manifest_arguments=("serve", "--model", "{model_root}", "--host", "127.0.0.1", "--port", "{port}"),
+        manifest_arguments=("serve", "{model_root}", "--host", "127.0.0.1", "--port", "{port}"),
         prefix=("serve",),
         arguments=_rules(
             executable_field="executable",
             extras={
-                "config": ArgumentRule("--config", "path"),
-                "state_root": ArgumentRule("--state-root", "path"),
-                "workers": ArgumentRule("--workers", "integer", minimum=1, maximum=256),
-                "mtp": ArgumentRule("--mtp", "boolean"),
+                "model": ArgumentRule(None, "path", required=True),
+                "hf_cache_root": ArgumentRule("--hf-cache-root", "path"),
+                "offline": ArgumentRule("--offline", "boolean"),
             },
         ),
     ),
@@ -90,10 +89,10 @@ ADAPTER_REGISTRY: Mapping[str, AdapterRegistration] = {
         engine_family="mlx-lm",
         command_id="mlx-lm-openai-server",
         lifecycle_module="adapters.cross_engine.mlx_lm",
-        manifest_arguments=("-m", "mlx_lm.server", "--model", "{model_root}", "--host", "127.0.0.1", "--port", "{port}"),
-        prefix=("-B", "-m", "mlx_lm.server"),
+        manifest_arguments=("--model", "{model_root}", "--host", "127.0.0.1", "--port", "{port}"),
+        prefix=(),
         arguments=_rules(
-            executable_field="python_executable",
+            executable_field="executable",
             extras={
                 "adapter_path": ArgumentRule("--adapter-path", "path"),
                 "chat_template": ArgumentRule("--chat-template", "path"),
@@ -238,8 +237,10 @@ def build_target_argv(
                     argv.append(rule.flag)
                 continue
             rendered = _argument_value(name, value, rule)
-            assert rule.flag is not None
-            argv.extend((rule.flag, rendered))
+            if rule.flag is None:
+                argv.append(rendered)
+            else:
+                argv.extend((rule.flag, rendered))
         return tuple(argv)
 
     if isinstance(arguments, (str, bytes)) or not isinstance(arguments, Sequence):
@@ -255,10 +256,6 @@ def build_target_argv(
         _substitute(token, bindings, f"adapter.arguments[{index}]")
         for index, token in enumerate(manifest_arguments)
     )
-    # mlx_lm.server remains a fixed module; -B is injected by registry rather
-    # than accepted as target-provided argv.
-    if registration.engine_family == "mlx-lm":
-        resolved = ("-B", *resolved)
     return (resolved_executable, *resolved)
 
 

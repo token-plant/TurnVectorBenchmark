@@ -1,0 +1,80 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://token-plant.github.io/TurnVectorBenchmark/schemas/openai-serving-models-v1.schema.json",
+  "$defs": {
+    "digest": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "model": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256,
+          "pattern": "^[^\\u0000-\\u001f]+$"
+        },
+        "owned_by": {
+          "oneOf": [
+            {"type": "null"},
+            {"type": "string", "minLength": 1, "maxLength": 256}
+          ]
+        },
+        "created": {
+          "oneOf": [
+            {"type": "null"},
+            {"type": "integer", "minimum": 0}
+          ]
+        },
+        "extension_fields": {
+          "type": "array",
+          "maxItems": 8,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "ax_engine",
+              "capabilities",
+              "context_length",
+              "limit",
+              "max_output_tokens",
+              "runtime"
+            ]
+          }
+        },
+        "record_sha256": {"$ref": "#/$defs/digest"}
+      },
+      "required": [
+        "id",
+        "owned_by",
+        "created",
+        "extension_fields",
+        "record_sha256"
+      ]
+    }
+  },
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": "turnvector.benchmark.openai-serving-models.v1"
+    },
+    "models": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 64,
+      "items": {"$ref": "#/$defs/model"}
+    },
+    "http_version": {"enum": ["HTTP/1.0", "HTTP/1.1"]},
+    "response_bytes": {"type": "integer", "minimum": 1, "maximum": 1048576},
+    "response_sha256": {"$ref": "#/$defs/digest"}
+  },
+  "required": [
+    "schema_version",
+    "models",
+    "http_version",
+    "response_bytes",
+    "response_sha256"
+  ]
+}

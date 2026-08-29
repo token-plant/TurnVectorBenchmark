@@ -1,8 +1,6 @@
 {
   "adapter": {
     "arguments": [
-      "-m",
-      "mlx_lm.server",
       "--model",
       "{model_root}",
       "--host",
@@ -10,7 +8,9 @@
       "--port",
       "{port}"
     ],
-    "environment_names": [],
+    "environment_names": [
+      "HF_HUB_CACHE"
+    ],
     "id": "mlx-lm-openai-server-adapter-v1",
     "protocol_version": "turnvector.benchmark.cross-engine-lifecycle.v1",
     "registered_command": "mlx-lm-openai-server",
@@ -100,8 +100,8 @@
   "engine_family": "mlx-lm",
   "executables": [
     {
-      "id": "python",
-      "path": "{python_executable}",
+      "id": "mlx-lm-server",
+      "path": "{target_checkout}/bin/mlx_lm.server",
       "sha256": "5272496b5b02c8907fd82ce2d8e881caab5aeb813fed2dbc7c0f2b6dc011d53f"
     }
   ],

@@ -62,6 +62,7 @@
       "items": {
         "maxLength": 256,
         "minLength": 1,
+        "pattern": "^[^\\u0000-\\u001f]+$",
         "type": "string"
       },
       "maxItems": 32,

@@ -4,6 +4,7 @@ import codecs
 import hashlib
 import http.client
 import ipaddress
+import math
 import os
 import time
 from dataclasses import dataclass
@@ -17,7 +18,6 @@ from .contracts import (
     bounded_string,
     canonical_json_bytes,
     environment_name,
-    identifier,
     integer,
     sha256_digest,
     strict_json_loads,
@@ -154,6 +154,48 @@ class OpenAIHTTPError(ContractError):
         self.projection = projection
 
 
+@dataclass(frozen=True)
+class OpenAIModelInfo:
+    model_id: str
+    owned_by: Optional[str]
+    created: Optional[int]
+    extension_fields: Tuple[str, ...]
+    record_sha256: str
+
+    def as_dict(self) -> Dict[str, Any]:
+        return {
+            "id": self.model_id,
+            "owned_by": self.owned_by,
+            "created": self.created,
+            "extension_fields": list(self.extension_fields),
+            "record_sha256": self.record_sha256,
+        }
+
+
+@dataclass(frozen=True)
+class OpenAIModelsResult:
+    models: Tuple[OpenAIModelInfo, ...]
+    http_version: str
+    response_bytes: int
+    response_sha256: str
+
+    def as_dict(self) -> Dict[str, Any]:
+        return {
+            "schema_version": "turnvector.benchmark.openai-serving-models.v1",
+            "models": [model.as_dict() for model in self.models],
+            "http_version": self.http_version,
+            "response_bytes": self.response_bytes,
+            "response_sha256": self.response_sha256,
+        }
+
+
+def _model_id(value: Any, where: str) -> str:
+    text = bounded_string(value, where, maximum_bytes=256)
+    if any(ord(character) < 32 for character in text):
+        raise ContractError(f"{where} contains a forbidden control character")
+    return text
+
+
 def parse_endpoint_descriptor(value: Any, where: str = "endpoint") -> OpenAIEndpoint:
     obj = strict_object(value, OPENAI_ENDPOINT_FIELDS, where=where)
     expected_constants = {
@@ -207,7 +249,7 @@ def parse_endpoint_descriptor(value: Any, where: str = "endpoint") -> OpenAIEndp
         obj["model_ids"],
         f"{where}.model_ids",
         maximum_items=64,
-        parse=identifier,
+        parse=_model_id,
         allow_empty=False,
     )
     raw_pids = bounded_array(
@@ -247,7 +289,7 @@ def validate_chat_request(value: Any, where: str = "OpenAI request") -> Dict[str
         ),
         where,
     )
-    identifier(obj["model"], f"{where}.model")
+    _model_id(obj["model"], f"{where}.model")
     messages = bounded_array(
         obj["messages"], f"{where}.messages", maximum_items=128, allow_empty=False
     )
@@ -483,7 +525,10 @@ class SSEParser:
             integer(chunk["created"], "SSE chunk.created")
         for field in ("id", "model"):
             if field in chunk:
-                bounded_string(chunk[field], f"SSE chunk.{field}", maximum_bytes=256)
+                if field == "model":
+                    _model_id(chunk[field], f"SSE chunk.{field}")
+                else:
+                    bounded_string(chunk[field], f"SSE chunk.{field}", maximum_bytes=256)
                 if field in self._identity and self._identity[field] != chunk[field]:
                     raise OpenAIProtocolError(f"SSE chunk {field} identity drifted")
                 self._identity[field] = chunk[field]
@@ -548,6 +593,120 @@ def _content_type(value: Optional[str]) -> str:
         if parameter.lower() not in ("charset=utf-8", 'charset="utf-8"'):
             raise OpenAIProtocolError("HTTP 200 response has an unsupported Content-Type parameter")
     return value
+
+
+def probe_openai_models(
+    endpoint_value: Mapping[str, Any],
+    *,
+    timeout_seconds: float = 10.0,
+    environment: Optional[Mapping[str, str]] = None,
+    max_response_bytes: int = 1024 * 1024,
+) -> OpenAIModelsResult:
+    """Fetch a bounded `/v1/models` projection without treating extensions as metrics."""
+    endpoint = parse_endpoint_descriptor(endpoint_value)
+    if not isinstance(timeout_seconds, (int, float)) or isinstance(timeout_seconds, bool):
+        raise ContractError("models timeout must be a number")
+    if not math.isfinite(float(timeout_seconds)) or timeout_seconds <= 0:
+        raise ContractError("models timeout must be finite and positive")
+    integer(max_response_bytes, "models max_response_bytes", minimum=1)
+    source = os.environ if environment is None else environment
+    headers = {"Accept": "application/json", "Accept-Encoding": "identity"}
+    if endpoint.authentication_env_var is not None:
+        secret = source.get(endpoint.authentication_env_var)
+        if not isinstance(secret, str) or not secret:
+            raise ContractError("required OpenAI authentication environment value is missing")
+        if any(character in secret for character in ("\r", "\n")):
+            raise ContractError("OpenAI authentication value contains a forbidden newline")
+        headers["Authorization"] = "Bearer " + secret
+    connection = http.client.HTTPConnection(
+        endpoint.host, endpoint.port, timeout=float(timeout_seconds)
+    )
+    try:
+        connection.request("GET", "/v1/models", headers=headers)
+        response = connection.getresponse()
+        if response.status != 200:
+            body = response.read(DEFAULT_MAX_ERROR_BYTES + 1)
+            if len(body) > DEFAULT_MAX_ERROR_BYTES:
+                raise OpenAIProtocolError("OpenAI models error body exceeds its bound")
+            raise OpenAIHTTPError(
+                HTTPErrorProjection(
+                    response.status,
+                    bounded_string(response.reason or "unknown", "HTTP reason", maximum_bytes=256),
+                    response.getheader("Content-Type"),
+                    len(body),
+                    hashlib.sha256(body).hexdigest(),
+                )
+            )
+        content_type = response.getheader("Content-Type", "").split(";", 1)[0].strip().lower()
+        if content_type != "application/json":
+            raise OpenAIProtocolError("OpenAI models response must be application/json")
+        encoding = response.getheader("Content-Encoding")
+        if encoding not in (None, "", "identity"):
+            raise OpenAIProtocolError("OpenAI models response must not be compressed")
+        raw = response.read(max_response_bytes + 1)
+        if len(raw) > max_response_bytes:
+            raise OpenAIProtocolError("OpenAI models response exceeds its byte bound")
+        http_version = {10: "HTTP/1.0", 11: "HTTP/1.1"}.get(response.version)
+        if http_version is None:
+            raise OpenAIProtocolError("OpenAI models response uses an unsupported HTTP version")
+    finally:
+        connection.close()
+    value = strict_json_loads(raw, "OpenAI models response")
+    root = strict_object(value, ("object", "data"), where="OpenAI models response")
+    if root["object"] != "list":
+        raise OpenAIProtocolError("OpenAI models response.object must be list")
+    records = bounded_array(
+        root["data"], "OpenAI models response.data", maximum_items=64, allow_empty=False
+    )
+    allowed_extensions = {
+        "owned_by",
+        "created",
+        "capabilities",
+        "limit",
+        "context_length",
+        "max_output_tokens",
+        "ax_engine",
+        "runtime",
+    }
+    models: List[OpenAIModelInfo] = []
+    seen = set()
+    for index, raw_record in enumerate(records):
+        where = f"OpenAI models response.data[{index}]"
+        record = strict_object(
+            raw_record, ("id", "object"), allowed_extensions, where
+        )
+        model_id = _model_id(record["id"], where + ".id")
+        if model_id in seen:
+            raise OpenAIProtocolError("OpenAI models response contains duplicate model IDs")
+        seen.add(model_id)
+        if record["object"] != "model":
+            raise OpenAIProtocolError(where + ".object must be model")
+        owner = record.get("owned_by")
+        if owner is not None:
+            owner = bounded_string(owner, where + ".owned_by", maximum_bytes=256)
+        created = record.get("created")
+        if created is not None:
+            created = integer(created, where + ".created")
+        if len(canonical_json_bytes(record)) > 512 * 1024:
+            raise OpenAIProtocolError("OpenAI model record exceeds its byte bound")
+        extensions = tuple(sorted(set(record) - {"id", "object", "owned_by", "created"}))
+        models.append(
+            OpenAIModelInfo(
+                model_id,
+                owner,
+                created,
+                extensions,
+                hashlib.sha256(canonical_json_bytes(record)).hexdigest(),
+            )
+        )
+    missing = sorted(set(endpoint.model_ids) - seen)
+    if missing:
+        raise OpenAIProtocolError(
+            "OpenAI models response is missing declared model IDs: " + ", ".join(missing)
+        )
+    return OpenAIModelsResult(
+        tuple(models), http_version, len(raw), hashlib.sha256(raw).hexdigest()
+    )
 
 
 class OpenAIHTTPClient:
