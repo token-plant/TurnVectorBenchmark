@@ -1,0 +1,225 @@
+{
+  "adapter": {
+    "arguments": [
+      "--model",
+      "{model_root}",
+      "--host",
+      "127.0.0.1",
+      "--port",
+      "{port}",
+      "--chat-template-args",
+      "{\"enable_thinking\":false}"
+    ],
+    "environment_names": [
+      "HF_HUB_CACHE"
+    ],
+    "id": "mlx-lm-openai-server-adapter-v1",
+    "protocol_version": "turnvector.benchmark.cross-engine-lifecycle.v1",
+    "registered_command": "mlx-lm-openai-server",
+    "stderr_limit_bytes": 1048576,
+    "version": "v1",
+    "working_directory": "{target_checkout}"
+  },
+  "capabilities": {
+    "cancellation": {
+      "reason_code": null,
+      "status": "supported"
+    },
+    "mtp": {
+      "reason_code": "not_exposed_by_example",
+      "status": "capability_unsupported"
+    },
+    "multi_model": {
+      "reason_code": "not_exposed_by_example",
+      "status": "capability_unsupported"
+    },
+    "native_output_identity": {
+      "reason_code": "not_exposed_by_example",
+      "status": "capability_unsupported"
+    },
+    "openai_chat_completions": {
+      "reason_code": null,
+      "status": "supported"
+    },
+    "prefix_cache_disk": {
+      "reason_code": "not_exposed_by_example",
+      "status": "capability_unsupported"
+    },
+    "prefix_cache_memory": {
+      "reason_code": "not_exposed_by_example",
+      "status": "capability_unsupported"
+    },
+    "process_memory_attribution": {
+      "reason_code": null,
+      "status": "supported"
+    },
+    "restartable_state": {
+      "reason_code": "not_exposed_by_example",
+      "status": "capability_unsupported"
+    },
+    "route_reporting": {
+      "reason_code": "not_exposed_by_example",
+      "status": "capability_unsupported"
+    },
+    "seed": {
+      "reason_code": null,
+      "status": "supported"
+    },
+    "server_queue_metrics": {
+      "reason_code": "not_exposed_by_example",
+      "status": "capability_unsupported"
+    },
+    "stream_usage": {
+      "reason_code": null,
+      "status": "supported"
+    },
+    "streaming_sse": {
+      "reason_code": null,
+      "status": "supported"
+    },
+    "usage_accounting_or_benchmark_tokenizer": {
+      "reason_code": null,
+      "status": "supported"
+    }
+  },
+  "dependencies": [
+    {
+      "id": "mlx-lm",
+      "sha256": "d464222b4761a38f817e5c470e7d4f546cea4df29482335b68c8e22c0142fac4",
+      "version": "0.31.3"
+    },
+    {
+      "id": "mlx",
+      "sha256": "d3454348122b9b131c3b8f97587635e0b13baa6d7805da27e1334d39214f1a41",
+      "version": "0.32.2"
+    },
+    {
+      "id": "transformers",
+      "sha256": "a552b99768921327581cb0e1389718d39cb25f09d4f49b80aa9fc27a843d09e4",
+      "version": "5.16.1"
+    },
+    {
+      "id": "huggingface-hub",
+      "sha256": "60b2bcb58f6d852eaa21eeae6f0030354278ecab9620dfe83e350a93a268e647",
+      "version": "1.29.0"
+    }
+  ],
+  "enabled": true,
+  "endpoint": {
+    "api_flavor": "chat_completions",
+    "authentication_env_var": null,
+    "output_bound_field": "max_completion_tokens",
+    "protocol_family": "openai-compatible",
+    "protocol_version": "turnvector.benchmark.openai-serving.v1",
+    "response_dialect": "mlx_lm_0_31",
+    "stream_format": "sse-data-json",
+    "transport": "http"
+  },
+  "engine_family": "mlx-lm",
+  "executables": [
+    {
+      "id": "mlx-lm-server",
+      "path": "{target_checkout}/bin/mlx_lm.server",
+      "sha256": "c0c3f03a6b355c1eee0caad993625c495a4332d1cb881285a6efabbe387a14a8"
+    }
+  ],
+  "id": "mlx-lm-qwen3-0.6b-publication-v1",
+  "manifest_purpose": "publication",
+  "model": {
+    "architecture_sha256": "15d3ac26c043ae477273ed5802ee0f0b33bb14f18c9d3dd70910c02d906e3f1f",
+    "chat_template_sha256": "87a2728cb8dc9fe424d624542f6060ec05a1d285ebbec578bb078900e33396b5",
+    "id": "qwen3-0.6b-4bit",
+    "mtp_sidecar_sha256": null,
+    "quantization": {
+      "algorithm": "int4-groupwise",
+      "bit_width": 4,
+      "group_size": 64,
+      "tensor_coverage_sha256": "7b294141456f6904936db03c00bca50fb5f6198f652fe8483f9cd2a1018accfb"
+    },
+    "revision": "73e3e38d981303bc594367cd910ea6eb48349da8",
+    "runtime_config_sha256": "15d3ac26c043ae477273ed5802ee0f0b33bb14f18c9d3dd70910c02d906e3f1f",
+    "snapshot_sha256": "d8e7968c534bb2b2445ec765ec85cec9f22d107e5a5cbc7e1fa01de81411db9f",
+    "tokenizer_id": "qwen3-0.6b-tokenizer",
+    "tokenizer_sha256": "aeb13307a71acd8fe81861d94ad54ab689df773318809eed3cbe794b4492dae4",
+    "upstream_repository": "https://huggingface.co/mlx-community/Qwen3-0.6B-4bit"
+  },
+  "process_topology": {
+    "deployment": "single_process",
+    "expected_processes": 1,
+    "listener_process": "leader"
+  },
+  "route_mapper_version": null,
+  "scenario_support": [
+    {
+      "reason_code": null,
+      "scenario_id": "cancellation-and-disconnect",
+      "status": "supported"
+    },
+    {
+      "reason_code": null,
+      "scenario_id": "closed-loop-concurrency",
+      "status": "supported"
+    },
+    {
+      "reason_code": null,
+      "scenario_id": "deterministic-repeat",
+      "status": "supported"
+    },
+    {
+      "reason_code": null,
+      "scenario_id": "long-context-serving",
+      "status": "supported"
+    },
+    {
+      "reason_code": "required_capability_unavailable",
+      "scenario_id": "mtp-acceleration",
+      "status": "capability_unsupported"
+    },
+    {
+      "reason_code": "required_capability_unavailable",
+      "scenario_id": "multi-model-coexistence",
+      "status": "capability_unsupported"
+    },
+    {
+      "reason_code": null,
+      "scenario_id": "open-loop-load-sweep",
+      "status": "supported"
+    },
+    {
+      "reason_code": "required_capability_unavailable",
+      "scenario_id": "prefill-vs-decode-interference",
+      "status": "capability_unsupported"
+    },
+    {
+      "reason_code": "required_capability_unavailable",
+      "scenario_id": "prefix-churn-pressure",
+      "status": "capability_unsupported"
+    },
+    {
+      "reason_code": "required_capability_unavailable",
+      "scenario_id": "prefix-restart-restore",
+      "status": "capability_unsupported"
+    },
+    {
+      "reason_code": "required_capability_unavailable",
+      "scenario_id": "route-fallback",
+      "status": "capability_unsupported"
+    },
+    {
+      "reason_code": "required_capability_unavailable",
+      "scenario_id": "shared-prefix-fanout",
+      "status": "capability_unsupported"
+    },
+    {
+      "reason_code": null,
+      "scenario_id": "single-client-streaming",
+      "status": "supported"
+    }
+  ],
+  "schema_version": "turnvector.benchmark.cross-engine-target.v1",
+  "source": {
+    "dirty": false,
+    "repository": "https://github.com/ml-explore/mlx-lm",
+    "revision": "ed1fca4cef15a824c5f1702c80f70b4cffc8e4dd"
+  }
+}

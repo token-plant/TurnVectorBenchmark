@@ -14,7 +14,9 @@ from turnvector_benchmark.cross_engine.native import NativeInferencePlan
 
 ROOT = Path(__file__).resolve().parent.parent
 PROFILE = ROOT / "profiles" / "cross-engine-openai-serving-v1.json"
+MLX_PUBLICATION_PROFILE = ROOT / "profiles" / "mlx-lm-openai-serving-publication-v1.json"
 TARGET = ROOT / "targets" / "ax-engine-openai-v1.json"
+MLX_PUBLICATION_TARGET = ROOT / "targets" / "mlx-lm-qwen3-0.6b-publication-v1.json"
 D = "d" * 64
 
 
@@ -99,6 +101,51 @@ class CrossEngineCLITests(unittest.TestCase):
             "bb3073ba1dd5ee7413770fc559dc7b03fa60df6e59f997b7884a04c0ebdec699",
         )
         self.assertEqual(PROFILE.stat().st_mtime_ns, before)
+
+    def test_mlx_publication_profile_is_explicit_absolute_48_cell_plan(self) -> None:
+        stdout = io.StringIO()
+        with redirect_stdout(stdout):
+            code = main(
+                ["inspect-cross-engine", "--profile", str(MLX_PUBLICATION_PROFILE)]
+            )
+        report = json.loads(stdout.getvalue())
+        self.assertEqual(code, 0)
+        self.assertEqual(report["profile_id"], "mlx-lm-openai-serving-publication-v1")
+        self.assertEqual(report["scenario_count"], 5)
+        self.assertEqual(report["planned_case_count"], 48)
+        target = json.loads(MLX_PUBLICATION_TARGET.read_text(encoding="utf-8"))
+        self.assertTrue(target["enabled"])
+        self.assertEqual(target["manifest_purpose"], "publication")
+        self.assertEqual(target["endpoint"]["response_dialect"], "mlx_lm_0_31")
+        self.assertEqual(
+            target["adapter"]["arguments"][-2:],
+            ["--chat-template-args", '{"enable_thinking":false}'],
+        )
+
+    def test_enabled_publication_requires_explicit_local_runtime_bindings(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            output = Path(temporary) / "publication"
+            stderr = io.StringIO()
+            with redirect_stderr(stderr):
+                code = main(
+                    [
+                        "run-cross-engine",
+                        "--profile",
+                        str(MLX_PUBLICATION_PROFILE),
+                        "--target",
+                        str(MLX_PUBLICATION_TARGET),
+                        "--output",
+                        str(output),
+                    ]
+                )
+            self.assertEqual(code, 2)
+            self.assertIn("--target-checkout", stderr.getvalue())
+            campaign = json.loads((output / "campaign.json").read_text(encoding="utf-8"))
+            self.assertEqual(len(campaign["campaign"]["cells"]), 48)
+            self.assertEqual(
+                campaign["campaign"]["cells"][0]["parameters"],
+                {"concurrency": 1},
+            )
 
     def test_run_freezes_campaign_before_refusing_disabled_target(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
