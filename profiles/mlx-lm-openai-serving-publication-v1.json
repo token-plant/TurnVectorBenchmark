@@ -1,0 +1,270 @@
+{
+  "artifact_limits": {
+    "diagnostic_count_max": 256,
+    "max_artifacts": 1024,
+    "max_file_bytes": 67108864,
+    "max_total_bytes": 1073741824,
+    "stderr_bytes_max": 1048576
+  },
+  "capability_conditioned_metric_groups": [
+    {
+      "id": "route_reporting",
+      "metrics": [
+        "fallback_count",
+        "route_contract_violation_count"
+      ],
+      "required_capabilities": [
+        "route_reporting"
+      ]
+    },
+    {
+      "id": "prefix_cache_memory",
+      "metrics": [
+        "prefix_hit_token_count",
+        "reuse_coverage_ratio"
+      ],
+      "required_capabilities": [
+        "prefix_cache_memory",
+        "route_reporting"
+      ]
+    },
+    {
+      "id": "prefix_cache_disk",
+      "metrics": [
+        "prefix_hit_token_count",
+        "reuse_coverage_ratio"
+      ],
+      "required_capabilities": [
+        "prefix_cache_disk",
+        "restartable_state",
+        "route_reporting"
+      ]
+    },
+    {
+      "id": "mtp",
+      "metrics": [
+        "drafted_token_count",
+        "accepted_draft_token_count",
+        "mtp_accept_ratio",
+        "fallback_count"
+      ],
+      "required_capabilities": [
+        "mtp",
+        "route_reporting"
+      ]
+    },
+    {
+      "id": "multi_model",
+      "metrics": [
+        "maximum_progress_gap_ms",
+        "weighted_service_error"
+      ],
+      "required_capabilities": [
+        "multi_model"
+      ]
+    },
+    {
+      "id": "cancellation",
+      "metrics": [
+        "cancellation_ack_ms",
+        "leaked_work_count"
+      ],
+      "required_capabilities": [
+        "cancellation"
+      ]
+    },
+    {
+      "id": "server_queue_metrics",
+      "metrics": [
+        "queue_delay_ms"
+      ],
+      "required_capabilities": [
+        "server_queue_metrics"
+      ]
+    },
+    {
+      "id": "process_memory_attribution",
+      "metrics": [
+        "process_memory_high_water_bytes"
+      ],
+      "required_capabilities": [
+        "process_memory_attribution"
+      ]
+    },
+    {
+      "id": "restartable_state",
+      "metrics": [
+        "restart_count"
+      ],
+      "required_capabilities": [
+        "restartable_state"
+      ]
+    },
+    {
+      "id": "native_output_identity",
+      "metrics": [
+        "token_itl_ms",
+        "native_tpot_ms",
+        "native_decode_tokens_per_second",
+        "native_output_token_hash"
+      ],
+      "required_capabilities": [
+        "native_output_identity"
+      ]
+    }
+  ],
+  "claim_scope": "absolute_single_target",
+  "comparison_policy": {
+    "allowed_forms": [
+      "absolute"
+    ],
+    "coverage_disclosure_required": true,
+    "intersection_only": true,
+    "model_equivalence_classes": [
+      "exact_artifact",
+      "same_source_model",
+      "shape_matched",
+      "capability_demo"
+    ],
+    "paired_order": "balanced_or_alternating",
+    "ratio_aggregation": "mean_of_paired_ratios",
+    "workload_contracts": [
+      "same_api_workload",
+      "same_resolved_model_work"
+    ],
+    "zero_common_cells": "no_comparison_row"
+  },
+  "description": "Benchmark-owned absolute mlx-lm 0.31 serving publication profile for throughput, TTFT and conventional metrics; never TurnVector qualification or paired favorable cross-engine evidence.",
+  "evidence_gates": [
+    {
+      "decision": "evidence",
+      "expected": 0,
+      "id": "wire-contract",
+      "metric": "failed_request_count",
+      "operator": "eq"
+    },
+    {
+      "decision": "evidence",
+      "expected": 0,
+      "id": "output-completeness",
+      "metric": "output_contract_violation_count",
+      "operator": "eq"
+    },
+    {
+      "decision": "evidence",
+      "expected": 0,
+      "id": "token-authority",
+      "metric": "token_count_disagreement_count",
+      "operator": "eq"
+    }
+  ],
+  "execution_policy": {
+    "cache_isolation": "scenario_declared_and_proved",
+    "connection_policy": "scenario_frozen",
+    "cooldown_policy": "scenario_frozen",
+    "outlier_policy": "no_deletion",
+    "primary_attempt_policy": "first_eligible_attempt",
+    "process_isolation": "scenario_declared_and_proved",
+    "repetition_order": "ascending_zero_based",
+    "retry_policy": "contract_or_environment_invalid_only",
+    "target_order": "balanced_or_alternating",
+    "warmup_order": "before_measured_repetitions"
+  },
+  "host_admission": {
+    "allowed_memory_pressure": [
+      "normal"
+    ],
+    "allowed_thermal_states": [
+      "nominal"
+    ],
+    "competing_process_policy": "record_and_reject_above_limits",
+    "external_power_required": true,
+    "low_power_mode": "forbidden",
+    "max_load_average_1m": 2.0,
+    "max_swap_bytes": 0,
+    "max_top_process_cpu_percent": 25.0
+  },
+  "id": "mlx-lm-openai-serving-publication-v1",
+  "lifecycle_timeouts_seconds": {
+    "describe_endpoint": 30,
+    "hello": 5,
+    "prepare_session": 30,
+    "reset_state": 120,
+    "shutdown": 10,
+    "start_target": 300,
+    "stop_target": 60
+  },
+  "measurement_surface": "openai_serving",
+  "plan_policy": {
+    "case_id_format": "openai-serving.{scenario_id}.{matrix_id}.c{cell_ordinal:04d}.r{repetition:02d}",
+    "dimension_order": "declared",
+    "dimension_value_order": "declared",
+    "matrix_order": "declared",
+    "pairing_id_format": "openai-serving.{scenario_id}.{matrix_id}.c{cell_ordinal:04d}",
+    "repetition_order": "ascending_zero_based",
+    "scenario_order": "lexical_by_id"
+  },
+  "promotion_gates": [
+    {
+      "decision": "promotion",
+      "expected": 0.95,
+      "id": "slo-goodput",
+      "metric": "slo_goodput_ratio",
+      "operator": "gte"
+    }
+  ],
+  "publication_policy": {
+    "client_amortization_favorable_claims": "forbidden",
+    "composite_winner_score": "forbidden",
+    "cross_target_favorable_claims": "forbidden",
+    "diagnostic_imports_satisfy_gates": false,
+    "negative_performance_publishable": true,
+    "qualification_claims": "forbidden",
+    "raw_trials_required": true,
+    "summary_recomputed": true
+  },
+  "reducers": {
+    "aggregates": [
+      "count",
+      "sum",
+      "min",
+      "max",
+      "mean"
+    ],
+    "percentile_method": "nearest_rank",
+    "percentiles": [
+      50,
+      95,
+      99
+    ],
+    "unavailable_policy": "count_and_exclude_only_when_predeclared"
+  },
+  "required_conventional_metrics": [
+    "successful_request_count",
+    "failed_request_count",
+    "input_token_count",
+    "output_token_count",
+    "e2e_ms",
+    "ttft_ms",
+    "stream_event_interval_ms",
+    "client_post_first_output_ms_per_token",
+    "request_throughput",
+    "output_throughput",
+    "offered_request_rate",
+    "completion_rate",
+    "output_mismatch_count",
+    "output_contract_violation_count",
+    "token_count_disagreement_count",
+    "slo_goodput_ratio"
+  ],
+  "response_dialect": "mlx_lm_0_31",
+  "scenario_sets": [
+    {
+      "activation": "required_common",
+      "id": "openai-serving-mlx-lm-publication-v1",
+      "path": "scenarios/openai-serving-mlx-lm-publication-v1.json",
+      "sha256": "aff96bb10085610b183ede192988355176d00616f1c6c858f44b6a6670e1b071"
+    }
+  ],
+  "schema_version": "turnvector.benchmark.cross-engine-profile.v1"
+}

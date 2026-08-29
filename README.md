@@ -218,6 +218,25 @@ weights, MLX/mlx-c source and build caches, and raw Instruments traces remain
 outside Git and are recursively size/hash checked through the external fixture
 manifest.
 
+### mlx-lm OpenAI serving publication
+
+`profiles/mlx-lm-openai-serving-publication-v1.json` is an absolute-only profile for `mlx-lm==0.31.3`. It executes 48 measured cells across closed-loop concurrency, deterministic repeat, long context, open-loop load, and single-client streaming. The strict cross-engine V1 parser remains unchanged; the profile explicitly records the bounded `mlx_lm_0_31` HTTP/1.0/SSE dialect and forbids paired favorable cross-engine claims.
+
+```bash
+python3 -B -m turnvector_benchmark inspect-cross-engine \
+  --profile profiles/mlx-lm-openai-serving-publication-v1.json
+
+python3 -B -m turnvector_benchmark run-cross-engine \
+  --profile profiles/mlx-lm-openai-serving-publication-v1.json \
+  --target targets/mlx-lm-qwen3-0.6b-publication-v1.json \
+  --target-checkout /absolute/path/to/mlx-lm-0.31.3-venv \
+  --model-root /absolute/path/to/Qwen3-0.6B-4bit \
+  --port 49152 \
+  --output /outside/git/mlx-lm-publication
+```
+
+The runner verifies the pinned launcher and model snapshot, fixes Qwen thinking off, starts a fresh owned process for each cell, and writes Benchmark-owned request traces, raw SSE events/comments, request and trial metrics, TTFT/throughput summaries, output hashes, host/process evidence, attempts, an artifact manifest, and checksums. These rows are endpoint-serving evidence only—not TurnVector qualification or native-inference evidence.
+
 ## Gateway Validation Profile
 
 The separate `profiles/gateway-validation-v1.json` contract fixes five

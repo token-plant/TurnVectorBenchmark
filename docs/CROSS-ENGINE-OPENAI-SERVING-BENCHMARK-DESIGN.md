@@ -723,3 +723,13 @@ Three independent read-only reviews were run with distinct lenses: architecture/
 - fixture tests with exact expected transitions, statuses, artifacts, eligibility, and exits.
 
 The reviews made no code or file changes. After the corrections above, the architecture/protocol reviewer returned `PASS`, the methodology/fairness reviewer returned `PASS`, and the adversarial completeness reviewer returned `PASS_WITH_NONBLOCKERS` with no remaining blocker. This disposition records design corrections only; implementation still requires separate authorization and slice-specific review.
+
+## 24. Explicit mlx-lm 0.31 absolute publication profile
+
+The strict cross-engine V1 wire dialect remains unchanged. `mlx-lm` 0.31 is measured by the separately named `mlx-lm-openai-serving-publication-v1` profile, whose claim scope is `absolute_single_target` and whose response dialect is explicitly `mlx_lm_0_31`. It is not a proxy and does not rewrite traffic.
+
+The dialect admits only the observed, bounded differences from strict V1: HTTP/1.0 responses, `: keepalive N/M` comments retained as raw evidence, `delta.reasoning`, a repeated assistant role in terminal deltas, `chat.completion` on the post-terminal usage chunk, and a closed set of token-detail usage fields. Every raw data event and comment retains its Benchmark receipt timestamp. Unknown comments, fields, orderings, terminal content, and usage details fail closed.
+
+The profile freezes all five conventional serving families for 48 measured cells, including three repetitions, required warmup and cooldown, exact matrix parameters, new-per-request transport, fixed output work, Benchmark/server token agreement, and TTFT/E2E SLOs. Its publication target pins mlx-lm 0.31.3, MLX 0.32.2, the Qwen3-0.6B-4bit snapshot, tokenizer, chat template, launcher, and the fixed `{"enable_thinking":false}` server argument.
+
+Publication output contains Benchmark-owned request traces, raw SSE events and comments, raw trials, request/trial metrics, output hashes, host samples, process audit, attempt ledger, artifact manifest, and checksums. Engine summaries cannot satisfy a gate. HTTP/1.0 rows are absolute-only and cannot support paired favorable cross-engine claims, TurnVector qualification, or native-inference claims.

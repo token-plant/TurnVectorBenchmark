@@ -1,0 +1,19 @@
+{
+  "description": "Deterministic Benchmark-owned prompt templates for the mlx-lm Qwen3 serving publication profile.",
+  "id": "mlx-lm-qwen3-serving-corpus-v1",
+  "long_context_policy": {
+    "filler": " x",
+    "maximum_prompt_tokens": 8192,
+    "method": "binary_search_exact_apply_chat_template_token_count",
+    "prefix": "Benchmark input payload:",
+    "suffix": ". Continue the sequence without explanation: 1, 2, 3, 4, 5,"
+  },
+  "medium_payload_repeat": 1000,
+  "output_instruction": "Continue the sequence without explanation: 1, 2, 3, 4, 5,",
+  "schema_version": "turnvector.benchmark.serving-corpus.v1",
+  "session_identity_policy": {
+    "fresh": "request_ordinal",
+    "reused": "constant_zero"
+  },
+  "zero_filler_prompt": "Continue the sequence without explanation: 1, 2, 3, 4, 5,"
+}

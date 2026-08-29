@@ -293,6 +293,23 @@ class CrossEngineContractTests(unittest.TestCase):
         self.assertTrue(all(target["manifest_purpose"] == "example" for target in self.targets))
         self.assertTrue(all(target["enabled"] is False for target in self.targets))
 
+    def test_mlx_publication_contracts_validate_with_absolute_only_claim_scope(self) -> None:
+        profile = load_json(ROOT / "profiles" / "mlx-lm-openai-serving-publication-v1.json")
+        scenario_set = load_json(
+            ROOT / "scenarios" / "openai-serving-mlx-lm-publication-v1.json"
+        )
+        target = load_json(ROOT / "targets" / "mlx-lm-qwen3-0.6b-publication-v1.json")
+        validate(profile, self.profile_schema)
+        validate(scenario_set, self.scenario_schema)
+        validate(target, self.target_schema)
+        self.assertEqual(profile["claim_scope"], "absolute_single_target")
+        self.assertEqual(profile["response_dialect"], "mlx_lm_0_31")
+        self.assertEqual(profile["comparison_policy"]["allowed_forms"], ["absolute"])
+        self.assertEqual(profile["scenario_sets"][0]["sha256"], digest(
+            ROOT / "scenarios" / "openai-serving-mlx-lm-publication-v1.json"
+        ))
+        self.assertTrue(target["enabled"])
+
     def test_exact_unknown_missing_and_mistyped_fields_fail_closed(self) -> None:
         samples = (
             (self.profile, self.profile_schema, "measurement_surface"),
